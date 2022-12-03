@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	port = flag.Int("port", 8000, "port to listen on")
+	port = flag.Int("port", 1234, "port to listen on")
 	root = flag.String("root", ".", "root path to serve")
 	tmpl = template.Must(template.New("index").Parse(indexHTML))
 	//go:embed index.html
@@ -158,9 +158,9 @@ func LoggerMiddleware(next http.HandlerFunc) http.Handler {
 		rec := NewStatusRecorder(w)
 		next(w, r)
 		if n := r.Header.Get("bytes-copied"); n != "" {
-			log.Printf("%s %s %s --> %s %sb %dms\n", r.Method, r.URL.Path, r.RemoteAddr, rec.Status, n, rec.Milis())
+			log.Printf("%s %s [%s] --> %s [%s bytes] %dms\n", r.Method, r.URL.Path, r.RemoteAddr, rec.Status, n, rec.Milis())
 		} else {
-			log.Printf("%s %s %s --> %s %dms\n", r.Method, r.URL.Path, r.RemoteAddr, rec.Status, rec.Milis())
+			log.Printf("%s %s [%s] --> %s %dms\n", r.Method, r.URL.Path, r.RemoteAddr, rec.Status, rec.Milis())
 		}
 	})
 }
