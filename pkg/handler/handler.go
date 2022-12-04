@@ -12,10 +12,10 @@ import (
 	"strings"
 )
 
-func ServeFile(file string, fsize int64, download bool) http.Handler {
+func ServeFile(file string, fsize int64, plaintext bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
-			if err := sendFile(w, r, file, download); err != nil {
+			if err := sendFile(w, r, file, plaintext); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			return
@@ -39,7 +39,7 @@ func ServeFile(file string, fsize int64, download bool) http.Handler {
 	})
 }
 
-func ServeDir(dir string, download bool) http.Handler {
+func ServeDir(dir string, plaintext bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		file := dir + r.URL.Path
 		err := util.ValidatePath(file)
@@ -62,7 +62,7 @@ func ServeDir(dir string, download bool) http.Handler {
 			return
 		}
 		if !fstat.IsDir() {
-			if err = sendFile(w, r, file, download); err != nil {
+			if err = sendFile(w, r, file, plaintext); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			return
@@ -103,7 +103,7 @@ func ServeDir(dir string, download bool) http.Handler {
 	})
 }
 
-func sendFile(w http.ResponseWriter, r *http.Request, filePath string, download bool) error {
+func sendFile(w http.ResponseWriter, r *http.Request, filePath string, plaintext bool) error {
 	err := util.ValidatePath(filePath)
 	if err != nil {
 		return err
@@ -113,7 +113,7 @@ func sendFile(w http.ResponseWriter, r *http.Request, filePath string, download 
 		return err
 	}
 	defer f.Close()
-	if download {
+	if !plaintext {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", path.Base(filePath)))
 		w.Header().Set("Content-Type", "application/octet-stream")
 	}

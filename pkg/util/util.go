@@ -6,8 +6,8 @@ import (
 )
 
 func ValidatePath(p string) error {
-	if strings.Contains(p, "..") || strings.Contains(p, "~") {
-		return fmt.Errorf("invalid path: %s must not contain '..' or '~'", p)
+	if strings.HasPrefix(p, "/") || strings.Contains(p, "..") || strings.Contains(p, "~") {
+		return fmt.Errorf("invalid path %s: must not contain '..', '~', or start with '/'", p)
 	}
 	return nil
 }
