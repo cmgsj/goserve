@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+        <title>GoServ</title>
+    </head>
+    <body>
+        <header>
+            <a class="backLink" href="{{.BackLink}}">⬅︎</a>
+            <label>{{.Header}}</label>
+        </header>
+        {{if .Ok}}
+        <main>
+            <ul>
+                {{range .Files}}
+                <li id="{{.Name}}">
+                    {{if .IsDir}}
+                    <a class="dir" href="{{.Path}}">{{.Name}}/</a>
+                    {{else}}
+                    <a class="file" href="{{.Path}}"
+                        >{{.Name}} <code class="size">[{{.Size}}]</code></a
+                    >
+                    {{end}}
+                </li>
+                {{end}}
+            </ul>
+        </main>
+        {{end}}
+    </body>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+        header {
+            background-color: #191919;
+            width: 100%;
+            padding: 10px;
+            font-size: 20px;
+            display: flex;
+            flex-direction: row;
+        }
+        label {
+            margin-left: 15px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .backLink,
+        .file,
+        .dir {
+            color: #d4d4d4;
+            text-decoration: none;
+        }
+        .dir {
+            font-weight: bold;
+        }
+        .backLink:hover,
+        .file:hover,
+        .dir:hover {
+            color: dodgerblue;
+        }
+        .size {
+            color: #777777;
+        }
+    </style>
+</html>
