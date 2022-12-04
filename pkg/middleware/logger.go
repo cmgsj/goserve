@@ -20,7 +20,7 @@ func (s *StatusRecorder) WriteHeader(code int) {
 }
 
 func (s *StatusRecorder) Milis() int64 {
-	return time.Since(s.Start).Nanoseconds() / 1000 / 1000
+	return time.Since(s.Start).Nanoseconds() / 1000 * 1000
 }
 
 func NewStatusRecorder(w http.ResponseWriter) *StatusRecorder {

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"goserve/pkg/templates"
-	"goserve/pkg/util"
 	"io"
 	"net/http"
 	"os"
@@ -12,41 +11,39 @@ import (
 	"strings"
 )
 
-func ServeFile(file string, fsize int64, plaintext bool) http.Handler {
+func ServeFile(file string, fsize int64, serveAsText bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var err error
 		if r.URL.Path != "/" {
-			if err := sendFile(w, r, file, plaintext); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-			return
+			err = sendFile(w, r, file, serveAsText)
+		} else {
+			err = templates.Index.Execute(w, templates.Page{
+				Ok:       true,
+				BackLink: "/",
+				Header:   "",
+				Files: []templates.File{
+					{
+						Path:  file,
+						Name:  path.Base(file),
+						Size:  FormatFileSize(fsize),
+						IsDir: false,
+					},
+				}})
 		}
-		err := templates.Index.Execute(w, templates.Page{
-			Ok:       true,
-			BackLink: "/",
-			Header:   "",
-			Files: []templates.File{
-				{
-					Path:  file,
-					Name:  path.Base(file),
-					Size:  util.FormatFileSize(fsize),
-					IsDir: false,
-				},
-			},
-		})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 }
 
-func ServeDir(dir string, plaintext bool) http.Handler {
+func ServeDir(dir string, serveAsText bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		file := dir + r.URL.Path
-		err := util.ValidatePath(file)
+		err := ValidateUrlPath(r.URL.Path)
 		if err != nil {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
+		file := dir + r.URL.Path
 		fstat, err := os.Stat(file)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
@@ -62,7 +59,7 @@ func ServeDir(dir string, plaintext bool) http.Handler {
 			return
 		}
 		if !fstat.IsDir() {
-			if err = sendFile(w, r, file, plaintext); err != nil {
+			if err = sendFile(w, r, file, serveAsText); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			return
@@ -72,23 +69,22 @@ func ServeDir(dir string, plaintext bool) http.Handler {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		var files []templates.File
-		var dirs []templates.File
+		var files, dirs []templates.File
 		for _, entry := range entries {
 			size := " - "
 			if info, err := entry.Info(); err == nil && !entry.IsDir() {
-				size = util.FormatFileSize(info.Size())
+				size = FormatFileSize(info.Size())
 			}
-			f := templates.File{
+			fileTmpl := templates.File{
 				Path:  path.Join(r.URL.Path, entry.Name()),
 				Name:  entry.Name(),
 				Size:  size,
 				IsDir: entry.IsDir(),
 			}
 			if entry.IsDir() {
-				dirs = append(dirs, f)
+				dirs = append(dirs, fileTmpl)
 			} else {
-				files = append(files, f)
+				files = append(files, fileTmpl)
 			}
 		}
 		err = templates.Index.Execute(w, templates.Page{
@@ -103,17 +99,13 @@ func ServeDir(dir string, plaintext bool) http.Handler {
 	})
 }
 
-func sendFile(w http.ResponseWriter, r *http.Request, filePath string, plaintext bool) error {
-	err := util.ValidatePath(filePath)
-	if err != nil {
-		return err
-	}
+func sendFile(w http.ResponseWriter, r *http.Request, filePath string, serveAsText bool) error {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	if !plaintext {
+	if !serveAsText {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", path.Base(filePath)))
 		w.Header().Set("Content-Type", "application/octet-stream")
 	}
@@ -121,6 +113,29 @@ func sendFile(w http.ResponseWriter, r *http.Request, filePath string, plaintext
 	if err != nil {
 		return err
 	}
-	r.Header.Set("bytes-copied", util.FormatFileSize(n))
+	r.Header.Set("bytes-copied", FormatFileSize(n))
 	return nil
+}
+
+func ValidateUrlPath(p string) error {
+	if strings.Contains(p, "..") || strings.Contains(p, "~") {
+		return fmt.Errorf("invalid path %s: must not contain '..' or '~'", p)
+	}
+	return nil
+}
+
+func FormatFileSize(numBytes int64) string {
+	var unit string
+	var conv int64
+	if conv = 1024 * 1024 * 2014; numBytes > conv {
+		unit = "GB"
+	} else if conv = 1024 * 1024; numBytes > conv {
+		unit = "MB"
+	} else if conv = 1024; numBytes > conv {
+		unit = "KB"
+	} else {
+		unit = "B"
+		conv = 1
+	}
+	return fmt.Sprintf("%.2f%s", float64(numBytes)/float64(conv), unit)
 }
