@@ -1,14 +1,12 @@
 package main
 
 import (
-	_ "embed"
 	"errors"
 	"flag"
 	"fmt"
 	"goserve/pkg/handler"
 	"goserve/pkg/middleware"
 	"goserve/pkg/util"
-	"net"
 	"net/http"
 	"os"
 	"path"
@@ -31,8 +29,9 @@ func Run() error {
 	flag.Parse()
 
 	*root = path.Clean(*root)
-	if !util.IsValidPath(*root) {
-		return fmt.Errorf("root path cannot contain '..' or '~'")
+	err := util.ValidatePath(*root)
+	if err != nil {
+		return err
 	}
 
 	fstat, err := os.Stat(*root)
@@ -43,26 +42,19 @@ func Run() error {
 		return fmt.Errorf("error reading path %s: %v", *root, err)
 	}
 
-	httpHandler := handler.ServeDir(*root, *download)
+	defaultHandler := handler.ServeDir(*root, *download)
 	ftype := "dir"
 	if !fstat.IsDir() {
-		httpHandler = handler.ServeFile(*root, fstat.Size(), *download)
+		defaultHandler = handler.ServeFile(*root, fstat.Size(), *download)
 		ftype = "file"
 	}
-	http.Handle("/", middleware.Logger(httpHandler))
 
-	addr := fmt.Sprintf(":%d", *port)
-	serverUrl := fmt.Sprintf("http://localhost%s", addr)
-
-	fmt.Printf("serving %s [%s] at %s\n", ftype, *root, serverUrl)
-
-	lis, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", *port),
+		Handler: middleware.Logger(defaultHandler),
 	}
-	defer lis.Close()
 
-	go util.OpenBrowser(serverUrl)
+	fmt.Printf("serving %s [%s] at http://localhost%s\n", ftype, *root, server.Addr)
 
-	return http.Serve(lis, nil)
+	return server.ListenAndServe()
 }
