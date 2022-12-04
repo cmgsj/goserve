@@ -5,9 +5,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"goserv/pkg/handler"
-	"goserv/pkg/middleware"
-	"goserv/pkg/util"
+	"goserve/pkg/handler"
+	"goserve/pkg/middleware"
+	"goserve/pkg/util"
 	"net"
 	"net/http"
 	"os"
@@ -53,7 +53,7 @@ func Run() error {
 
 	addr := fmt.Sprintf(":%d", *port)
 	serverUrl := fmt.Sprintf("http://localhost%s", addr)
-	
+
 	fmt.Printf("serving %s [%s] at %s\n", ftype, *root, serverUrl)
 
 	lis, err := net.Listen("tcp", addr)

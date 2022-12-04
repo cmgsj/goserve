@@ -1,2 +1,2 @@
-# goserv
+# goserve
 simple static file server

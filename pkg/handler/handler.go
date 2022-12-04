@@ -3,8 +3,8 @@ package handler
 import (
 	"errors"
 	"fmt"
-	"goserv/pkg/templates"
-	"goserv/pkg/util"
+	"goserve/pkg/templates"
+	"goserve/pkg/util"
 	"io"
 	"net/http"
 	"os"

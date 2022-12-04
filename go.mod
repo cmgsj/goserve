@@ -1,3 +1,3 @@
-module goserv
+module goserve
 
 go 1.19
