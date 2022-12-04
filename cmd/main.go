@@ -27,13 +27,11 @@ func main() {
 
 func Run() error {
 	flag.Parse()
-
 	*root = path.Clean(*root)
 	err := util.ValidatePath(*root)
 	if err != nil {
 		return err
 	}
-
 	fstat, err := os.Stat(*root)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -41,20 +39,13 @@ func Run() error {
 		}
 		return fmt.Errorf("error reading path %s: %v", *root, err)
 	}
-
 	defaultHandler := handler.ServeDir(*root, *download)
 	ftype := "dir"
 	if !fstat.IsDir() {
 		defaultHandler = handler.ServeFile(*root, fstat.Size(), *download)
 		ftype = "file"
 	}
-
-	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", *port),
-		Handler: middleware.Logger(defaultHandler),
-	}
-
-	fmt.Printf("serving %s [%s] at http://localhost%s\n", ftype, *root, server.Addr)
-
-	return server.ListenAndServe()
+	addr := fmt.Sprintf(":%d", *port)
+	fmt.Printf("serving %s [%s] at http://localhost%s\n", ftype, *root, addr)
+	return http.ListenAndServe(addr, middleware.Logger(defaultHandler))
 }
