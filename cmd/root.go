@@ -64,7 +64,7 @@ var (
 func Execute() {
 	rootCmd.PersistentFlags().IntVarP(&port, "port", "p", 1234, "port to listen on")
 	rootCmd.PersistentFlags().BoolVarP(&text, "text", "t", true, "serve as text or download")
-	rootCmd.PersistentFlags().StringVarP(&output, "output", "o", "", "output file name")
+	rootCmd.PersistentFlags().StringVarP(&output, "output", "o", "", "output file path")
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
