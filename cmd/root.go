@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"goserve/pkg/handler"
 	"goserve/pkg/middleware"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -15,6 +16,7 @@ import (
 var (
 	port    int
 	text    bool
+	output  string
 	rootCmd = &cobra.Command{
 		Use:     "goserve [path]",
 		Short:   "Simple static file server",
@@ -25,6 +27,14 @@ var (
 			root := "."
 			if len(args) > 0 {
 				root = path.Clean(args[0])
+			}
+			if output != "" {
+				f, err := os.Create(output)
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+				cmd.SetOut(io.MultiWriter(os.Stdout, f))
 			}
 			fstat, err := os.Stat(root)
 			if err != nil {
@@ -39,7 +49,7 @@ var (
 				defaultHandler = handler.ServeFile(root, fstat.Size(), text)
 				fileType = "file"
 			}
-			defaultHandler = middleware.Logger(defaultHandler)
+			defaultHandler = middleware.Logger(cmd.OutOrStdout(), defaultHandler)
 			serveMode := "text"
 			if !text {
 				serveMode = "download"
@@ -54,6 +64,7 @@ var (
 func Execute() {
 	rootCmd.PersistentFlags().IntVarP(&port, "port", "p", 1234, "port to listen on")
 	rootCmd.PersistentFlags().BoolVarP(&text, "text", "t", true, "serve as text or download")
+	rootCmd.PersistentFlags().StringVarP(&output, "output", "o", "", "output file name")
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

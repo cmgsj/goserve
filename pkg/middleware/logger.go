@@ -1,7 +1,8 @@
 package middleware
 
 import (
-	"log"
+	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -19,8 +20,8 @@ func (s *StatusRecorder) WriteHeader(code int) {
 	s.ResponseWriter.WriteHeader(code)
 }
 
-func (s *StatusRecorder) Milis() int64 {
-	return time.Since(s.Start).Nanoseconds() / 1000 * 1000
+func (s *StatusRecorder) Duration() time.Duration {
+	return time.Since(s.Start)
 }
 
 func NewStatusRecorder(w http.ResponseWriter) *StatusRecorder {
@@ -32,14 +33,14 @@ func NewStatusRecorder(w http.ResponseWriter) *StatusRecorder {
 	}
 }
 
-func Logger(next http.Handler) http.Handler {
+func Logger(out io.Writer, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rec := NewStatusRecorder(w)
 		next.ServeHTTP(rec, r)
-		if bytesCopied := r.Header.Get("bytes-copied"); bytesCopied != "" {
-			log.Printf("%s %s [%s] --> %s [%s] %dms\n", r.Method, r.URL.Path, r.RemoteAddr, rec.Status, bytesCopied, rec.Milis())
-		} else {
-			log.Printf("%s %s [%s] --> %s %dms\n", r.Method, r.URL.Path, r.RemoteAddr, rec.Status, rec.Milis())
-		}
+		fmt.Fprintf(out, "%s %s %s [%s] --> %s [%s] %dms\n",
+			time.Now().Format("2006/01/02 15:04:05"),
+			r.Method, r.URL.Path, r.RemoteAddr, rec.Status,
+			r.Header.Get("bytes-copied"),
+			rec.Duration().Milliseconds())
 	})
 }
