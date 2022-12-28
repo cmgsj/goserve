@@ -1,98 +1,45 @@
 package handler
 
 import (
-	"errors"
 	"fmt"
+	"goserve/pkg/file"
+	"goserve/pkg/middleware"
 	"goserve/pkg/templates"
 	"io"
 	"net/http"
 	"os"
 	"path"
-	"strings"
 )
 
-func ServeFile(file string, fsize int64, serveAsText bool) http.Handler {
+func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var err error
-		if r.URL.Path != "/" {
-			err = sendFile(w, r, file, serveAsText)
-		} else {
+		f, err := root.FindMatch(r.URL.Path)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
 			err = templates.Index.Execute(w, templates.Page{
-				Ok:       true,
+				Ok:       false,
 				BackLink: "/",
-				Header:   "",
-				Files: []templates.File{
-					{
-						Path:  file,
-						Name:  path.Base(file),
-						Size:  FormatFileSize(fsize),
-						IsDir: false,
-					},
-				}})
-		}
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	})
-}
-
-func ServeDir(dir string, serveAsText bool) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err := ValidateUrlPath(r.URL.Path)
-		if err != nil {
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
-		}
-		file := dir + r.URL.Path
-		fstat, err := os.Stat(file)
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				err = templates.Index.Execute(w, templates.Page{
-					Ok:       false,
-					BackLink: "/",
-					Header:   fmt.Sprintf("file not found: %s", file),
+				Header:   err.Error(),
+			})
+		} else if f.IsDir {
+			var fileTmpls []templates.File
+			for _, child := range f.Children {
+				fileTmpls = append(fileTmpls, templates.File{
+					Path:  fmt.Sprintf("/%s", child.Path),
+					Name:  child.Name,
+					Size:  child.Size,
+					IsDir: child.IsDir,
 				})
 			}
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-			return
+			err = templates.Index.Execute(w, templates.Page{
+				Ok:       true,
+				BackLink: fmt.Sprintf("/%s", path.Dir(f.Path)),
+				Header:   f.Path,
+				Files:    fileTmpls,
+			})
+		} else {
+			err = sendFile(w, r, f.Path, serveAsText)
 		}
-		if !fstat.IsDir() {
-			if err = sendFile(w, r, file, serveAsText); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-			return
-		}
-		entries, err := os.ReadDir(file)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		var files, dirs []templates.File
-		for _, entry := range entries {
-			size := " - "
-			if info, err := entry.Info(); err == nil && !entry.IsDir() {
-				size = FormatFileSize(info.Size())
-			}
-			fileTmpl := templates.File{
-				Path:  path.Join(r.URL.Path, entry.Name()),
-				Name:  entry.Name(),
-				Size:  size,
-				IsDir: entry.IsDir(),
-			}
-			if entry.IsDir() {
-				dirs = append(dirs, fileTmpl)
-			} else {
-				files = append(files, fileTmpl)
-			}
-		}
-		err = templates.Index.Execute(w, templates.Page{
-			Ok:       true,
-			BackLink: path.Dir(strings.TrimRight(r.URL.Path, "/")),
-			Header:   strings.Trim(r.URL.Path, "/"),
-			Files:    append(dirs, files...),
-		})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -113,29 +60,6 @@ func sendFile(w http.ResponseWriter, r *http.Request, filePath string, serveAsTe
 	if err != nil {
 		return err
 	}
-	r.Header.Set("bytes-copied", FormatFileSize(n))
+	r.Header.Set(middleware.BytesCopiedHeader, file.FormatSize(n))
 	return nil
-}
-
-func ValidateUrlPath(p string) error {
-	if strings.Contains(p, "..") || strings.Contains(p, "~") {
-		return fmt.Errorf("invalid path %s: must not contain '..' or '~'", p)
-	}
-	return nil
-}
-
-func FormatFileSize(numBytes int64) string {
-	var unit string
-	var conv int64
-	if conv = 1024 * 1024 * 2014; numBytes > conv {
-		unit = "GB"
-	} else if conv = 1024 * 1024; numBytes > conv {
-		unit = "MB"
-	} else if conv = 1024; numBytes > conv {
-		unit = "KB"
-	} else {
-		unit = "B"
-		conv = 1
-	}
-	return fmt.Sprintf("%.2f%s", float64(numBytes)/float64(conv), unit)
 }

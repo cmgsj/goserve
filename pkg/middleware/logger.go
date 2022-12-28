@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	BytesCopiedHeader = "bytes-copied"
+)
+
 type StatusRecorder struct {
 	http.ResponseWriter
 	StatusCode int
@@ -40,7 +44,7 @@ func Logger(out io.Writer, next http.Handler) http.Handler {
 		fmt.Fprintf(out, "%s %s %s [%s] --> %s [%s] %dms\n",
 			time.Now().Format("2006/01/02 15:04:05"),
 			r.Method, r.URL.Path, r.RemoteAddr, rec.Status,
-			r.Header.Get("bytes-copied"),
+			r.Header.Get(BytesCopiedHeader),
 			rec.Duration().Milliseconds())
 	})
 }
