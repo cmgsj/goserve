@@ -22,9 +22,9 @@ func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
 				Header:   err.Error(),
 			})
 		} else if f.IsDir {
-			var fileTmpls []templates.File
+			var files []templates.File
 			for _, child := range f.Children {
-				fileTmpls = append(fileTmpls, templates.File{
+				files = append(files, templates.File{
 					Path:  fmt.Sprintf("/%s", child.Path),
 					Name:  child.Name,
 					Size:  child.Size,
@@ -35,7 +35,7 @@ func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
 				Ok:       true,
 				BackLink: fmt.Sprintf("/%s", path.Dir(f.Path)),
 				Header:   f.Path,
-				Files:    fileTmpls,
+				Files:    files,
 			})
 		} else {
 			err = sendFile(w, r, f.Path, serveAsText)

@@ -16,8 +16,11 @@ type Entry struct {
 }
 
 func (e *Entry) FindMatch(s string) (*Entry, error) {
-	parts := strings.Split(strings.TrimPrefix(strings.Trim(s, "/"), e.Path), "/")
+	if e == nil {
+		return nil, fmt.Errorf("nil entry")
+	}
 	entry := e
+	parts := strings.Split(strings.TrimPrefix(strings.Trim(s, "/"), e.Path), "/")
 	for _, part := range parts {
 		if part == "" {
 			continue
@@ -43,41 +46,43 @@ func GetFSRoot(fileName string) (*Entry, error) {
 		return nil, err
 	}
 	root := &Entry{
-		Path:  fileName,
-		Name:  fstat.Name(),
-		IsDir: fstat.IsDir(),
+		Path: fileName,
+		Name: fstat.Name(),
 	}
 	if fstat.IsDir() {
 		root.Size = " - "
+		root.IsDir = true
 		entries, err := os.ReadDir(fileName)
 		if err != nil {
-			return nil, err
+			fmt.Fprintln(os.Stderr, err)
 		}
 		var files, dirs []*Entry
 		for _, entry := range entries {
-			info, err := entry.Info()
+			finfo, err := entry.Info()
 			if err != nil {
-				return nil, err
+				fmt.Fprintln(os.Stderr, err)
+				continue
 			}
-			if info.IsDir() {
+			if finfo.IsDir() {
 				f, err := GetFSRoot(path.Join(fileName, entry.Name()))
 				if err != nil {
-					return nil, err
+					fmt.Fprintln(os.Stderr, err)
+					continue
 				}
 				dirs = append(dirs, f)
 			} else {
 				files = append(files, &Entry{
 					Path:  path.Join(fileName, entry.Name()),
 					Name:  entry.Name(),
-					Size:  FormatSize(info.Size()),
+					Size:  FormatSize(finfo.Size()),
 					IsDir: false,
 				})
-
 			}
 		}
 		root.Children = append(dirs, files...)
 	} else {
 		root.Size = FormatSize(fstat.Size())
+		root.IsDir = false
 	}
 	return root, nil
 }
