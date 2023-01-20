@@ -9,7 +9,7 @@ windows:
 	GOOS=windows GOARCH=amd64 go build -o bin .
 
 publish: macm1
-	sudo ln -sF /Users/cmg/vscode/projects/goserve/bin/goserve /usr/local/bin
+	sudo ln -sF /Users/cmg/dev/projects/goserve/bin/goserve /usr/local/bin
 
 unpublish:
 	sudo rm -f /usr/local/bin/goserve

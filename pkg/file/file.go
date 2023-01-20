@@ -19,16 +19,15 @@ func (e *Entry) FindMatch(s string) (*Entry, error) {
 	if e == nil {
 		return nil, fmt.Errorf("nil entry")
 	}
-	entry := e
 	parts := strings.Split(strings.TrimPrefix(strings.Trim(s, "/"), e.Path), "/")
 	for _, part := range parts {
 		if part == "" {
 			continue
 		}
 		found := false
-		for _, c := range entry.Children {
+		for _, c := range e.Children {
 			if c.Name == part {
-				entry = c
+				e = c
 				found = true
 				break
 			}
@@ -37,7 +36,7 @@ func (e *Entry) FindMatch(s string) (*Entry, error) {
 			return nil, fmt.Errorf("path not found: %s", s)
 		}
 	}
-	return entry, nil
+	return e, nil
 }
 
 func GetFSRoot(fileName string) (*Entry, error) {
