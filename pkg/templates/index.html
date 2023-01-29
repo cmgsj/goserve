@@ -10,7 +10,7 @@
     <body>
         <header>
             <a class="backLink" href="{{.BackLink}}">⬅︎</a>
-            <label>{{.Header}}</label>
+            <label id="header-label">{{.Header}}</label>
         </header>
         {{if .Ok}}
         <main>
@@ -29,6 +29,9 @@
             </ul>
         </main>
         {{end}}
+        <footer>
+            <p>GoServe v{{.Version}}</p>
+        </footer>
     </body>
     <style>
         body {
@@ -67,5 +70,17 @@
         .size {
             color: #777777;
         }
+        footer {
+            font-size: small;
+            color: #777777;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+        }
     </style>
+    <script>
+        const headerLabel = document.getElementById("header-label");
+        headerLabel.addEventListener("click", () => alert("{{.Header}}"));
+    </script>
 </html>

@@ -11,6 +11,10 @@ import (
 	"path"
 )
 
+const (
+	VERSION = "0.0.1"
+)
+
 func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f, err := root.FindMatch(r.URL.Path)
@@ -20,6 +24,7 @@ func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
 				Ok:       false,
 				BackLink: "/",
 				Header:   err.Error(),
+				Version:  VERSION,
 			})
 		} else if f.IsDir {
 			var files []templates.File
@@ -36,6 +41,7 @@ func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
 				BackLink: fmt.Sprintf("/%s", path.Dir(f.Path)),
 				Header:   f.Path,
 				Files:    files,
+				Version:  VERSION,
 			})
 		} else {
 			err = sendFile(w, r, f.Path, serveAsText)

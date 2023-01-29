@@ -20,7 +20,7 @@ var (
 		Use:     "goserve [path]",
 		Short:   "Simple static file server",
 		Long:    "Simple static file server.",
-		Version: "0.1.0",
+		Version: "0.0.1",
 		Args:    cobra.MaximumNArgs(1),
 		RunE:    runRootCmd,
 	}

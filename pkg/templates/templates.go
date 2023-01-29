@@ -16,6 +16,7 @@ type Page struct {
 	BackLink string
 	Header   string
 	Files    []File
+	Version  string
 }
 
 type File struct {
