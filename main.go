@@ -1,7 +1,7 @@
 package main
 
-import "goserve/cmd"
+import "goserve/cmd/root"
 
 func main() {
-	cmd.Execute()
+	root.Execute()
 }
