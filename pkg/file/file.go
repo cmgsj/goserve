@@ -19,7 +19,7 @@ func (e *Entry) FindMatch(s string) (*Entry, error) {
 	if e == nil {
 		return nil, fmt.Errorf("nil entry")
 	}
-	parts := strings.Split(strings.TrimPrefix(strings.Trim(s, "/"), e.Path), "/")
+	parts := strings.Split(s, "/")
 	for _, part := range parts {
 		if part == "" {
 			continue
@@ -86,18 +86,18 @@ func GetFSRoot(fileName string) (*Entry, error) {
 	return root, nil
 }
 
-func FormatSize(numBytes int64) string {
+func FormatSize(fsize int64) string {
 	var unit string
 	var conv int64
-	if conv = 1024 * 1024 * 2014; numBytes > conv {
+	if conv = 1024 * 1024 * 2014; fsize > conv {
 		unit = "GB"
-	} else if conv = 1024 * 1024; numBytes > conv {
+	} else if conv = 1024 * 1024; fsize > conv {
 		unit = "MB"
-	} else if conv = 1024; numBytes > conv {
+	} else if conv = 1024; fsize > conv {
 		unit = "KB"
 	} else {
 		unit = "B"
 		conv = 1
 	}
-	return fmt.Sprintf("%.2f%s", float64(numBytes)/float64(conv), unit)
+	return fmt.Sprintf("%.2f%s", float64(fsize)/float64(conv), unit)
 }

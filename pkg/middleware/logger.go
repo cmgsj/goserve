@@ -11,40 +11,37 @@ const (
 	BytesCopiedHeader = "bytes-copied"
 )
 
-type StatusRecorder struct {
+type statusRecorder struct {
 	http.ResponseWriter
 	StatusCode int
 	Status     string
-	Start      time.Time
 }
 
-func (s *StatusRecorder) WriteHeader(code int) {
+func (s *statusRecorder) WriteHeader(code int) {
 	s.StatusCode = code
 	s.Status = http.StatusText(code)
 	s.ResponseWriter.WriteHeader(code)
 }
 
-func (s *StatusRecorder) Duration() time.Duration {
-	return time.Since(s.Start)
-}
-
-func NewStatusRecorder(w http.ResponseWriter) *StatusRecorder {
-	return &StatusRecorder{
+func newStatusRecorder(w http.ResponseWriter) *statusRecorder {
+	return &statusRecorder{
 		ResponseWriter: w,
 		StatusCode:     http.StatusOK,
 		Status:         http.StatusText(http.StatusOK),
-		Start:          time.Now(),
 	}
 }
 
 func Logger(out io.Writer, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		rec := NewStatusRecorder(w)
+		rec := newStatusRecorder(w)
+		start := time.Now()
 		next.ServeHTTP(rec, r)
+		end := time.Now()
 		fmt.Fprintf(out, "%s %s %s [%s] --> %s [%s] %dms\n",
-			time.Now().Format("2006/01/02 15:04:05"),
+			end.Format("2006/01/02 15:04:05"),
 			r.Method, r.URL.Path, r.RemoteAddr, rec.Status,
 			r.Header.Get(BytesCopiedHeader),
-			rec.Duration().Milliseconds())
+			end.Sub(start).Milliseconds(),
+		)
 	})
 }

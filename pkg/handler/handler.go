@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 )
 
 const (
@@ -30,7 +31,7 @@ func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
 			var files []templates.File
 			for _, child := range f.Children {
 				files = append(files, templates.File{
-					Path:  fmt.Sprintf("/%s", child.Path),
+					Path:  strings.TrimPrefix(child.Path, root.Path),
 					Name:  child.Name,
 					Size:  child.Size,
 					IsDir: child.IsDir,
@@ -38,8 +39,8 @@ func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
 			}
 			err = templates.Index.Execute(w, templates.Page{
 				Ok:       true,
-				BackLink: fmt.Sprintf("/%s", path.Dir(f.Path)),
-				Header:   f.Path,
+				BackLink: path.Dir(strings.TrimPrefix(f.Path, root.Path)),
+				Header:   strings.TrimPrefix(f.Path, root.Path),
 				Files:    files,
 				Version:  VERSION,
 			})
