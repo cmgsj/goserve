@@ -3,7 +3,6 @@ package handler
 import (
 	"fmt"
 	"goserve/pkg/file"
-	"goserve/pkg/middleware"
 	"goserve/pkg/templates"
 	"io"
 	"net/http"
@@ -12,7 +11,7 @@ import (
 	"strings"
 )
 
-func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
+func ServeFileTree(root *file.FileTree, raw bool) http.Handler {
 	version := os.Getenv("GOSERVE_VERSION")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f, err := root.FindMatch(r.URL.Path)
@@ -25,24 +24,32 @@ func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
 				Version:  version,
 			})
 		} else if f.IsDir {
-			var files []templates.File
+			var files, dirs []templates.File
 			for _, child := range f.Children {
-				files = append(files, templates.File{
+				if child.IsBadDir {
+					continue
+				}
+				file := templates.File{
 					Path:  strings.TrimPrefix(child.Path, root.Path),
 					Name:  child.Name,
 					Size:  child.Size,
 					IsDir: child.IsDir,
-				})
+				}
+				if child.IsDir {
+					dirs = append(dirs, file)
+				} else {
+					files = append(files, file)
+				}
 			}
 			err = templates.Index.Execute(w, templates.Page{
 				Ok:       true,
 				BackLink: path.Dir(strings.TrimPrefix(f.Path, root.Path)),
 				Header:   "/" + strings.TrimPrefix(strings.TrimPrefix(f.Path, root.Path), "/"),
-				Files:    files,
+				Files:    append(dirs, files...),
 				Version:  version,
 			})
 		} else {
-			err = sendFile(w, r, f.Path, serveAsText)
+			err = sendFile(w, r, f.Path, raw)
 		}
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -50,13 +57,13 @@ func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
 	})
 }
 
-func sendFile(w http.ResponseWriter, r *http.Request, filePath string, serveAsText bool) error {
+func sendFile(w http.ResponseWriter, r *http.Request, filePath string, raw bool) error {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	if !serveAsText {
+	if !raw {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", path.Base(filePath)))
 		w.Header().Set("Content-Type", "application/octet-stream")
 	}
@@ -64,6 +71,6 @@ func sendFile(w http.ResponseWriter, r *http.Request, filePath string, serveAsTe
 	if err != nil {
 		return err
 	}
-	r.Header.Set(middleware.BytesCopiedHeader, file.FormatSize(n))
+	r.Header.Set("bytes-copied", file.FormatSize(n))
 	return nil
 }

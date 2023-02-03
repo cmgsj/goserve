@@ -13,7 +13,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:     "goserve [path]",
+	Use:     "goserve [filepath]",
 	Short:   "Simple static file server",
 	Long:    "Simple static file server.",
 	Version: "0.0.1",
@@ -24,7 +24,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	os.Setenv("GOSERVE_VERSION", rootCmd.Version)
 	rootCmd.PersistentFlags().IntP("port", "p", 1234, "port to listen on")
-	rootCmd.PersistentFlags().BoolP("text", "t", true, "serve as text or download")
+	rootCmd.PersistentFlags().BoolP("raw", "r", true, "serve raw content or to download")
 }
 
 func runRootCmd(cmd *cobra.Command, args []string) error {
@@ -32,34 +32,37 @@ func runRootCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	text, err := cmd.Flags().GetBool("text")
+	raw, err := cmd.Flags().GetBool("raw")
 	if err != nil {
 		return err
 	}
-	var rootFile, serveMode string
-	var defaultHandler http.Handler
+	var (
+		fpath       string
+		serveMode   string
+		httphandler http.Handler
+	)
 	if len(args) == 0 {
-		rootFile = "."
+		fpath = "."
 	} else {
-		rootFile = args[0]
+		fpath = args[0]
 	}
-	rootFile, err = filepath.Abs(rootFile)
+	fpath, err = filepath.Abs(fpath)
 	if err != nil {
 		return err
 	}
-	root, err := file.GetFSRoot(rootFile)
+	root, err := file.GetFileTree(cmd.ErrOrStderr(), fpath)
 	if err != nil {
 		return err
 	}
-	defaultHandler = middleware.Logger(cmd.OutOrStdout(), handler.ServeRoot(root, text))
-	if text {
-		serveMode = "text"
+	httphandler = middleware.Logger(cmd.OutOrStdout(), handler.ServeFileTree(root, raw))
+	if raw {
+		serveMode = "raw"
 	} else {
 		serveMode = "download"
 	}
 	addr := fmt.Sprintf(":%d", port)
-	cmd.Printf("serving [%s] as %s at http://localhost%s\n", root.Path, serveMode, addr)
-	return http.ListenAndServe(addr, defaultHandler)
+	cmd.Printf("serving %s [%s] at http://localhost%s\n", serveMode, root.Path, addr)
+	return http.ListenAndServe(addr, httphandler)
 }
 
 func main() {

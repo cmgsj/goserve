@@ -2,102 +2,102 @@ package file
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strings"
 )
 
-type Entry struct {
+type FileTree struct {
 	Path     string
 	Name     string
 	Size     string
 	IsDir    bool
-	Children []*Entry
+	IsBadDir bool
+	Children []*FileTree
 }
 
-func (e *Entry) FindMatch(s string) (*Entry, error) {
-	if e == nil {
-		return nil, fmt.Errorf("nil entry")
+func (f *FileTree) FindMatch(fpath string) (*FileTree, error) {
+	if f == nil {
+		return nil, fmt.Errorf("nil FileTree")
 	}
-	parts := strings.Split(s, "/")
+	if fpath == "/" {
+		return f, nil
+	}
+	parts := strings.Split(strings.Trim(fpath, "/"), "/")
 	for _, part := range parts {
-		if part == "" {
-			continue
-		}
 		found := false
-		for _, c := range e.Children {
-			if c.Name == part {
-				e = c
+		for _, child := range f.Children {
+			if child.Name == part {
+				f = child
 				found = true
 				break
 			}
 		}
 		if !found {
-			return nil, fmt.Errorf("path not found: %s", s)
+			return nil, fmt.Errorf("path not found: %s", fpath)
 		}
 	}
-	return e, nil
+	return f, nil
 }
 
-func GetFSRoot(fileName string) (*Entry, error) {
-	fstat, err := os.Stat(fileName)
+func GetFileTree(errWriter io.Writer, fpath string) (*FileTree, error) {
+	fstat, err := os.Stat(fpath)
 	if err != nil {
 		return nil, err
 	}
-	root := &Entry{
-		Path: fileName,
-		Name: fstat.Name(),
+	root := &FileTree{
+		Path:  fpath,
+		Name:  fstat.Name(),
+		IsDir: fstat.IsDir(),
 	}
-	if fstat.IsDir() {
-		root.Size = " - "
-		root.IsDir = true
-		entries, err := os.ReadDir(fileName)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-		var files, dirs []*Entry
-		for _, entry := range entries {
-			finfo, err := entry.Info()
+	queue := []*FileTree{root}
+	for len(queue) > 0 {
+		f := queue[0]
+		queue = queue[1:]
+		if f.IsDir {
+			f.Size = " - "
+			entries, err := os.ReadDir(f.Path)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				f.IsBadDir = true
+				fmt.Fprintln(errWriter, err)
 				continue
 			}
-			if finfo.IsDir() {
-				f, err := GetFSRoot(path.Join(fileName, entry.Name()))
+			for _, entry := range entries {
+				finfo, err := entry.Info()
 				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
+					fmt.Fprintln(errWriter, err)
 					continue
 				}
-				dirs = append(dirs, f)
-			} else {
-				files = append(files, &Entry{
-					Path:  path.Join(fileName, entry.Name()),
+				child := &FileTree{
+					Path:  path.Join(f.Path, entry.Name()),
 					Name:  entry.Name(),
-					Size:  FormatSize(finfo.Size()),
-					IsDir: false,
-				})
+					IsDir: finfo.IsDir(),
+				}
+				f.Children = append(f.Children, child)
+				queue = append(queue, child)
 			}
+		} else {
+			f.Size = FormatSize(fstat.Size())
 		}
-		root.Children = append(dirs, files...)
-	} else {
-		root.Size = FormatSize(fstat.Size())
-		root.IsDir = false
 	}
 	return root, nil
 }
 
 func FormatSize(fsize int64) string {
-	var unit string
-	var conv int64
-	if conv = 1024 * 1024 * 2014; fsize > conv {
+	var (
+		unit   string
+		factor int64
+	)
+	if factor = 1024 * 1024 * 2014; fsize > factor {
 		unit = "GB"
-	} else if conv = 1024 * 1024; fsize > conv {
+	} else if factor = 1024 * 1024; fsize > factor {
 		unit = "MB"
-	} else if conv = 1024; fsize > conv {
+	} else if factor = 1024; fsize > factor {
 		unit = "KB"
 	} else {
 		unit = "B"
-		conv = 1
+		factor = 1
 	}
-	return fmt.Sprintf("%.2f%s", float64(fsize)/float64(conv), unit)
+	return fmt.Sprintf("%.2f%s", float64(fsize)/float64(factor), unit)
 }
