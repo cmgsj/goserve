@@ -1,11 +1,16 @@
 package file
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path"
 	"strings"
+)
+
+var (
+	ErrFileNotFound = errors.New("file not found")
 )
 
 type FileTree struct {
@@ -18,9 +23,6 @@ type FileTree struct {
 }
 
 func (f *FileTree) FindMatch(fpath string) (*FileTree, error) {
-	if f == nil {
-		return nil, fmt.Errorf("nil FileTree")
-	}
 	if fpath == "/" {
 		return f, nil
 	}
@@ -35,7 +37,7 @@ func (f *FileTree) FindMatch(fpath string) (*FileTree, error) {
 			}
 		}
 		if !found {
-			return nil, fmt.Errorf("path not found: %s", fpath)
+			return nil, fmt.Errorf("%w: %s", ErrFileNotFound, fpath)
 		}
 	}
 	return f, nil

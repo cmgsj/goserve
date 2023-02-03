@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"goserve/pkg/file"
 	"goserve/pkg/templates"
@@ -11,18 +12,20 @@ import (
 	"strings"
 )
 
-func ServeFileTree(root *file.FileTree, raw bool) http.Handler {
+func ServeFileTree(root *file.FileTree, raw bool, errch chan<- error) http.Handler {
 	version := os.Getenv("GOSERVE_VERSION")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f, err := root.FindMatch(r.URL.Path)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			err = templates.Index.Execute(w, templates.Page{
-				Ok:       false,
-				BackLink: "/",
-				Header:   err.Error(),
-				Version:  version,
-			})
+			if errors.Is(err, file.ErrFileNotFound) {
+				w.WriteHeader(http.StatusNotFound)
+				err = templates.Index.Execute(w, templates.Page{
+					Ok:       false,
+					BackLink: "/",
+					Header:   err.Error(),
+					Version:  version,
+				})
+			}
 		} else if f.IsDir {
 			var files, dirs []templates.File
 			for _, child := range f.Children {
@@ -53,6 +56,7 @@ func ServeFileTree(root *file.FileTree, raw bool) http.Handler {
 		}
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			errch <- err
 		}
 	})
 }

@@ -54,7 +54,8 @@ func runRootCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	httphandler = middleware.Logger(cmd.OutOrStdout(), handler.ServeFileTree(root, raw))
+	errch := make(chan error)
+	httphandler = middleware.Logger(cmd.OutOrStdout(), handler.ServeFileTree(root, raw, errch))
 	if raw {
 		serveMode = "raw"
 	} else {
@@ -62,6 +63,11 @@ func runRootCmd(cmd *cobra.Command, args []string) error {
 	}
 	addr := fmt.Sprintf(":%d", port)
 	cmd.Printf("serving %s [%s] at http://localhost%s\n", serveMode, root.Path, addr)
+	go func() {
+		for err := range errch {
+			cmd.PrintErrln(err)
+		}
+	}()
 	return http.ListenAndServe(addr, httphandler)
 }
 
