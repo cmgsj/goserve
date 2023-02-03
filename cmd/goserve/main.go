@@ -22,6 +22,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+	os.Setenv("GOSERVE_VERSION", rootCmd.Version)
 	rootCmd.PersistentFlags().IntP("port", "p", 1234, "port to listen on")
 	rootCmd.PersistentFlags().BoolP("text", "t", true, "serve as text or download")
 }

@@ -12,11 +12,8 @@ import (
 	"strings"
 )
 
-const (
-	VERSION = "0.0.1"
-)
-
 func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
+	version := os.Getenv("GOSERVE_VERSION")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f, err := root.FindMatch(r.URL.Path)
 		if err != nil {
@@ -25,7 +22,7 @@ func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
 				Ok:       false,
 				BackLink: "/",
 				Header:   err.Error(),
-				Version:  VERSION,
+				Version:  version,
 			})
 		} else if f.IsDir {
 			var files []templates.File
@@ -40,9 +37,9 @@ func ServeRoot(root *file.Entry, serveAsText bool) http.Handler {
 			err = templates.Index.Execute(w, templates.Page{
 				Ok:       true,
 				BackLink: path.Dir(strings.TrimPrefix(f.Path, root.Path)),
-				Header:   strings.TrimPrefix(f.Path, root.Path),
+				Header:   "/" + strings.TrimPrefix(strings.TrimPrefix(f.Path, root.Path), "/"),
 				Files:    files,
-				Version:  VERSION,
+				Version:  version,
 			})
 		} else {
 			err = sendFile(w, r, f.Path, serveAsText)
