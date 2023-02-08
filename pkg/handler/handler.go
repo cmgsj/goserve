@@ -12,8 +12,7 @@ import (
 	"strings"
 )
 
-func ServeFileTree(root *file.FileTree, raw bool, errch chan<- error) http.Handler {
-	version := os.Getenv("GOSERVE_VERSION")
+func ServeFileTree(root *file.FileTree, raw bool, version string, errch chan<- error) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f, err := root.FindMatch(r.URL.Path)
 		if err != nil {
