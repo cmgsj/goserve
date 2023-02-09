@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -45,7 +45,7 @@ func ServeFileTree(root *file.FileTree, raw bool, version string, errch chan<- e
 			}
 			err = templates.Index.Execute(w, templates.Page{
 				Ok:       true,
-				BackLink: path.Dir(strings.TrimPrefix(f.Path, root.Path)),
+				BackLink: filepath.Dir(strings.TrimPrefix(f.Path, root.Path)),
 				Header:   "/" + strings.TrimPrefix(strings.TrimPrefix(f.Path, root.Path), "/"),
 				Files:    append(dirs, files...),
 				Version:  version,
@@ -67,7 +67,7 @@ func sendFile(w http.ResponseWriter, r *http.Request, filePath string, raw bool)
 	}
 	defer f.Close()
 	if !raw {
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", path.Base(filePath)))
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filepath.Base(filePath)))
 		w.Header().Set("Content-Type", "application/octet-stream")
 	}
 	n, err := io.Copy(w, f)

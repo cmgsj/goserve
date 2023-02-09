@@ -27,7 +27,7 @@ func newStatusRecorder(w http.ResponseWriter) *statusRecorder {
 	}
 }
 
-func Logger(outWriter io.Writer, next http.Handler) http.Handler {
+func Logger(next http.Handler, outWriter io.Writer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rec := newStatusRecorder(w)
 		start := time.Now()

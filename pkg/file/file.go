@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -43,7 +43,7 @@ func (f *FileTree) FindMatch(fpath string) (*FileTree, error) {
 	return f, nil
 }
 
-func GetFileTree(errWriter io.Writer, fpath string) (*FileTree, error) {
+func GetFileTree(fpath string, errWriter io.Writer) (*FileTree, error) {
 	fstat, err := os.Stat(fpath)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func GetFileTree(errWriter io.Writer, fpath string) (*FileTree, error) {
 					continue
 				}
 				child := &FileTree{
-					Path:  path.Join(f.Path, entry.Name()),
+					Path:  filepath.Join(f.Path, entry.Name()),
 					Name:  entry.Name(),
 					IsDir: finfo.IsDir(),
 				}

@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"goserve/cmd/root"
 	"os"
 )
 
 func main() {
-	if err := RootCmd(DefaultConfig()).Execute(); err != nil {
+	if err := root.NewCmd(root.DefaultConfig()).Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

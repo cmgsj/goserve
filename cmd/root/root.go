@@ -1,4 +1,4 @@
-package main
+package root
 
 import (
 	"fmt"
@@ -11,30 +11,30 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var defaultConfig = GoserveConfig{
+var defaultConfig = Config{
 	Port:            1234,
 	LogEnabled:      false,
 	DownloadEnabled: false,
 }
 
-type GoserveConfig struct {
+type Config struct {
 	Port            int
 	LogEnabled      bool
 	DownloadEnabled bool
 }
 
-func DefaultConfig() GoserveConfig {
+func DefaultConfig() Config {
 	return defaultConfig
 }
 
-func RootCmd(config GoserveConfig) *cobra.Command {
+func NewCmd(config Config) *cobra.Command {
 	if config.Port == 0 {
 		config.Port = defaultConfig.Port
 	}
 	rootCmd := &cobra.Command{
 		Use:     "goserve <filepath>",
-		Short:   "Simple static file server",
-		Long:    "Simple static file server.",
+		Short:   "Static file server",
+		Long:    "Http static file server with web interface.",
 		Version: "1.0.0",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -48,14 +48,14 @@ func RootCmd(config GoserveConfig) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			root, err := file.GetFileTree(cmd.ErrOrStderr(), fpath)
+			root, err := file.GetFileTree(fpath, cmd.ErrOrStderr())
 			if err != nil {
 				return err
 			}
 			errch := make(chan error)
 			httphandler := handler.ServeFileTree(root, config.DownloadEnabled, cmd.Version, errch)
 			if config.LogEnabled {
-				httphandler = middleware.Logger(cmd.OutOrStdout(), httphandler)
+				httphandler = middleware.Logger(httphandler, cmd.OutOrStdout())
 			}
 			var serveMode string
 			if config.DownloadEnabled {
