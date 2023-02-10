@@ -6,75 +6,78 @@ import (
 	"goserve/pkg/handler"
 	"goserve/pkg/middleware"
 	"net/http"
-	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
-var defaultConfig = Config{
-	Port:            1234,
-	LogEnabled:      false,
-	DownloadEnabled: false,
-}
-
 type Config struct {
-	Port            int
-	LogEnabled      bool
-	DownloadEnabled bool
+	Port         int
+	File         string
+	SkipDotFiles bool
+	LogEnabled   bool
+	RawEnabled   bool
 }
 
-func DefaultConfig() Config {
-	return defaultConfig
+var config = Config{
+	Port:         1234,
+	File:         ".",
+	SkipDotFiles: true,
+	RawEnabled:   true,
+	LogEnabled:   true,
 }
 
-func NewCmd(config Config) *cobra.Command {
-	if config.Port == 0 {
-		config.Port = defaultConfig.Port
-	}
+func NewCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "goserve <filepath>",
 		Short:   "Static file server",
-		Long:    "Http static file server with web interface.",
+		Long:    "Http static file server with web UI.",
 		Version: "1.0.0",
 		Args:    cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			var fpath string
-			if len(args) == 0 {
-				fpath = "."
-			} else {
-				fpath = args[0]
-			}
-			fpath, err := filepath.Abs(fpath)
-			if err != nil {
-				return err
-			}
-			root, err := file.GetFileTree(fpath, cmd.ErrOrStderr())
-			if err != nil {
-				return err
-			}
-			errch := make(chan error)
-			httphandler := handler.ServeFileTree(root, config.DownloadEnabled, cmd.Version, errch)
-			if config.LogEnabled {
-				httphandler = middleware.Logger(httphandler, cmd.OutOrStdout())
-			}
-			var serveMode string
-			if config.DownloadEnabled {
-				serveMode = "raw"
-			} else {
-				serveMode = "download"
-			}
-			addr := fmt.Sprintf(":%d", config.Port)
-			cmd.Printf("serving %s [%s] at http://localhost%s\n", serveMode, root.Path, addr)
-			go func() {
-				for err := range errch {
-					cmd.PrintErrln(err)
-				}
-			}()
-			return http.ListenAndServe(addr, httphandler)
-		},
+		RunE:    runCmd,
 	}
 	rootCmd.Flags().IntVarP(&config.Port, "port", "p", config.Port, "port to listen on")
-	rootCmd.Flags().BoolVarP(&config.LogEnabled, "log", "l", config.LogEnabled, "whether to log requests to stdout or not")
-	rootCmd.Flags().BoolVarP(&config.DownloadEnabled, "download", "d", config.DownloadEnabled, "whether to serve content to download or raw")
+	rootCmd.Flags().BoolVar(&config.SkipDotFiles, "skip-dot-files", config.SkipDotFiles, "whether to skip files that start with \".\" or not")
+	rootCmd.Flags().BoolVar(&config.LogEnabled, "log", config.LogEnabled, "whether to log request info to stdout or not")
+	rootCmd.Flags().BoolVar(&config.RawEnabled, "raw", config.RawEnabled, "whether to serve raw files or to download")
 	return rootCmd
+}
+
+func runCmd(cmd *cobra.Command, args []string) error {
+	if len(args) > 0 {
+		config.File = args[0]
+	}
+	start := time.Now()
+	root, numfiles, err := file.GetFileTree(config.File, config.SkipDotFiles, cmd.ErrOrStderr())
+	if err != nil {
+		return err
+	}
+	delta := time.Since(start)
+	errch := make(chan error)
+	httphandler := handler.ServeFileTree(root, config.RawEnabled, cmd.Version, errch)
+	if config.LogEnabled {
+		httphandler = middleware.Logger(httphandler, cmd.OutOrStdout())
+	}
+	addr := fmt.Sprintf(":%d", config.Port)
+	printInfo(cmd, numfiles, delta, root.Path, addr)
+	go func() {
+		for err := range errch {
+			cmd.PrintErrln(err)
+		}
+	}()
+	return http.ListenAndServe(addr, httphandler)
+}
+
+func printInfo(cmd *cobra.Command, numfiles int, delta time.Duration, rootpath string, addr string) {
+	cmd.Println()
+	cmd.Printf("Parsed %d files in %dms\n", numfiles, delta.Milliseconds())
+	cmd.Println()
+	cmd.Printf("Root: %s\n", rootpath)
+	cmd.Printf("SkipDotFiles: %t\n", config.SkipDotFiles)
+	cmd.Printf("RawEnabled: %t\n", config.RawEnabled)
+	cmd.Printf("LogEnabled: %t\n", config.LogEnabled)
+	cmd.Printf("Address: http://localhost%s\n", addr)
+	cmd.Println()
+	cmd.Println("Ready to accept conections")
+	cmd.Println()
 }

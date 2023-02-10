@@ -43,20 +43,26 @@ func (f *FileTree) FindMatch(fpath string) (*FileTree, error) {
 	return f, nil
 }
 
-func GetFileTree(fpath string, errWriter io.Writer) (*FileTree, error) {
-	fstat, err := os.Stat(fpath)
+func GetFileTree(fpath string, skipDotFiles bool, errWriter io.Writer) (*FileTree, int, error) {
+	abspath, err := filepath.Abs(fpath)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+	fstat, err := os.Stat(abspath)
+	if err != nil {
+		return nil, 0, err
 	}
 	root := &FileTree{
-		Path:  fpath,
+		Path:  abspath,
 		Name:  fstat.Name(),
 		IsDir: fstat.IsDir(),
 	}
+	numfiles := 0
 	queue := []*FileTree{root}
 	for len(queue) > 0 {
 		f := queue[0]
 		queue = queue[1:]
+		numfiles++
 		if f.IsDir {
 			f.Size = " - "
 			entries, err := os.ReadDir(f.Path)
@@ -66,6 +72,9 @@ func GetFileTree(fpath string, errWriter io.Writer) (*FileTree, error) {
 				continue
 			}
 			for _, entry := range entries {
+				if skipDotFiles && strings.HasPrefix(entry.Name(), ".") {
+					continue
+				}
 				finfo, err := entry.Info()
 				if err != nil {
 					fmt.Fprintln(errWriter, err)
@@ -83,7 +92,7 @@ func GetFileTree(fpath string, errWriter io.Writer) (*FileTree, error) {
 			f.Size = FormatSize(fstat.Size())
 		}
 	}
-	return root, nil
+	return root, numfiles, nil
 }
 
 func FormatSize(fsize int64) string {

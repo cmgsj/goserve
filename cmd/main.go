@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	if err := root.NewCmd(root.DefaultConfig()).Execute(); err != nil {
+	if err := root.NewCmd().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

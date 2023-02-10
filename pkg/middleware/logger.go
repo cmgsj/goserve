@@ -33,9 +33,12 @@ func Logger(next http.Handler, outWriter io.Writer) http.Handler {
 		start := time.Now()
 		next.ServeHTTP(rec, r)
 		end := time.Now()
-		fmt.Fprintf(outWriter, "%s %s %s [%s] --> %s [%s] %dms\n",
-			end.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.Status,
-			r.Header.Get("bytes-copied"), end.Sub(start).Milliseconds(),
-		)
+		if n := r.Header.Get("bytes-copied"); n != "" {
+			fmt.Fprintf(outWriter, "%s %s %s %s -> %s [%s] %dms\n",
+				end.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.Status, n, end.Sub(start).Milliseconds())
+		} else {
+			fmt.Fprintf(outWriter, "%s %s %s %s -> %s %dms\n",
+				end.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.Status, end.Sub(start).Milliseconds())
+		}
 	})
 }

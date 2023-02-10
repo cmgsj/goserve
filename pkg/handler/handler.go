@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func ServeFileTree(root *file.FileTree, raw bool, version string, errch chan<- error) http.Handler {
+func ServeFileTree(root *file.FileTree, rawEnabled bool, version string, errch chan<- error) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f, err := root.FindMatch(r.URL.Path)
 		if err != nil {
@@ -51,7 +51,7 @@ func ServeFileTree(root *file.FileTree, raw bool, version string, errch chan<- e
 				Version:  version,
 			})
 		} else {
-			err = sendFile(w, r, f.Path, raw)
+			err = sendFile(w, r, f.Path, rawEnabled)
 		}
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -60,13 +60,13 @@ func ServeFileTree(root *file.FileTree, raw bool, version string, errch chan<- e
 	})
 }
 
-func sendFile(w http.ResponseWriter, r *http.Request, filePath string, raw bool) error {
+func sendFile(w http.ResponseWriter, r *http.Request, filePath string, rawEnabled bool) error {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	if !raw {
+	if !rawEnabled {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filepath.Base(filePath)))
 		w.Header().Set("Content-Type", "application/octet-stream")
 	}
