@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"goserve/pkg/file"
+	"goserve/pkg/format"
 	"goserve/pkg/templates"
 	"io"
 	"net/http"
@@ -34,7 +35,7 @@ func ServeFileTree(root *file.FileTree, rawEnabled bool, version string, errch c
 				file := templates.File{
 					Path:  strings.TrimPrefix(child.Path, root.Path),
 					Name:  child.Name,
-					Size:  child.Size,
+					Size:  format.FileSize(child.Size),
 					IsDir: child.IsDir,
 				}
 				if child.IsDir {
@@ -74,6 +75,6 @@ func sendFile(w http.ResponseWriter, r *http.Request, filePath string, rawEnable
 	if err != nil {
 		return err
 	}
-	r.Header.Set("bytes-copied", file.FormatSize(n))
+	r.Header.Set("bytes-copied", format.FileSize(n))
 	return nil
 }

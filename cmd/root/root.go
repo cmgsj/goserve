@@ -3,6 +3,7 @@ package root
 import (
 	"fmt"
 	"goserve/pkg/file"
+	"goserve/pkg/format"
 	"goserve/pkg/handler"
 	"goserve/pkg/middleware"
 	"net/http"
@@ -48,7 +49,7 @@ func runCmd(cmd *cobra.Command, args []string) error {
 		config.File = args[0]
 	}
 	start := time.Now()
-	root, numfiles, err := file.GetFileTree(config.File, config.SkipDotFiles, cmd.ErrOrStderr())
+	root, numfiles, totalSize, err := file.GetFileTree(config.File, config.SkipDotFiles, cmd.ErrOrStderr())
 	if err != nil {
 		return err
 	}
@@ -59,7 +60,7 @@ func runCmd(cmd *cobra.Command, args []string) error {
 		httphandler = middleware.Logger(httphandler, cmd.OutOrStdout())
 	}
 	addr := fmt.Sprintf(":%d", config.Port)
-	printInfo(cmd, numfiles, delta, root.Path, addr)
+	printInfo(cmd, numfiles, totalSize, delta, root.Path, addr)
 	go func() {
 		for err := range errch {
 			cmd.PrintErrln(err)
@@ -68,9 +69,9 @@ func runCmd(cmd *cobra.Command, args []string) error {
 	return http.ListenAndServe(addr, httphandler)
 }
 
-func printInfo(cmd *cobra.Command, numfiles int, delta time.Duration, rootpath string, addr string) {
+func printInfo(cmd *cobra.Command, numfiles int, totalSize int64, delta time.Duration, rootpath string, addr string) {
 	cmd.Println()
-	cmd.Printf("Parsed %d files in %dms\n", numfiles, delta.Milliseconds())
+	cmd.Printf("Parsed %s files [%s] in %s\n", format.ThousandsSeparator(numfiles), format.FileSize(totalSize), format.TimeDuration(delta))
 	cmd.Println()
 	cmd.Printf("Root: %s\n", rootpath)
 	cmd.Printf("SkipDotFiles: %t\n", config.SkipDotFiles)

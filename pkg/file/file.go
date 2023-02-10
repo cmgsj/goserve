@@ -16,7 +16,7 @@ var (
 type FileTree struct {
 	Path     string
 	Name     string
-	Size     string
+	Size     int64
 	IsDir    bool
 	IsBadDir bool
 	Children []*FileTree
@@ -43,14 +43,14 @@ func (f *FileTree) FindMatch(fpath string) (*FileTree, error) {
 	return f, nil
 }
 
-func GetFileTree(fpath string, skipDotFiles bool, errWriter io.Writer) (*FileTree, int, error) {
+func GetFileTree(fpath string, skipDotFiles bool, errWriter io.Writer) (*FileTree, int, int64, error) {
 	abspath, err := filepath.Abs(fpath)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, 0, err
 	}
 	fstat, err := os.Stat(abspath)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, 0, err
 	}
 	root := &FileTree{
 		Path:  abspath,
@@ -58,13 +58,12 @@ func GetFileTree(fpath string, skipDotFiles bool, errWriter io.Writer) (*FileTre
 		IsDir: fstat.IsDir(),
 	}
 	numfiles := 0
+	totalSize := int64(0)
 	queue := []*FileTree{root}
 	for len(queue) > 0 {
 		f := queue[0]
 		queue = queue[1:]
-		numfiles++
 		if f.IsDir {
-			f.Size = " - "
 			entries, err := os.ReadDir(f.Path)
 			if err != nil {
 				f.IsBadDir = true
@@ -85,30 +84,14 @@ func GetFileTree(fpath string, skipDotFiles bool, errWriter io.Writer) (*FileTre
 					Name:  entry.Name(),
 					IsDir: finfo.IsDir(),
 				}
-				f.Children = append(f.Children, child)
 				queue = append(queue, child)
+				f.Children = append(f.Children, child)
 			}
 		} else {
-			f.Size = FormatSize(fstat.Size())
+			f.Size = fstat.Size()
+			totalSize += f.Size
 		}
+		numfiles++
 	}
-	return root, numfiles, nil
-}
-
-func FormatSize(fsize int64) string {
-	var (
-		unit   string
-		factor int64
-	)
-	if factor = 1024 * 1024 * 2014; fsize > factor {
-		unit = "GB"
-	} else if factor = 1024 * 1024; fsize > factor {
-		unit = "MB"
-	} else if factor = 1024; fsize > factor {
-		unit = "KB"
-	} else {
-		unit = "B"
-		factor = 1
-	}
-	return fmt.Sprintf("%.2f%s", float64(fsize)/float64(factor), unit)
+	return root, numfiles, totalSize, nil
 }
