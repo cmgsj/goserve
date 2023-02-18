@@ -29,7 +29,7 @@ func ServeFileTree(root *file.FileTree, rawEnabled bool, version string, errch c
 		} else if f.IsDir {
 			var files, dirs []templates.File
 			for _, child := range f.Children {
-				if child.IsBadDir {
+				if child.IsBroken {
 					continue
 				}
 				file := templates.File{

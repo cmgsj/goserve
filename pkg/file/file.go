@@ -18,7 +18,7 @@ type FileTree struct {
 	Name     string
 	Size     int64
 	IsDir    bool
-	IsBadDir bool
+	IsBroken bool
 	Children []*FileTree
 }
 
@@ -48,14 +48,15 @@ func GetFileTree(fpath string, skipDotFiles bool, errWriter io.Writer) (*FileTre
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	fstat, err := os.Stat(abspath)
+	stat, err := os.Stat(abspath)
 	if err != nil {
 		return nil, 0, 0, err
 	}
 	root := &FileTree{
 		Path:  abspath,
-		Name:  fstat.Name(),
-		IsDir: fstat.IsDir(),
+		Name:  stat.Name(),
+		Size:  stat.Size(),
+		IsDir: stat.IsDir(),
 	}
 	numfiles := 0
 	totalSize := int64(0)
@@ -66,7 +67,7 @@ func GetFileTree(fpath string, skipDotFiles bool, errWriter io.Writer) (*FileTre
 		if f.IsDir {
 			entries, err := os.ReadDir(f.Path)
 			if err != nil {
-				f.IsBadDir = true
+				f.IsBroken = true
 				fmt.Fprintln(errWriter, err)
 				continue
 			}
@@ -74,21 +75,21 @@ func GetFileTree(fpath string, skipDotFiles bool, errWriter io.Writer) (*FileTre
 				if skipDotFiles && strings.HasPrefix(entry.Name(), ".") {
 					continue
 				}
-				finfo, err := entry.Info()
+				info, err := entry.Info()
 				if err != nil {
 					fmt.Fprintln(errWriter, err)
 					continue
 				}
 				child := &FileTree{
-					Path:  filepath.Join(f.Path, entry.Name()),
-					Name:  entry.Name(),
-					IsDir: finfo.IsDir(),
+					Path:  filepath.Join(f.Path, info.Name()),
+					Name:  info.Name(),
+					Size:  info.Size(),
+					IsDir: info.IsDir(),
 				}
 				queue = append(queue, child)
 				f.Children = append(f.Children, child)
 			}
 		} else {
-			f.Size = fstat.Size()
 			totalSize += f.Size
 		}
 		numfiles++

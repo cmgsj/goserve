@@ -45,11 +45,14 @@ func TestFileSize(t *testing.T) {
 		{input: 1, want: "1.00B"},
 		{input: 1024 - 1, want: "1023.00B"},
 		{input: 1024, want: "1.00KB"},
-		{input: 1024 * 1024 / 2, want: "512.00KB"},
+		{input: 1024 * 7 / 4, want: "1.75KB"},
+		{input: 1024 * 512, want: "512.00KB"},
 		{input: 1024 * 1024, want: "1.00MB"},
-		{input: 1024 * 1024 * 1024 / 2, want: "512.00MB"},
+		{input: 1024 * 1024 * 7 / 4, want: "1.75MB"},
+		{input: 1024 * 1024 * 512, want: "512.00MB"},
 		{input: 1024 * 1024 * 1024, want: "1.00GB"},
-		{input: 1024 * 1024 * 1024 * 1024 / 2, want: "512.00GB"},
+		{input: 1024 * 1024 * 1024 * 7 / 4, want: "1.75GB"},
+		{input: 1024 * 1024 * 1024 * 512, want: "512.00GB"},
 	}
 	for _, tc := range testcases {
 		got := format.FileSize(tc.input)
@@ -67,15 +70,15 @@ func TestTimeDuration(t *testing.T) {
 	testcases := []testcase{
 		{input: 0, want: "0.00ns"},
 		{input: 1, want: "1.00ns"},
-		{input: 1000 / 2, want: "500.00ns"},
+		{input: 500, want: "500.00ns"},
 		{input: 1000, want: "1.00µs"},
-		{input: 1000 * 1000 / 2, want: "500.00µs"},
+		{input: 1000 * 500, want: "500.00µs"},
 		{input: 1000 * 1000, want: "1.00ms"},
-		{input: 1000 * 1000 * 1000 / 2, want: "500.00ms"},
+		{input: 1000 * 1000 * 500, want: "500.00ms"},
 		{input: 1000 * 1000 * 1000, want: "1.00s"},
-		{input: 1000 * 1000 * 1000 * 60 / 2, want: "30.00s"},
+		{input: 1000 * 1000 * 1000 * 30, want: "30.00s"},
 		{input: 1000 * 1000 * 1000 * 60, want: "1.00min"},
-		{input: 1000 * 1000 * 1000 * 60 * 60 / 2, want: "30.00min"},
+		{input: 1000 * 1000 * 1000 * 60 * 30, want: "30.00min"},
 	}
 	for _, tc := range testcases {
 		got := format.TimeDuration(tc.input)

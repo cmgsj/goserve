@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"goserve/cmd/root"
+	"goserve/pkg/cmd/root"
 	"os"
 )
 
