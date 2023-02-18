@@ -12,7 +12,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type Config struct {
+var rootCmd *cobra.Command
+
+func Execute() error {
+	return rootCmd.Execute()
+}
+
+type config struct {
 	Port         int
 	File         string
 	SkipDotFiles bool
@@ -20,66 +26,65 @@ type Config struct {
 	RawEnabled   bool
 }
 
-func NewCmd() *cobra.Command {
-	config := &Config{
+func init() {
+	cfg := &config{
 		Port:         1234,
 		File:         ".",
 		SkipDotFiles: true,
 		RawEnabled:   true,
 		LogEnabled:   true,
 	}
-	rootCmd := &cobra.Command{
+	rootCmd = &cobra.Command{
 		Use:     "goserve <filepath>",
 		Short:   "Static file server",
 		Long:    "Http static file server with web UI.",
 		Version: "1.0.0",
 		Args:    cobra.MaximumNArgs(1),
-		RunE:    makeRunFunc(config),
+		RunE:    makeRunFunc(cfg),
 	}
-	rootCmd.Flags().IntVarP(&config.Port, "port", "p", config.Port, "port to listen on")
-	rootCmd.Flags().BoolVar(&config.SkipDotFiles, "skip-dot-files", config.SkipDotFiles, "whether to skip files that start with \".\" or not")
-	rootCmd.Flags().BoolVar(&config.LogEnabled, "log", config.LogEnabled, "whether to log request info to stdout or not")
-	rootCmd.Flags().BoolVar(&config.RawEnabled, "raw", config.RawEnabled, "whether to serve raw files or to download")
-	return rootCmd
+	rootCmd.PersistentFlags().IntVarP(&cfg.Port, "port", "p", cfg.Port, "port to listen on")
+	rootCmd.PersistentFlags().BoolVar(&cfg.SkipDotFiles, "skip-dot-files", cfg.SkipDotFiles, "whether to skip files that start with \".\" or not")
+	rootCmd.PersistentFlags().BoolVar(&cfg.LogEnabled, "log", cfg.LogEnabled, "whether to log request info to stdout or not")
+	rootCmd.PersistentFlags().BoolVar(&cfg.RawEnabled, "raw", cfg.RawEnabled, "whether to serve raw files or to download")
 }
 
-func makeRunFunc(config *Config) func(cmd *cobra.Command, args []string) error {
+func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
-			config.File = args[0]
+			cfg.File = args[0]
 		}
 		start := time.Now()
-		root, numfiles, totalSize, err := file.GetFileTree(config.File, config.SkipDotFiles, cmd.ErrOrStderr())
+		root, numFiles, totalSize, err := file.GetFileTree(cfg.File, cfg.SkipDotFiles, cmd.ErrOrStderr())
 		if err != nil {
 			return err
 		}
 		delta := time.Since(start)
-		errch := make(chan error)
-		httphandler := handler.ServeFileTree(root, config.RawEnabled, cmd.Version, errch)
-		if config.LogEnabled {
-			httphandler = middleware.Logger(httphandler, cmd.OutOrStdout())
+		errCh := make(chan error)
+		httpHandler := handler.ServeFileTree(root, cfg.RawEnabled, cmd.Version, errCh)
+		if cfg.LogEnabled {
+			httpHandler = middleware.Logger(httpHandler, cmd.OutOrStdout())
 		}
-		addr := fmt.Sprintf(":%d", config.Port)
-		printInfo(cmd, config, numfiles, totalSize, delta, root.Path, addr)
+		addr := fmt.Sprintf(":%d", cfg.Port)
+		printInfo(cmd, cfg, numFiles, totalSize, delta, root.Path, addr)
 		go func() {
-			for err := range errch {
+			for err := range errCh {
 				cmd.PrintErrln(err)
 			}
 		}()
-		return http.ListenAndServe(addr, httphandler)
+		return http.ListenAndServe(addr, httpHandler)
 	}
 }
 
-func printInfo(cmd *cobra.Command, config *Config, numfiles int, totalSize int64, delta time.Duration, rootpath string, addr string) {
+func printInfo(cmd *cobra.Command, cfg *config, numFiles int, totalSize int64, delta time.Duration, rootPath string, addr string) {
 	cmd.Println()
-	cmd.Printf("Parsed %s files [%s] in %s\n", format.ThousandsSeparator(numfiles), format.FileSize(totalSize), format.TimeDuration(delta))
+	cmd.Printf("Parsed %s files [%s] in %s\n", format.ThousandsSeparator(numFiles), format.FileSize(totalSize), format.TimeDuration(delta))
 	cmd.Println()
-	cmd.Printf("Root: %s\n", rootpath)
-	cmd.Printf("SkipDotFiles: %t\n", config.SkipDotFiles)
-	cmd.Printf("RawEnabled: %t\n", config.RawEnabled)
-	cmd.Printf("LogEnabled: %t\n", config.LogEnabled)
+	cmd.Printf("Root: %s\n", rootPath)
+	cmd.Printf("SkipDotFiles: %t\n", cfg.SkipDotFiles)
+	cmd.Printf("RawEnabled: %t\n", cfg.RawEnabled)
+	cmd.Printf("LogEnabled: %t\n", cfg.LogEnabled)
 	cmd.Printf("Address: http://localhost%s\n", addr)
 	cmd.Println()
-	cmd.Println("Ready to accept conections")
+	cmd.Println("Ready to accept connections")
 	cmd.Println()
 }

@@ -14,11 +14,11 @@ import (
 	"github.com/cmgsj/goserve/pkg/templates"
 )
 
-func ServeFileTree(root *file.FileTree, rawEnabled bool, version string, errch chan<- error) http.Handler {
+func ServeFileTree(root *file.Tree, rawEnabled bool, version string, errCh chan<- error) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f, err := root.FindMatch(r.URL.Path)
 		if err != nil {
-			if errors.Is(err, file.ErrFileNotFound) {
+			if errors.Is(err, file.ErrNotFound) {
 				w.WriteHeader(http.StatusNotFound)
 				err = templates.ExecuteIndex(w, templates.Page{
 					Ok:       false,
@@ -33,16 +33,16 @@ func ServeFileTree(root *file.FileTree, rawEnabled bool, version string, errch c
 				if child.IsBroken {
 					continue
 				}
-				file := templates.File{
+				fileTmpl := templates.File{
 					Path:  strings.TrimPrefix(child.Path, root.Path),
 					Name:  child.Name,
 					Size:  format.FileSize(child.Size),
 					IsDir: child.IsDir,
 				}
 				if child.IsDir {
-					dirs = append(dirs, file)
+					dirs = append(dirs, fileTmpl)
 				} else {
-					files = append(files, file)
+					files = append(files, fileTmpl)
 				}
 			}
 			err = templates.ExecuteIndex(w, templates.Page{
@@ -57,7 +57,7 @@ func ServeFileTree(root *file.FileTree, rawEnabled bool, version string, errch c
 		}
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-			errch <- err
+			errCh <- err
 		}
 	})
 }

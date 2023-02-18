@@ -1,14 +1,14 @@
-all: macm1
+all: macM1
 
-build: macm1 windows
+build: macM1 windows
 
-macm1:
+macM1:
 	GOOS=darwin GOARCH=arm64 go build -o bin/goserve cmd/main.go
 
 windows:
 	GOOS=windows GOARCH=amd64 go build -o bin/goserve cmd/main.go
 
-publish: macm1
+publish: macM1
 	sudo ln -sF $${PWD}/bin/goserve /usr/local/bin
 
 unpublish:

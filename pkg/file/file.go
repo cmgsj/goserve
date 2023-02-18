@@ -10,57 +10,58 @@ import (
 )
 
 var (
-	ErrFileNotFound = errors.New("file not found")
+	ErrNotFound = errors.New("file not found")
 )
 
-type FileTree struct {
+type Tree struct {
 	Path     string
 	Name     string
 	Size     int64
 	IsDir    bool
 	IsBroken bool
-	Children []*FileTree
+	Children []*Tree
 }
 
-func (f *FileTree) FindMatch(fpath string) (*FileTree, error) {
-	if fpath == "/" {
+func (f *Tree) FindMatch(filePath string) (*Tree, error) {
+	if filePath == "/" {
 		return f, nil
 	}
-	parts := strings.Split(strings.Trim(fpath, "/"), "/")
+	match := f
+	parts := strings.Split(strings.Trim(filePath, "/"), "/")
 	for _, part := range parts {
 		found := false
-		for _, child := range f.Children {
+		for _, child := range match.Children {
 			if child.Name == part {
-				f = child
+				match = child
 				found = true
 				break
 			}
 		}
 		if !found {
-			return nil, fmt.Errorf("%w: %s", ErrFileNotFound, fpath)
+			return nil, fmt.Errorf("%w: %s", ErrNotFound, filePath)
 		}
 	}
-	return f, nil
+	return match, nil
 }
 
-func GetFileTree(fpath string, skipDotFiles bool, errWriter io.Writer) (*FileTree, int, int64, error) {
-	abspath, err := filepath.Abs(fpath)
+func GetFileTree(filePath string, skipDotFiles bool, errWriter io.Writer) (*Tree, int, int64, error) {
+	absPath, err := filepath.Abs(filePath)
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	stat, err := os.Stat(abspath)
+	stat, err := os.Stat(absPath)
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	root := &FileTree{
-		Path:  abspath,
+	root := &Tree{
+		Path:  absPath,
 		Name:  stat.Name(),
 		Size:  stat.Size(),
 		IsDir: stat.IsDir(),
 	}
-	numfiles := 0
+	numFiles := 0
 	totalSize := int64(0)
-	queue := []*FileTree{root}
+	queue := []*Tree{root}
 	for len(queue) > 0 {
 		f := queue[0]
 		queue = queue[1:]
@@ -80,7 +81,7 @@ func GetFileTree(fpath string, skipDotFiles bool, errWriter io.Writer) (*FileTre
 					fmt.Fprintln(errWriter, err)
 					continue
 				}
-				child := &FileTree{
+				child := &Tree{
 					Path:  filepath.Join(f.Path, info.Name()),
 					Name:  info.Name(),
 					Size:  info.Size(),
@@ -92,7 +93,7 @@ func GetFileTree(fpath string, skipDotFiles bool, errWriter io.Writer) (*FileTre
 		} else {
 			totalSize += f.Size
 		}
-		numfiles++
+		numFiles++
 	}
-	return root, numfiles, totalSize, nil
+	return root, numFiles, totalSize, nil
 }

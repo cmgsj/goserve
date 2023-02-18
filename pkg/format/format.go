@@ -21,20 +21,20 @@ func ThousandsSeparator(num int) string {
 	return string(out)
 }
 
-func FileSize(fsize int64) string {
+func FileSize(size int64) string {
 	var unit string
 	var factor int64
-	if factor = 1024 * 1024 * 1024; fsize >= factor {
+	if factor = 1024 * 1024 * 1024; size >= factor {
 		unit = "GB"
-	} else if factor = 1024 * 1024; fsize >= factor {
+	} else if factor = 1024 * 1024; size >= factor {
 		unit = "MB"
-	} else if factor = 1024; fsize >= factor {
+	} else if factor = 1024; size >= factor {
 		unit = "KB"
 	} else {
 		unit = "B"
 		factor = 1
 	}
-	return fmt.Sprintf("%0.2f%s", float64(fsize)/float64(factor), unit)
+	return fmt.Sprintf("%0.2f%s", float64(size)/float64(factor), unit)
 }
 
 func TimeDuration(t time.Duration) string {
