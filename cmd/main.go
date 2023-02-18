@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"goserve/pkg/cmd/root"
 	"os"
+
+	"github.com/cmgsj/goserve/pkg/cmd/root"
 )
 
 func main() {

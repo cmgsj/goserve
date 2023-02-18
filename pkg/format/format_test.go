@@ -1,10 +1,11 @@
 package format_test
 
 import (
-	"goserve/pkg/format"
 	"math"
 	"testing"
 	"time"
+
+	"github.com/cmgsj/goserve/pkg/format"
 )
 
 func TestThousandsSeparator(t *testing.T) {

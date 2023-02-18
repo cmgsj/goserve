@@ -2,13 +2,13 @@ package root
 
 import (
 	"fmt"
-	"goserve/pkg/file"
-	"goserve/pkg/format"
-	"goserve/pkg/handler"
-	"goserve/pkg/middleware"
 	"net/http"
 	"time"
 
+	"github.com/cmgsj/goserve/pkg/file"
+	"github.com/cmgsj/goserve/pkg/format"
+	"github.com/cmgsj/goserve/pkg/handler"
+	"github.com/cmgsj/goserve/pkg/middleware"
 	"github.com/spf13/cobra"
 )
 

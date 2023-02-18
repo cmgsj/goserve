@@ -3,14 +3,15 @@ package handler
 import (
 	"errors"
 	"fmt"
-	"goserve/pkg/file"
-	"goserve/pkg/format"
-	"goserve/pkg/templates"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/cmgsj/goserve/pkg/file"
+	"github.com/cmgsj/goserve/pkg/format"
+	"github.com/cmgsj/goserve/pkg/templates"
 )
 
 func ServeFileTree(root *file.FileTree, rawEnabled bool, version string, errch chan<- error) http.Handler {
@@ -19,7 +20,7 @@ func ServeFileTree(root *file.FileTree, rawEnabled bool, version string, errch c
 		if err != nil {
 			if errors.Is(err, file.ErrFileNotFound) {
 				w.WriteHeader(http.StatusNotFound)
-				err = templates.Index.Execute(w, templates.Page{
+				err = templates.ExecuteIndex(w, templates.Page{
 					Ok:       false,
 					BackLink: "/",
 					Header:   err.Error(),
@@ -44,7 +45,7 @@ func ServeFileTree(root *file.FileTree, rawEnabled bool, version string, errch c
 					files = append(files, file)
 				}
 			}
-			err = templates.Index.Execute(w, templates.Page{
+			err = templates.ExecuteIndex(w, templates.Page{
 				Ok:       true,
 				BackLink: filepath.Dir(strings.TrimPrefix(f.Path, root.Path)),
 				Header:   "/" + strings.TrimPrefix(strings.TrimPrefix(f.Path, root.Path), "/"),

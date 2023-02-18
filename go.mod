@@ -1,4 +1,4 @@
-module goserve
+module github.com/cmgsj/goserve
 
 go 1.19
 

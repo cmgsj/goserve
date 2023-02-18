@@ -3,12 +3,13 @@ package templates
 import (
 	_ "embed"
 	"html/template"
+	"io"
 )
 
 var (
 	//go:embed index.html
-	indexHTML string
-	Index     = template.Must(template.New("index").Parse(indexHTML))
+	indexHtml string
+	indexTmpl = template.Must(template.New("index").Parse(indexHtml))
 )
 
 type Page struct {
@@ -24,4 +25,8 @@ type File struct {
 	Name  string
 	Size  string
 	IsDir bool
+}
+
+func ExecuteIndex(w io.Writer, page Page) error {
+	return indexTmpl.Execute(w, page)
 }

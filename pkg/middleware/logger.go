@@ -2,10 +2,11 @@ package middleware
 
 import (
 	"fmt"
-	"goserve/pkg/format"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/cmgsj/goserve/pkg/format"
 )
 
 type statusRecorder struct {
