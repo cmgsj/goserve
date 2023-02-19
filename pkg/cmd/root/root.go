@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd *cobra.Command
+var rootCmd = newRootCmd()
 
 func Execute() error {
 	return rootCmd.Execute()
@@ -26,7 +26,7 @@ type config struct {
 	RawEnabled   bool
 }
 
-func init() {
+func newRootCmd() *cobra.Command {
 	cfg := &config{
 		Port:         1234,
 		File:         ".",
@@ -34,7 +34,7 @@ func init() {
 		RawEnabled:   true,
 		LogEnabled:   true,
 	}
-	rootCmd = &cobra.Command{
+	rootCmd := &cobra.Command{
 		Use:     "goserve <filepath>",
 		Short:   "Static file server",
 		Long:    "Http static file server with web UI.",
@@ -46,6 +46,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&cfg.SkipDotFiles, "skip-dot-files", cfg.SkipDotFiles, "whether to skip files that start with \".\" or not")
 	rootCmd.PersistentFlags().BoolVar(&cfg.LogEnabled, "log", cfg.LogEnabled, "whether to log request info to stdout or not")
 	rootCmd.PersistentFlags().BoolVar(&cfg.RawEnabled, "raw", cfg.RawEnabled, "whether to serve raw files or to download")
+	return rootCmd
 }
 
 func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {

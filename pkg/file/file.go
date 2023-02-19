@@ -13,14 +13,20 @@ var (
 	ErrNotFound = errors.New("file not found")
 )
 
-type Tree struct {
-	Path     string
-	Name     string
-	Size     int64
-	IsDir    bool
-	IsBroken bool
-	Children []*Tree
-}
+type (
+	Tree struct {
+		Path     string
+		Name     string
+		Size     int64
+		IsDir    bool
+		IsBroken bool
+		Children []*Tree
+	}
+	TreeInfo struct {
+		NumFiles  int
+		TotalSize int64
+	}
+)
 
 func (f *Tree) FindMatch(filePath string) (*Tree, error) {
 	if filePath == "/" {
@@ -42,11 +48,6 @@ func (f *Tree) FindMatch(filePath string) (*Tree, error) {
 		}
 	}
 	return match, nil
-}
-
-type TreeInfo struct {
-	NumFiles  int
-	TotalSize int64
 }
 
 func GetFileTree(filePath string, skipDotFiles bool, errWriter io.Writer) (*Tree, *TreeInfo, error) {
@@ -77,6 +78,7 @@ func GetFileTree(filePath string, skipDotFiles bool, errWriter io.Writer) (*Tree
 				fmt.Fprintln(errWriter, err)
 				continue
 			}
+			f.Children = make([]*Tree, 0, len(entries))
 			for _, entry := range entries {
 				if skipDotFiles && strings.HasPrefix(entry.Name(), ".") {
 					continue

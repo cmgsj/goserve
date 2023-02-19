@@ -22,8 +22,10 @@ func ThousandsSeparator(num int) string {
 }
 
 func FileSize(size int64) string {
-	var unit string
-	var factor int64
+	var (
+		unit   string
+		factor int64
+	)
 	if factor = 1024 * 1024 * 1024; size >= factor {
 		unit = "GB"
 	} else if factor = 1024 * 1024; size >= factor {
@@ -38,9 +40,11 @@ func FileSize(size int64) string {
 }
 
 func Duration(t time.Duration) string {
-	var unit string
-	var factor int64
-	n := t.Nanoseconds()
+	var (
+		unit   string
+		factor int64
+		n      = t.Nanoseconds()
+	)
 	if factor = 60 * 1000 * 1000 * 1000; n >= factor {
 		unit = "min"
 	} else if factor = 1000 * 1000 * 1000; n >= factor {

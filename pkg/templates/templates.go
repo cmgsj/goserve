@@ -8,26 +8,30 @@ import (
 )
 
 var (
-	//go:embed index.html
-	indexHtml  string
-	indexTmpl  = template.Must(template.New("index").Parse(indexHtml))
 	ErrNilPage = errors.New("nil page")
 )
 
-type Page struct {
-	Ok       bool
-	BackLink string
-	Header   string
-	Files    []*File
-	Version  string
-}
+var (
+	//go:embed index.html
+	indexHtml string
+	indexTmpl = template.Must(template.New("index").Parse(indexHtml))
+)
 
-type File struct {
-	Path  string
-	Name  string
-	Size  string
-	IsDir bool
-}
+type (
+	Page struct {
+		Ok       bool
+		BackLink string
+		Header   string
+		Files    []*File
+		Version  string
+	}
+	File struct {
+		Path  string
+		Name  string
+		Size  string
+		IsDir bool
+	}
+)
 
 func ExecuteIndex(w io.Writer, page *Page) error {
 	if page == nil {

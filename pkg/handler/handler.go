@@ -28,7 +28,10 @@ func ServeFileTree(root *file.Tree, rawEnabled bool, version string, errCh chan<
 				})
 			}
 		} else if f.IsDir {
-			var files, dirs []*templates.File
+			var (
+				dirs  = make([]*templates.File, 0, len(f.Children))
+				files = make([]*templates.File, 0)
+			)
 			for _, child := range f.Children {
 				if child.IsBroken {
 					continue
