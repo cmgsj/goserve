@@ -54,7 +54,7 @@ func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 			cfg.File = args[0]
 		}
 		start := time.Now()
-		root, numFiles, totalSize, err := file.GetFileTree(cfg.File, cfg.SkipDotFiles, cmd.ErrOrStderr())
+		root, info, err := file.GetFileTree(cfg.File, cfg.SkipDotFiles, cmd.ErrOrStderr())
 		if err != nil {
 			return err
 		}
@@ -65,7 +65,7 @@ func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 			httpHandler = middleware.Logger(httpHandler, cmd.OutOrStdout())
 		}
 		addr := fmt.Sprintf(":%d", cfg.Port)
-		printInfo(cmd, cfg, numFiles, totalSize, delta, root.Path, addr)
+		printInfo(cmd, cfg, info, delta, root.Path, addr)
 		go func() {
 			for err := range errCh {
 				cmd.PrintErrln(err)
@@ -75,9 +75,10 @@ func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func printInfo(cmd *cobra.Command, cfg *config, numFiles int, totalSize int64, delta time.Duration, rootPath string, addr string) {
+func printInfo(cmd *cobra.Command, cfg *config, info *file.TreeInfo, delta time.Duration, rootPath string, addr string) {
 	cmd.Println()
-	cmd.Printf("Parsed %s files [%s] in %s\n", format.ThousandsSeparator(numFiles), format.FileSize(totalSize), format.TimeDuration(delta))
+	cmd.Printf("Parsed %s files [%s] in %s\n",
+		format.ThousandsSeparator(info.NumFiles), format.FileSize(info.TotalSize), format.Duration(delta))
 	cmd.Println()
 	cmd.Printf("Root: %s\n", rootPath)
 	cmd.Printf("SkipDotFiles: %t\n", cfg.SkipDotFiles)

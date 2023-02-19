@@ -8,7 +8,7 @@ import (
 	"github.com/cmgsj/goserve/pkg/format"
 )
 
-func TestThousandsSeparator(t *testing.T) {
+func TestFormatThousandsSeparator(t *testing.T) {
 	type testcase struct {
 		input int
 		want  string
@@ -31,12 +31,12 @@ func TestThousandsSeparator(t *testing.T) {
 	for _, tc := range testcases {
 		got := format.ThousandsSeparator(tc.input)
 		if got != tc.want {
-			t.Errorf("ThousandsSeparator(%d) = %s, want %s", tc.input, got, tc.want)
+			t.Errorf("GroupThousands(%d) = %s, want %s", tc.input, got, tc.want)
 		}
 	}
 }
 
-func TestFileSize(t *testing.T) {
+func TestFormatFileSize(t *testing.T) {
 	type testcase struct {
 		input int64
 		want  string
@@ -63,7 +63,7 @@ func TestFileSize(t *testing.T) {
 	}
 }
 
-func TestTimeDuration(t *testing.T) {
+func TestFormatDuration(t *testing.T) {
 	type testcase struct {
 		input time.Duration
 		want  string
@@ -82,9 +82,9 @@ func TestTimeDuration(t *testing.T) {
 		{input: 1000 * 1000 * 1000 * 60 * 30, want: "30.00min"},
 	}
 	for _, tc := range testcases {
-		got := format.TimeDuration(tc.input)
+		got := format.Duration(tc.input)
 		if got != tc.want {
-			t.Errorf("TimeDuration(%d) = %s, want %s", tc.input, got, tc.want)
+			t.Errorf("Duration(%d) = %s, want %s", tc.input, got, tc.want)
 		}
 	}
 }

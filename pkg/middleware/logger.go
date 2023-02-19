@@ -37,10 +37,10 @@ func Logger(next http.Handler, outWriter io.Writer) http.Handler {
 		end := time.Now()
 		if n := r.Header.Get("bytes-copied"); n != "" {
 			fmt.Fprintf(outWriter, "%s %s %s %s -> %s [%s] %s\n",
-				end.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.Status, n, format.TimeDuration(time.Since(start)))
+				end.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.Status, n, format.Duration(time.Since(start)))
 		} else {
 			fmt.Fprintf(outWriter, "%s %s %s %s -> %s %s\n",
-				end.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.Status, format.TimeDuration(time.Since(start)))
+				end.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.Status, format.Duration(time.Since(start)))
 		}
 	})
 }

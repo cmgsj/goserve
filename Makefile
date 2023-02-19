@@ -1,21 +1,24 @@
-all: macM1
+all: run
+
+run:
+	go run ./cmd/goserve
+
+test:
+	go test -v ./...
 
 build: macM1 windows
 
 macM1:
-	GOOS=darwin GOARCH=arm64 go build -o bin/goserve cmd/main.go
+	GOOS=darwin GOARCH=arm64 go build -o bin ./cmd/goserve
 
 windows:
-	GOOS=windows GOARCH=amd64 go build -o bin/goserve cmd/main.go
+	GOOS=windows GOARCH=amd64 go build -o bin ./cmd/goserve
 
-publish: macM1
-	sudo ln -sF $${PWD}/bin/goserve /usr/local/bin
+install:
+	go install ./cmd/goserve
 
-unpublish:
-	sudo rm -f /usr/local/bin/goserve
-	
-run:
-	go run cmd/main.go
+uninstall:
+	rm -f $$(go env GOPATH)/bin/goserve
 
 clean:
 	rm -f bin/*

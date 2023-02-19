@@ -44,14 +44,19 @@ func (f *Tree) FindMatch(filePath string) (*Tree, error) {
 	return match, nil
 }
 
-func GetFileTree(filePath string, skipDotFiles bool, errWriter io.Writer) (*Tree, int, int64, error) {
+type TreeInfo struct {
+	NumFiles  int
+	TotalSize int64
+}
+
+func GetFileTree(filePath string, skipDotFiles bool, errWriter io.Writer) (*Tree, *TreeInfo, error) {
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, nil, err
 	}
 	stat, err := os.Stat(absPath)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, nil, err
 	}
 	root := &Tree{
 		Path:  absPath,
@@ -95,5 +100,9 @@ func GetFileTree(filePath string, skipDotFiles bool, errWriter io.Writer) (*Tree
 		}
 		numFiles++
 	}
-	return root, numFiles, totalSize, nil
+	info := &TreeInfo{
+		NumFiles:  numFiles,
+		TotalSize: totalSize,
+	}
+	return root, info, nil
 }

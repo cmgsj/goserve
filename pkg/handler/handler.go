@@ -20,7 +20,7 @@ func ServeFileTree(root *file.Tree, rawEnabled bool, version string, errCh chan<
 		if err != nil {
 			if errors.Is(err, file.ErrNotFound) {
 				w.WriteHeader(http.StatusNotFound)
-				err = templates.ExecuteIndex(w, templates.Page{
+				err = templates.ExecuteIndex(w, &templates.Page{
 					Ok:       false,
 					BackLink: "/",
 					Header:   err.Error(),
@@ -28,12 +28,12 @@ func ServeFileTree(root *file.Tree, rawEnabled bool, version string, errCh chan<
 				})
 			}
 		} else if f.IsDir {
-			var files, dirs []templates.File
+			var files, dirs []*templates.File
 			for _, child := range f.Children {
 				if child.IsBroken {
 					continue
 				}
-				fileTmpl := templates.File{
+				fileTmpl := &templates.File{
 					Path:  strings.TrimPrefix(child.Path, root.Path),
 					Name:  child.Name,
 					Size:  format.FileSize(child.Size),
@@ -45,7 +45,7 @@ func ServeFileTree(root *file.Tree, rawEnabled bool, version string, errCh chan<
 					files = append(files, fileTmpl)
 				}
 			}
-			err = templates.ExecuteIndex(w, templates.Page{
+			err = templates.ExecuteIndex(w, &templates.Page{
 				Ok:       true,
 				BackLink: filepath.Dir(strings.TrimPrefix(f.Path, root.Path)),
 				Header:   "/" + strings.TrimPrefix(strings.TrimPrefix(f.Path, root.Path), "/"),

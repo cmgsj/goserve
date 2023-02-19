@@ -37,7 +37,7 @@ func FileSize(size int64) string {
 	return fmt.Sprintf("%0.2f%s", float64(size)/float64(factor), unit)
 }
 
-func TimeDuration(t time.Duration) string {
+func Duration(t time.Duration) string {
 	var unit string
 	var factor int64
 	n := t.Nanoseconds()

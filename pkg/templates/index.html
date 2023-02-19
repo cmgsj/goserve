@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta charset="UTF-8" />
-        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
         <title>GoServe</title>
     </head>
     <body>
@@ -30,7 +26,7 @@
         </main>
         {{end}}
         <footer>
-            <p>GoServe v{{.Version}}</p>
+            <p id="footer-p">GoServe v{{.Version}}</p>
         </footer>
     </body>
     <style>
@@ -80,7 +76,11 @@
         }
     </style>
     <script>
-        const headerLabel = document.getElementById("header-label");
-        headerLabel.addEventListener("click", () => alert("{{.Header}}"));
+        document
+            .getElementById("header-label")
+            .addEventListener("click", () => alert("dir: {{.Header}}"));
+        document
+            .getElementById("footer-p")
+            .addEventListener("click", () => alert("GoServe v{{.Version}}"));
     </script>
 </html>
