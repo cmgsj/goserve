@@ -2,8 +2,8 @@ package root
 
 import (
 	"fmt"
+	"net"
 	"net/http"
-	"time"
 
 	"github.com/cmgsj/goserve/pkg/file"
 	"github.com/cmgsj/goserve/pkg/format"
@@ -54,32 +54,35 @@ func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			cfg.File = args[0]
 		}
-		start := time.Now()
+		addr := fmt.Sprintf(":%d", cfg.Port)
+		lis, err := net.Listen("tcp", addr)
+		if err != nil {
+			return err
+		}
+		defer lis.Close()
 		root, info, err := file.GetFileTree(cfg.File, cfg.SkipDotFiles, cmd.ErrOrStderr())
 		if err != nil {
 			return err
 		}
-		delta := time.Since(start)
 		errCh := make(chan error)
 		httpHandler := handler.ServeFileTree(root, cfg.RawEnabled, cmd.Version, errCh)
 		if cfg.LogEnabled {
 			httpHandler = middleware.Logger(httpHandler, cmd.OutOrStdout())
 		}
-		addr := fmt.Sprintf(":%d", cfg.Port)
-		printInfo(cmd, cfg, info, delta, root.Path, addr)
+		printInfo(cmd, cfg, info, root.Path, addr)
 		go func() {
 			for err := range errCh {
 				cmd.PrintErrln(err)
 			}
 		}()
-		return http.ListenAndServe(addr, httpHandler)
+		return http.Serve(lis, httpHandler)
 	}
 }
 
-func printInfo(cmd *cobra.Command, cfg *config, info *file.TreeInfo, delta time.Duration, rootPath string, addr string) {
+func printInfo(cmd *cobra.Command, cfg *config, info *file.TreeInfo, rootPath string, addr string) {
 	cmd.Println()
 	cmd.Printf("Parsed %s files [%s] in %s\n",
-		format.ThousandsSeparator(info.NumFiles), format.FileSize(info.TotalSize), format.Duration(delta))
+		format.ThousandsSeparator(info.NumFiles), format.FileSize(info.TotalSize), format.Duration(info.TimeDelta))
 	cmd.Println()
 	cmd.Printf("Root: %s\n", rootPath)
 	cmd.Printf("SkipDotFiles: %t\n", cfg.SkipDotFiles)

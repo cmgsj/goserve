@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 var (
@@ -25,6 +26,7 @@ type (
 	TreeInfo struct {
 		NumFiles  int
 		TotalSize int64
+		TimeDelta time.Duration
 	}
 )
 
@@ -59,15 +61,20 @@ func GetFileTree(filePath string, skipDotFiles bool, errWriter io.Writer) (*Tree
 	if err != nil {
 		return nil, nil, err
 	}
-	root := &Tree{
-		Path:  absPath,
-		Name:  stat.Name(),
-		Size:  stat.Size(),
-		IsDir: stat.IsDir(),
-	}
-	numFiles := 0
-	totalSize := int64(0)
-	queue := []*Tree{root}
+	var (
+		root = &Tree{
+			Path:  absPath,
+			Name:  stat.Name(),
+			Size:  stat.Size(),
+			IsDir: stat.IsDir(),
+		}
+		info = &TreeInfo{
+			NumFiles:  0,
+			TotalSize: 0,
+		}
+		start = time.Now()
+		queue = []*Tree{root}
+	)
 	for len(queue) > 0 {
 		f := queue[0]
 		queue = queue[1:]
@@ -98,13 +105,10 @@ func GetFileTree(filePath string, skipDotFiles bool, errWriter io.Writer) (*Tree
 				f.Children = append(f.Children, child)
 			}
 		} else {
-			totalSize += f.Size
+			info.TotalSize += f.Size
 		}
-		numFiles++
+		info.NumFiles++
 	}
-	info := &TreeInfo{
-		NumFiles:  numFiles,
-		TotalSize: totalSize,
-	}
+	info.TimeDelta = time.Since(start)
 	return root, info, nil
 }
