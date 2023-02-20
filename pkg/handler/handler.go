@@ -48,10 +48,14 @@ func ServeFileTree(root *file.Tree, rawEnabled bool, version string, errCh chan<
 					files = append(files, fileTmpl)
 				}
 			}
+			dirPath := strings.TrimPrefix(f.Path, root.Path)
+			if dirPath == "" {
+				dirPath = "/"
+			}
 			err = templates.ExecuteIndex(w, &templates.Page{
 				Ok:       true,
-				BackLink: filepath.Dir(strings.TrimPrefix(f.Path, root.Path)),
-				Header:   "/" + strings.TrimPrefix(strings.TrimPrefix(f.Path, root.Path), "/"),
+				BackLink: filepath.Dir(dirPath),
+				Header:   dirPath,
 				Files:    append(dirs, files...),
 				Version:  version,
 			})

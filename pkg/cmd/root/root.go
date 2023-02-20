@@ -76,7 +76,6 @@ func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 		if cfg.LogEnabled {
 			httpHandler = middleware.Logger(httpHandler, cmd.OutOrStdout())
 		}
-		printInfo(cmd, cfg, stats, root.Path, addr)
 		go func() {
 			for err := range errCh {
 				cmd.PrintErrln(err)
@@ -85,11 +84,13 @@ func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 		go func() {
-			<-sigs
+			sig := <-sigs
 			cmd.Println()
+			cmd.Printf("Received signal: %s\n", sig)
 			cmd.Println("Shutting down...")
 			os.Exit(0)
 		}()
+		printInfo(cmd, cfg, stats, root.Path, addr)
 		return http.Serve(lis, httpHandler)
 	}
 }

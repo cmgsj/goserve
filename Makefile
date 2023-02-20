@@ -1,10 +1,4 @@
-all: run
-
-run:
-	go run ./cmd/goserve
-
-test:
-	go test -v ./...
+all: install
 
 build: macM1 windows
 
