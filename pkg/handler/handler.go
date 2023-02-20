@@ -72,7 +72,7 @@ func sendFile(w http.ResponseWriter, r *http.Request, filePath string, rawEnable
 	}
 	defer f.Close()
 	if !rawEnabled {
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filepath.Base(filePath)))
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filepath.Base(filePath)))
 		w.Header().Set("Content-Type", "application/octet-stream")
 	}
 	n, err := io.Copy(w, f)

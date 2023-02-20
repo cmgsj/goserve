@@ -2,23 +2,26 @@ package format
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 )
 
 func ThousandsSeparator(num int) string {
-	s := fmt.Sprintf("%d", num)
-	n := len(s)
-	k := n + (n-1)/3
-	out := make([]byte, k)
+	var (
+		s   = strconv.Itoa(num)
+		n   = len(s)
+		k   = n + (n-1)/3
+		sep = make([]byte, k)
+	)
 	for i := n - 1; i >= 0; i-- {
 		if i != n-1 && (n-i-1)%3 == 0 {
 			k--
-			out[k] = ','
+			sep[k] = ','
 		}
 		k--
-		out[k] = s[i]
+		sep[k] = s[i]
 	}
-	return string(out)
+	return string(sep)
 }
 
 func FileSize(size int64) string {

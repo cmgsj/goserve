@@ -34,8 +34,10 @@ func (f *Tree) FindMatch(filePath string) (*Tree, error) {
 	if filePath == "/" {
 		return f, nil
 	}
-	match := f
-	parts := strings.Split(strings.Trim(filePath, "/"), "/")
+	var (
+		match = f
+		parts = strings.Split(strings.Trim(filePath, "/"), "/")
+	)
 	for _, part := range parts {
 		found := false
 		for _, child := range match.Children {
@@ -46,7 +48,7 @@ func (f *Tree) FindMatch(filePath string) (*Tree, error) {
 			}
 		}
 		if !found {
-			return nil, fmt.Errorf("%w: %s", ErrNotFound, filePath)
+			return nil, fmt.Errorf("%w: %q", ErrNotFound, filePath)
 		}
 	}
 	return match, nil

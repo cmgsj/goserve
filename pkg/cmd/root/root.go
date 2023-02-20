@@ -1,9 +1,9 @@
 package root
 
 import (
-	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 
 	"github.com/cmgsj/goserve/pkg/file"
 	"github.com/cmgsj/goserve/pkg/format"
@@ -27,21 +27,23 @@ type config struct {
 }
 
 func newRootCmd() *cobra.Command {
-	cfg := &config{
-		Port:         1234,
-		File:         ".",
-		SkipDotFiles: true,
-		RawEnabled:   true,
-		LogEnabled:   true,
-	}
-	rootCmd := &cobra.Command{
-		Use:     "goserve <filepath>",
-		Short:   "Static file server",
-		Long:    "Http static file server with web UI.",
-		Version: "1.0.0",
-		Args:    cobra.MaximumNArgs(1),
-		RunE:    makeRunFunc(cfg),
-	}
+	var (
+		cfg = &config{
+			Port:         1234,
+			File:         ".",
+			SkipDotFiles: true,
+			RawEnabled:   true,
+			LogEnabled:   true,
+		}
+		rootCmd = &cobra.Command{
+			Use:     "goserve <filepath>",
+			Short:   "Static file server",
+			Long:    "Http static file server with web UI.",
+			Version: "1.0.0",
+			Args:    cobra.MaximumNArgs(1),
+			RunE:    makeRunFunc(cfg),
+		}
+	)
 	rootCmd.PersistentFlags().IntVarP(&cfg.Port, "port", "p", cfg.Port, "port to listen on")
 	rootCmd.PersistentFlags().BoolVar(&cfg.SkipDotFiles, "skip-dot-files", cfg.SkipDotFiles, "whether to skip files that start with \".\" or not")
 	rootCmd.PersistentFlags().BoolVar(&cfg.LogEnabled, "log", cfg.LogEnabled, "whether to log request info to stdout or not")
@@ -54,7 +56,7 @@ func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			cfg.File = args[0]
 		}
-		addr := fmt.Sprintf(":%d", cfg.Port)
+		addr := ":" + strconv.Itoa(cfg.Port)
 		lis, err := net.Listen("tcp", addr)
 		if err != nil {
 			return err
@@ -64,8 +66,10 @@ func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		errCh := make(chan error)
-		httpHandler := handler.ServeFileTree(root, cfg.RawEnabled, cmd.Version, errCh)
+		var (
+			errCh       = make(chan error)
+			httpHandler = handler.ServeFileTree(root, cfg.RawEnabled, cmd.Version, errCh)
+		)
 		if cfg.LogEnabled {
 			httpHandler = middleware.Logger(httpHandler, cmd.OutOrStdout())
 		}

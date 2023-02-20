@@ -13,12 +13,8 @@ type statusRecorder struct {
 	http.ResponseWriter
 	StatusCode int
 	Status     string
-}
-
-func (s *statusRecorder) WriteHeader(code int) {
-	s.ResponseWriter.WriteHeader(code)
-	s.StatusCode = code
-	s.Status = http.StatusText(code)
+	StartTime  time.Time
+	TimeDelta  time.Duration
 }
 
 func newStatusRecorder(w http.ResponseWriter) *statusRecorder {
@@ -29,18 +25,24 @@ func newStatusRecorder(w http.ResponseWriter) *statusRecorder {
 	}
 }
 
+func (s *statusRecorder) WriteHeader(code int) {
+	s.ResponseWriter.WriteHeader(code)
+	s.StatusCode = code
+	s.Status = http.StatusText(code)
+}
+
+func (s *statusRecorder) Start() { s.StartTime = time.Now() }
+
+func (s *statusRecorder) Stop() { s.TimeDelta = time.Since(s.StartTime) }
+
 func Logger(next http.Handler, outWriter io.Writer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rec := newStatusRecorder(w)
-		start := time.Now()
+		rec.Start()
 		next.ServeHTTP(rec, r)
-		end := time.Now()
-		if n := r.Header.Get("bytes-copied"); n != "" {
-			fmt.Fprintf(outWriter, "%s %s %s %s -> %s [%s] %s\n",
-				end.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.Status, n, format.Duration(time.Since(start)))
-		} else {
-			fmt.Fprintf(outWriter, "%s %s %s %s -> %s %s\n",
-				end.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.Status, format.Duration(time.Since(start)))
-		}
+		rec.Stop()
+		fmt.Fprintf(outWriter, "%s %s %s %s -> %s [%s] %s\n",
+			rec.StartTime.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.Status,
+			format.Duration(rec.TimeDelta), r.Header.Get("bytes-copied"))
 	})
 }
