@@ -3,7 +3,10 @@ package root
 import (
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 
 	"github.com/cmgsj/goserve/pkg/file"
 	"github.com/cmgsj/goserve/pkg/format"
@@ -45,7 +48,7 @@ func newRootCmd() *cobra.Command {
 		}
 	)
 	rootCmd.PersistentFlags().IntVarP(&cfg.Port, "port", "p", cfg.Port, "port to listen on")
-	rootCmd.PersistentFlags().BoolVar(&cfg.SkipDotFiles, "skip-dot-files", cfg.SkipDotFiles, "whether to skip files that start with \".\" or not")
+	rootCmd.PersistentFlags().BoolVar(&cfg.SkipDotFiles, "skip-dot-files", cfg.SkipDotFiles, `whether to skip files whose name starts with "." or not`)
 	rootCmd.PersistentFlags().BoolVar(&cfg.LogEnabled, "log", cfg.LogEnabled, "whether to log request info to stdout or not")
 	rootCmd.PersistentFlags().BoolVar(&cfg.RawEnabled, "raw", cfg.RawEnabled, "whether to serve raw files or to download")
 	return rootCmd
@@ -62,7 +65,7 @@ func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		defer lis.Close()
-		root, info, err := file.GetFileTree(cfg.File, cfg.SkipDotFiles, cmd.ErrOrStderr())
+		root, stats, err := file.GetFileTree(cfg.File, cfg.SkipDotFiles, cmd.ErrOrStderr())
 		if err != nil {
 			return err
 		}
@@ -73,20 +76,28 @@ func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 		if cfg.LogEnabled {
 			httpHandler = middleware.Logger(httpHandler, cmd.OutOrStdout())
 		}
-		printInfo(cmd, cfg, info, root.Path, addr)
+		printInfo(cmd, cfg, stats, root.Path, addr)
 		go func() {
 			for err := range errCh {
 				cmd.PrintErrln(err)
 			}
 		}()
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+		go func() {
+			<-sigs
+			cmd.Println()
+			cmd.Println("Shutting down...")
+			os.Exit(0)
+		}()
 		return http.Serve(lis, httpHandler)
 	}
 }
 
-func printInfo(cmd *cobra.Command, cfg *config, info *file.TreeInfo, rootPath string, addr string) {
+func printInfo(cmd *cobra.Command, cfg *config, stats *file.TreeStats, rootPath string, addr string) {
 	cmd.Println()
 	cmd.Printf("Parsed %s files [%s] in %s\n",
-		format.ThousandsSeparator(info.NumFiles), format.FileSize(info.TotalSize), format.Duration(info.TimeDelta))
+		format.ThousandsSeparator(stats.NumFiles), format.FileSize(stats.TotalSize), format.Duration(stats.TimeDelta))
 	cmd.Println()
 	cmd.Printf("Root: %s\n", rootPath)
 	cmd.Printf("SkipDotFiles: %t\n", cfg.SkipDotFiles)

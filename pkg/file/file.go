@@ -23,19 +23,19 @@ type (
 		IsBroken bool
 		Children []*Tree
 	}
-	TreeInfo struct {
+	TreeStats struct {
 		NumFiles  int
 		TotalSize int64
 		TimeDelta time.Duration
 	}
 )
 
-func (f *Tree) FindMatch(filePath string) (*Tree, error) {
+func (t *Tree) FindMatch(filePath string) (*Tree, error) {
 	if filePath == "/" {
-		return f, nil
+		return t, nil
 	}
 	var (
-		match = f
+		match = t
 		parts = strings.Split(strings.Trim(filePath, "/"), "/")
 	)
 	for _, part := range parts {
@@ -54,27 +54,24 @@ func (f *Tree) FindMatch(filePath string) (*Tree, error) {
 	return match, nil
 }
 
-func GetFileTree(filePath string, skipDotFiles bool, errWriter io.Writer) (*Tree, *TreeInfo, error) {
+func GetFileTree(filePath string, skipDotFiles bool, errWriter io.Writer) (*Tree, *TreeStats, error) {
+	start := time.Now()
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
 		return nil, nil, err
 	}
-	stat, err := os.Stat(absPath)
+	info, err := os.Stat(absPath)
 	if err != nil {
 		return nil, nil, err
 	}
 	var (
 		root = &Tree{
 			Path:  absPath,
-			Name:  stat.Name(),
-			Size:  stat.Size(),
-			IsDir: stat.IsDir(),
+			Name:  info.Name(),
+			Size:  info.Size(),
+			IsDir: info.IsDir(),
 		}
-		info = &TreeInfo{
-			NumFiles:  0,
-			TotalSize: 0,
-		}
-		start = time.Now()
+		stats = &TreeStats{}
 		queue = []*Tree{root}
 	)
 	for len(queue) > 0 {
@@ -103,14 +100,14 @@ func GetFileTree(filePath string, skipDotFiles bool, errWriter io.Writer) (*Tree
 					Size:  info.Size(),
 					IsDir: info.IsDir(),
 				}
-				queue = append(queue, child)
 				f.Children = append(f.Children, child)
+				queue = append(queue, child)
 			}
 		} else {
-			info.TotalSize += f.Size
+			stats.TotalSize += f.Size
 		}
-		info.NumFiles++
+		stats.NumFiles++
 	}
-	info.TimeDelta = time.Since(start)
-	return root, info, nil
+	stats.TimeDelta = time.Since(start)
+	return root, stats, nil
 }
