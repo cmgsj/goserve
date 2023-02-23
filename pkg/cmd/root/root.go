@@ -1,15 +1,11 @@
 package root
 
 import (
-	"net"
 	"net/http"
 	"os"
-	"os/signal"
+	"path/filepath"
 	"strconv"
-	"syscall"
 
-	"github.com/cmgsj/goserve/pkg/file"
-	"github.com/cmgsj/goserve/pkg/format"
 	"github.com/cmgsj/goserve/pkg/handler"
 	"github.com/cmgsj/goserve/pkg/middleware"
 	"github.com/spf13/cobra"
@@ -22,21 +18,21 @@ func Execute() error {
 }
 
 type config struct {
-	Port         int
-	File         string
+	RootFile     string
 	SkipDotFiles bool
-	LogEnabled   bool
 	RawEnabled   bool
+	LogEnabled   bool
+	Port         int
 }
 
 func newRootCmd() *cobra.Command {
 	var (
 		cfg = &config{
-			Port:         1234,
-			File:         ".",
+			RootFile:     ".",
 			SkipDotFiles: true,
 			RawEnabled:   true,
 			LogEnabled:   true,
+			Port:         1234,
 		}
 		rootCmd = &cobra.Command{
 			Use:     "goserve <filepath>",
@@ -47,31 +43,29 @@ func newRootCmd() *cobra.Command {
 			RunE:    makeRunFunc(cfg),
 		}
 	)
-	rootCmd.PersistentFlags().IntVarP(&cfg.Port, "port", "p", cfg.Port, "port to listen on")
 	rootCmd.PersistentFlags().BoolVar(&cfg.SkipDotFiles, "skip-dot-files", cfg.SkipDotFiles, `whether to skip files whose name starts with "." or not`)
-	rootCmd.PersistentFlags().BoolVar(&cfg.LogEnabled, "log", cfg.LogEnabled, "whether to log request info to stdout or not")
 	rootCmd.PersistentFlags().BoolVar(&cfg.RawEnabled, "raw", cfg.RawEnabled, "whether to serve raw files or to download")
+	rootCmd.PersistentFlags().BoolVar(&cfg.LogEnabled, "log", cfg.LogEnabled, "whether to log request info to stdout or not")
+	rootCmd.PersistentFlags().IntVarP(&cfg.Port, "port", "p", cfg.Port, "port to listen on")
 	return rootCmd
 }
 
 func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
-			cfg.File = args[0]
+			cfg.RootFile = args[0]
 		}
-		addr := ":" + strconv.Itoa(cfg.Port)
-		lis, err := net.Listen("tcp", addr)
+		absPath, err := filepath.Abs(cfg.RootFile)
 		if err != nil {
 			return err
 		}
-		defer lis.Close()
-		root, stats, err := file.GetFileTree(cfg.File, cfg.SkipDotFiles, cmd.ErrOrStderr())
-		if err != nil {
+		cfg.RootFile = absPath
+		if _, err = os.Stat(cfg.RootFile); err != nil {
 			return err
 		}
 		var (
 			errCh       = make(chan error)
-			httpHandler = handler.ServeFileTree(root, cfg.RawEnabled, cmd.Version, errCh)
+			httpHandler = handler.ServeFile(cfg.RootFile, cfg.SkipDotFiles, cfg.RawEnabled, cmd.Version, errCh)
 		)
 		if cfg.LogEnabled {
 			httpHandler = middleware.Logger(httpHandler, cmd.OutOrStdout())
@@ -81,26 +75,15 @@ func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 				cmd.PrintErrln(err)
 			}
 		}()
-		sigs := make(chan os.Signal, 1)
-		signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
-		go func() {
-			sig := <-sigs
-			cmd.Println()
-			cmd.Printf("Received signal: %s\n", sig)
-			cmd.Println("Shutting down...")
-			os.Exit(0)
-		}()
-		printInfo(cmd, cfg, stats, root.Path, addr)
-		return http.Serve(lis, httpHandler)
+		addr := ":" + strconv.Itoa(cfg.Port)
+		printInfo(cmd, cfg, addr)
+		return http.ListenAndServe(addr, httpHandler)
 	}
 }
 
-func printInfo(cmd *cobra.Command, cfg *config, stats *file.TreeStats, rootPath string, addr string) {
+func printInfo(cmd *cobra.Command, cfg *config, addr string) {
 	cmd.Println()
-	cmd.Printf("Parsed %s files [%s] in %s\n",
-		format.ThousandsSeparator(stats.NumFiles), format.FileSize(stats.TotalSize), format.Duration(stats.TimeDelta))
-	cmd.Println()
-	cmd.Printf("Root: %s\n", rootPath)
+	cmd.Printf("Root: %s\n", cfg.RootFile)
 	cmd.Printf("SkipDotFiles: %t\n", cfg.SkipDotFiles)
 	cmd.Printf("RawEnabled: %t\n", cfg.RawEnabled)
 	cmd.Printf("LogEnabled: %t\n", cfg.LogEnabled)

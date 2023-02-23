@@ -2,13 +2,8 @@ package templates
 
 import (
 	_ "embed"
-	"errors"
 	"html/template"
 	"io"
-)
-
-var (
-	ErrNilPage = errors.New("nil page")
 )
 
 var (
@@ -34,8 +29,5 @@ type (
 )
 
 func ExecuteIndex(w io.Writer, page *Page) error {
-	if page == nil {
-		return ErrNilPage
-	}
 	return indexTmpl.Execute(w, page)
 }

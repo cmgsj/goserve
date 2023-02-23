@@ -1,72 +1,90 @@
 package handler
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
-	"github.com/cmgsj/goserve/pkg/file"
-	"github.com/cmgsj/goserve/pkg/format"
 	"github.com/cmgsj/goserve/pkg/templates"
 )
 
-func ServeFileTree(root *file.Tree, rawEnabled bool, version string, errCh chan<- error) http.Handler {
+func ServeFile(rootFile string, skipDotFiles, rawEnabled bool, version string, errCh chan<- error) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f, err := root.FindMatch(r.URL.Path)
+		var (
+			filePath = path.Clean(r.URL.Path)
+			fullPath = path.Join(rootFile, filePath)
+		)
+		info, err := os.Stat(fullPath)
 		if err != nil {
-			if errors.Is(err, file.ErrNotFound) {
-				w.WriteHeader(http.StatusNotFound)
-				err = templates.ExecuteIndex(w, &templates.Page{
-					Ok:       false,
-					BackLink: "/",
-					Header:   err.Error(),
-					Version:  version,
-				})
+			sendErrorPage(w, err, version, errCh)
+			return
+		}
+		if info.IsDir() {
+			entries, err := os.ReadDir(fullPath)
+			if err != nil {
+				sendErrorPage(w, err, version, errCh)
+				return
 			}
-		} else if f.IsDir {
 			var (
-				dirs  = make([]*templates.File, 0, len(f.Children))
+				dirs  = make([]*templates.File, 0, len(entries))
 				files = make([]*templates.File, 0)
 			)
-			for _, child := range f.Children {
-				if child.IsBroken {
+			for _, entry := range entries {
+				if skipDotFiles && strings.HasPrefix(entry.Name(), ".") {
 					continue
 				}
-				fileTmpl := &templates.File{
-					Path:  strings.TrimPrefix(child.Path, root.Path),
-					Name:  child.Name,
-					Size:  format.FileSize(child.Size),
-					IsDir: child.IsDir,
+				info, err := entry.Info()
+				if err != nil {
+					errCh <- err
+					continue
 				}
-				if child.IsDir {
-					dirs = append(dirs, fileTmpl)
+				file := &templates.File{
+					Path:  path.Join(filePath, info.Name()),
+					Name:  info.Name(),
+					Size:  formatFileSize(info.Size()),
+					IsDir: info.IsDir(),
+				}
+				if file.IsDir {
+					dirs = append(dirs, file)
 				} else {
-					files = append(files, fileTmpl)
+					files = append(files, file)
 				}
 			}
-			dirPath := strings.TrimPrefix(f.Path, root.Path)
-			if dirPath == "" {
-				dirPath = "/"
-			}
-			err = templates.ExecuteIndex(w, &templates.Page{
+			page := &templates.Page{
 				Ok:       true,
-				BackLink: filepath.Dir(dirPath),
-				Header:   dirPath,
+				BackLink: filepath.Dir(filePath),
+				Header:   filePath,
 				Files:    append(dirs, files...),
 				Version:  version,
-			})
-		} else {
-			err = sendFile(w, r, f.Path, rawEnabled)
+			}
+			if err = templates.ExecuteIndex(w, page); err != nil {
+				errCh <- err
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			return
 		}
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		if err := sendFile(w, r, fullPath, rawEnabled); err != nil {
 			errCh <- err
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
+}
+
+func sendErrorPage(w http.ResponseWriter, err error, version string, errCh chan<- error) {
+	page := &templates.Page{
+		Ok:       false,
+		BackLink: "/",
+		Header:   err.Error(),
+		Version:  version,
+	}
+	if e := templates.ExecuteIndex(w, page); e != nil {
+		errCh <- e
+		http.Error(w, e.Error(), http.StatusInternalServerError)
+	}
 }
 
 func sendFile(w http.ResponseWriter, r *http.Request, filePath string, rawEnabled bool) error {
@@ -83,6 +101,24 @@ func sendFile(w http.ResponseWriter, r *http.Request, filePath string, rawEnable
 	if err != nil {
 		return err
 	}
-	r.Header.Set("bytes-copied", format.FileSize(n))
+	r.Header.Set("bytes-copied", formatFileSize(n))
 	return nil
+}
+
+func formatFileSize(size int64) string {
+	var (
+		unit   string
+		factor int64
+	)
+	if factor = 1024 * 1024 * 1024; size >= factor {
+		unit = "GB"
+	} else if factor = 1024 * 1024; size >= factor {
+		unit = "MB"
+	} else if factor = 1024; size >= factor {
+		unit = "KB"
+	} else {
+		unit = "B"
+		factor = 1
+	}
+	return fmt.Sprintf("%0.2f%s", float64(size)/float64(factor), unit)
 }

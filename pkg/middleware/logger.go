@@ -5,8 +5,6 @@ import (
 	"io"
 	"net/http"
 	"time"
-
-	"github.com/cmgsj/goserve/pkg/format"
 )
 
 type statusRecorder struct {
@@ -43,6 +41,27 @@ func Logger(next http.Handler, outWriter io.Writer) http.Handler {
 		rec.Stop()
 		fmt.Fprintf(outWriter, "%s %s %s %s -> %s [%s] %s\n",
 			rec.StartTime.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.Status,
-			format.Duration(rec.TimeDelta), r.Header.Get("bytes-copied"))
+			formatDuration(rec.TimeDelta), r.Header.Get("bytes-copied"))
 	})
+}
+
+func formatDuration(t time.Duration) string {
+	var (
+		unit   string
+		factor int64
+		n      = t.Nanoseconds()
+	)
+	if factor = 60 * 1000 * 1000 * 1000; n >= factor {
+		unit = "min"
+	} else if factor = 1000 * 1000 * 1000; n >= factor {
+		unit = "s"
+	} else if factor = 1000 * 1000; n >= factor {
+		unit = "ms"
+	} else if factor = 1000; n >= factor {
+		unit = "µs"
+	} else {
+		unit = "ns"
+		factor = 1
+	}
+	return fmt.Sprintf("%.2f%s", float64(n)/float64(factor), unit)
 }
