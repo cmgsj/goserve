@@ -1,12 +1,12 @@
 all: install
 
-build: macM1 windows
+build: mac windows
 
-macM1:
-	GOOS=darwin GOARCH=arm64 go build -o bin ./cmd/goserve
+mac:
+	GOOS=darwin GOARCH=arm64 go build -o ./bin/goserve-mac ./cmd/goserve
 
 windows:
-	GOOS=windows GOARCH=amd64 go build -o bin ./cmd/goserve
+	GOOS=windows GOARCH=amd64 go build -o ./bin/goserve-win.exe ./cmd/goserve
 
 install:
 	go install ./cmd/goserve
