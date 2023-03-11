@@ -11,7 +11,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = newRootCmd()
+var (
+	defaultConfig = &config{
+		RootFile:     ".",
+		SkipDotFiles: true,
+		RawEnabled:   true,
+		LogEnabled:   true,
+		Port:         1234,
+	}
+	rootCmd = newRootCmd(defaultConfig)
+)
 
 func Execute() error {
 	return rootCmd.Execute()
@@ -25,24 +34,15 @@ type config struct {
 	Port         int
 }
 
-func newRootCmd() *cobra.Command {
-	var (
-		cfg = &config{
-			RootFile:     ".",
-			SkipDotFiles: true,
-			RawEnabled:   true,
-			LogEnabled:   true,
-			Port:         1234,
-		}
-		rootCmd = &cobra.Command{
-			Use:     "goserve <filepath>",
-			Short:   "Static file server",
-			Long:    "Http static file server with web UI.",
-			Version: "1.0.0",
-			Args:    cobra.MaximumNArgs(1),
-			RunE:    makeRunFunc(cfg),
-		}
-	)
+func newRootCmd(cfg *config) *cobra.Command {
+	rootCmd := &cobra.Command{
+		Use:     "goserve <filepath>",
+		Short:   "Static file server",
+		Long:    "Http static file server with web UI.",
+		Version: "1.0.0",
+		Args:    cobra.MaximumNArgs(1),
+		RunE:    makeRunFunc(cfg),
+	}
 	rootCmd.PersistentFlags().BoolVar(&cfg.SkipDotFiles, "skip-dot-files", cfg.SkipDotFiles, `whether to skip files whose name starts with "." or not`)
 	rootCmd.PersistentFlags().BoolVar(&cfg.RawEnabled, "raw", cfg.RawEnabled, "whether to serve raw files or to download")
 	rootCmd.PersistentFlags().BoolVar(&cfg.LogEnabled, "log", cfg.LogEnabled, "whether to log request info to stdout or not")
@@ -75,19 +75,18 @@ func makeRunFunc(cfg *config) func(cmd *cobra.Command, args []string) error {
 				cmd.PrintErrln(err)
 			}
 		}()
-		addr := ":" + strconv.Itoa(cfg.Port)
-		printInfo(cmd, cfg, addr)
-		return http.ListenAndServe(addr, httpHandler)
+		printInfo(cmd, cfg)
+		return http.ListenAndServe(":"+strconv.Itoa(cfg.Port), httpHandler)
 	}
 }
 
-func printInfo(cmd *cobra.Command, cfg *config, addr string) {
+func printInfo(cmd *cobra.Command, cfg *config) {
 	cmd.Println()
 	cmd.Printf("Root: %s\n", cfg.RootFile)
 	cmd.Printf("SkipDotFiles: %t\n", cfg.SkipDotFiles)
 	cmd.Printf("RawEnabled: %t\n", cfg.RawEnabled)
 	cmd.Printf("LogEnabled: %t\n", cfg.LogEnabled)
-	cmd.Printf("Address: http://localhost%s\n", addr)
+	cmd.Printf("Address: http://localhost:%d\n", cfg.Port)
 	cmd.Println()
 	cmd.Println("Ready to accept connections")
 	cmd.Println()

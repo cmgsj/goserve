@@ -8,8 +8,8 @@ import (
 
 var (
 	//go:embed index.html
-	indexHtml string
-	indexTmpl = template.Must(template.New("index").Parse(indexHtml))
+	indexHTML string
+	indexTmpl = template.Must(template.New("index").Parse(indexHTML))
 )
 
 type (

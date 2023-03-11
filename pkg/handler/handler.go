@@ -62,14 +62,10 @@ func ServeFile(rootFile string, skipDotFiles, rawEnabled bool, version string, e
 				Version:  version,
 			}
 			if err = templates.ExecuteIndex(w, page); err != nil {
-				errCh <- err
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				sendError(w, err, errCh)
 			}
-			return
-		}
-		if err = sendFile(w, r, fullPath, rawEnabled); err != nil {
-			errCh <- err
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		} else {
+			sendFile(w, r, fullPath, rawEnabled, errCh)
 		}
 	})
 }
@@ -82,15 +78,15 @@ func sendErrorPage(w http.ResponseWriter, err error, version string, errCh chan<
 		Version:  version,
 	}
 	if err = templates.ExecuteIndex(w, page); err != nil {
-		errCh <- err
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		sendError(w, err, errCh)
 	}
 }
 
-func sendFile(w http.ResponseWriter, r *http.Request, filePath string, rawEnabled bool) error {
+func sendFile(w http.ResponseWriter, r *http.Request, filePath string, rawEnabled bool, errCh chan<- error) {
 	f, err := os.Open(filePath)
 	if err != nil {
-		return err
+		sendError(w, err, errCh)
+		return
 	}
 	defer f.Close()
 	if !rawEnabled {
@@ -99,10 +95,15 @@ func sendFile(w http.ResponseWriter, r *http.Request, filePath string, rawEnable
 	}
 	n, err := io.Copy(w, f)
 	if err != nil {
-		return err
+		sendError(w, err, errCh)
+		return
 	}
 	r.Header.Set("bytes-copied", formatFileSize(n))
-	return nil
+}
+
+func sendError(w http.ResponseWriter, err error, errCh chan<- error) {
+	errCh <- err
+	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
 func formatFileSize(size int64) string {

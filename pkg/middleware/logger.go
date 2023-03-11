@@ -29,19 +29,22 @@ func (s *statusRecorder) WriteHeader(code int) {
 	s.Status = http.StatusText(code)
 }
 
-func (s *statusRecorder) Start() { s.StartTime = time.Now() }
+func (s *statusRecorder) StartTimer() {
+	s.StartTime = time.Now()
+}
 
-func (s *statusRecorder) Stop() { s.TimeDelta = time.Since(s.StartTime) }
+func (s *statusRecorder) StopTimer() {
+	s.TimeDelta = time.Since(s.StartTime)
+}
 
 func Logger(next http.Handler, outWriter io.Writer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rec := newStatusRecorder(w)
-		rec.Start()
+		rec.StartTimer()
 		next.ServeHTTP(rec, r)
-		rec.Stop()
-		fmt.Fprintf(outWriter, "%s %s %s %s -> %s [%s] %s\n",
-			rec.StartTime.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.Status,
-			formatDuration(rec.TimeDelta), r.Header.Get("bytes-copied"))
+		rec.StopTimer()
+		fmt.Fprintf(outWriter, "%s %s %s %s -> %s [%s] %s\n", rec.StartTime.Format("2006/01/02 15:04:05"),
+			r.Method, r.URL.Path, r.RemoteAddr, rec.Status, formatDuration(rec.TimeDelta), r.Header.Get("bytes-copied"))
 	})
 }
 
