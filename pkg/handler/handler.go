@@ -37,7 +37,7 @@ func ServeFile(rootFile string, skipDotFiles, rawEnabled bool, version string, e
 				if skipDotFiles && strings.HasPrefix(entry.Name(), ".") {
 					continue
 				}
-				info, err := entry.Info()
+				info, err = entry.Info()
 				if err != nil {
 					errCh <- err
 					continue
@@ -67,7 +67,7 @@ func ServeFile(rootFile string, skipDotFiles, rawEnabled bool, version string, e
 			}
 			return
 		}
-		if err := sendFile(w, r, fullPath, rawEnabled); err != nil {
+		if err = sendFile(w, r, fullPath, rawEnabled); err != nil {
 			errCh <- err
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -81,9 +81,9 @@ func sendErrorPage(w http.ResponseWriter, err error, version string, errCh chan<
 		Header:   err.Error(),
 		Version:  version,
 	}
-	if e := templates.ExecuteIndex(w, page); e != nil {
-		errCh <- e
-		http.Error(w, e.Error(), http.StatusInternalServerError)
+	if err = templates.ExecuteIndex(w, page); err != nil {
+		errCh <- err
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
