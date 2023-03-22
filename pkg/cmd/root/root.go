@@ -12,11 +12,10 @@ import (
 )
 
 var (
-	version       = "dev"
 	defaultConfig = &config{
 		RootFile:     ".",
 		SkipDotFiles: true,
-		RawEnabled:   true,
+		RawEnabled:   false,
 		LogEnabled:   true,
 		Port:         1234,
 	}
@@ -37,10 +36,10 @@ type config struct {
 
 func newRootCmd(cfg *config) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:     "goserve <filepath>",
+		Use:     "goserve [filepath]",
 		Short:   "Static file server",
 		Long:    "Http static file server with web UI.",
-		Version: version,
+		Version: "1.0.0",
 		Args:    cobra.MaximumNArgs(1),
 		RunE:    makeRunFunc(cfg),
 	}

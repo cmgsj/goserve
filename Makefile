@@ -1,23 +1,13 @@
-BINARY_NAME=goserve
-VERSION=1.0.0
-VERSION_PATH=github.com/cmgsj/goserve/pkg/cmd/root.version
-BUILD_DIR=./bin
+all: build
 
-all: install
-
-build: mac windows
-
-mac:
-	GOOS=darwin GOARCH=arm64 go build -ldflags "-X '${VERSION_PATH}=${VERSION}'" -o ${BUILD_DIR}/${BINARY_NAME}-mac ./cmd/${BINARY_NAME}
-
-windows:
-	GOOS=windows GOARCH=amd64 go build -ldflags "-X '${VERSION_PATH}=${VERSION}'" -o ${BUILD_DIR}/${BINARY_NAME}-win.exe ./cmd/${BINARY_NAME}
+build:
+	go build -o ./bin/goserve ./cmd/goserve
 
 install:
-	go install -ldflags "-X '${VERSION_PATH}=${VERSION}'" ./cmd/${BINARY_NAME}
+	go install ./cmd/goserve
 
 uninstall:
-	rm -f $$(go env GOPATH)/bin/${BINARY_NAME}
+	rm -f $$(go env GOPATH)/bin/goserve
 
 clean:
-	rm -f ${BUILD_DIR}/*
+	rm -f ./bin/*
