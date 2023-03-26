@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cmgsj/goserve/pkg/handler"
+	"github.com/cmgsj/goserve/pkg/files"
 	"github.com/cmgsj/goserve/pkg/middleware"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -28,7 +28,7 @@ func newRootCmd() *cobra.Command {
 		Args:    cobra.MaximumNArgs(1),
 		RunE:    runRootCmdE,
 	}
-	rootCmd.PersistentFlags().IntP("port", "p", 1234, "port to listen on")
+	rootCmd.PersistentFlags().Int("port", 1234, "port to listen on")
 	rootCmd.PersistentFlags().Duration("cache-time", time.Minute, "expiration time of files on the in-memory cache")
 	rootCmd.PersistentFlags().Bool("raw", true, "whether to serve raw files or to download")
 	rootCmd.PersistentFlags().Bool("log", true, "whether to log request info to stdout or not")
@@ -60,39 +60,38 @@ func runRootCmdE(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	var rootFile = "."
+	rootPath := "."
 	if len(args) > 0 {
-		rootFile = args[0]
+		rootPath = args[0]
 	}
-	absPath, err := filepath.Abs(rootFile)
+	rootPath, err = filepath.Abs(rootPath)
 	if err != nil {
 		return err
 	}
-	rootFile = absPath
-	if _, err = os.Stat(rootFile); err != nil {
+	if _, err = os.Stat(rootPath); err != nil {
 		return err
 	}
 	var (
 		fsys = afero.NewCacheOnReadFs(
 			afero.NewBasePathFs(
 				afero.NewReadOnlyFs(afero.NewOsFs()),
-				rootFile,
+				rootPath,
 			),
 			afero.NewMemMapFs(),
 			cacheTime,
 		)
 		errC   = make(chan error)
-		config = handler.FileServerConfig{
+		config = files.ServerConfig{
 			Fs:           fsys,
 			SkipDotFiles: skipDotFiles,
 			RawEnabled:   rawEnabled,
 			Version:      cmd.Version,
 			ErrC:         errC,
 		}
-		httpHandler = handler.FileServer(config)
+		handler = files.NewServer(config)
 	)
 	if logEnabled {
-		httpHandler = middleware.Logger(httpHandler, cmd.OutOrStdout())
+		handler = middleware.LogHTTP(handler, cmd.OutOrStdout())
 	}
 	go func() {
 		for err := range errC {
@@ -100,7 +99,7 @@ func runRootCmdE(cmd *cobra.Command, args []string) error {
 		}
 	}()
 	cmd.Println()
-	cmd.Printf("Root: %s\n", rootFile)
+	cmd.Printf("Root: %s\n", rootPath)
 	cmd.Printf("CacheTime: %s\n", cacheTime)
 	cmd.Printf("SkipDotFiles: %t\n", skipDotFiles)
 	cmd.Printf("RawEnabled: %t\n", rawEnabled)
@@ -109,5 +108,5 @@ func runRootCmdE(cmd *cobra.Command, args []string) error {
 	cmd.Println()
 	cmd.Println("Ready to accept connections")
 	cmd.Println()
-	return http.ListenAndServe(":"+strconv.Itoa(port), httpHandler)
+	return http.ListenAndServe(":"+strconv.Itoa(port), handler)
 }

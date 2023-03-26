@@ -27,7 +27,7 @@ func (r *httpRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
-func Logger(next http.Handler, out io.Writer) http.Handler {
+func LogHTTP(next http.Handler, out io.Writer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rec := newHttpRecorder(w)
 		start := time.Now()

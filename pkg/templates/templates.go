@@ -28,6 +28,6 @@ type (
 	}
 )
 
-func ExecuteIndex(w io.Writer, page Page) error {
-	return indexTmpl.Execute(w, page)
+func ExecuteIndex(w io.Writer, p Page) error {
+	return indexTmpl.Execute(w, p)
 }

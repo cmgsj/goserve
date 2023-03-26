@@ -1,4 +1,4 @@
-package handler
+package files
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/afero"
 )
 
-type FileServerConfig struct {
+type ServerConfig struct {
 	Fs           afero.Fs
 	SkipDotFiles bool
 	RawEnabled   bool
@@ -20,7 +20,7 @@ type FileServerConfig struct {
 	ErrC         chan<- error
 }
 
-func FileServer(config FileServerConfig) http.Handler {
+func NewServer(config ServerConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		filePath := path.Clean(r.URL.Path)
 		info, err := config.Fs.Stat(filePath)
