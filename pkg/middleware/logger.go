@@ -7,44 +7,34 @@ import (
 	"time"
 )
 
-type statusRecorder struct {
+type httpRecorder struct {
 	http.ResponseWriter
-	StatusCode int
-	Status     string
-	StartTime  time.Time
-	TimeDelta  time.Duration
+	code   int
+	status string
 }
 
-func newStatusRecorder(w http.ResponseWriter) *statusRecorder {
-	return &statusRecorder{
+func newHttpRecorder(w http.ResponseWriter) *httpRecorder {
+	return &httpRecorder{
 		ResponseWriter: w,
-		StatusCode:     http.StatusOK,
-		Status:         http.StatusText(http.StatusOK),
+		code:           http.StatusOK,
+		status:         http.StatusText(http.StatusOK),
 	}
 }
 
-func (s *statusRecorder) WriteHeader(code int) {
-	s.ResponseWriter.WriteHeader(code)
-	s.StatusCode = code
-	s.Status = http.StatusText(code)
+func (r *httpRecorder) WriteHeader(code int) {
+	r.code = code
+	r.status = http.StatusText(code)
+	r.ResponseWriter.WriteHeader(code)
 }
 
-func (s *statusRecorder) StartTimer() {
-	s.StartTime = time.Now()
-}
-
-func (s *statusRecorder) StopTimer() {
-	s.TimeDelta = time.Since(s.StartTime)
-}
-
-func Logger(next http.Handler, outWriter io.Writer) http.Handler {
+func Logger(next http.Handler, out io.Writer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		rec := newStatusRecorder(w)
-		rec.StartTimer()
+		rec := newHttpRecorder(w)
+		start := time.Now()
 		next.ServeHTTP(rec, r)
-		rec.StopTimer()
-		fmt.Fprintf(outWriter, "%s %s %s %s -> %s [%s] %s\n", rec.StartTime.Format("2006/01/02 15:04:05"),
-			r.Method, r.URL.Path, r.RemoteAddr, rec.Status, formatDuration(rec.TimeDelta), r.Header.Get("bytes-copied"))
+		delta := time.Since(start)
+		fmt.Fprintf(out, "%s %s %s %s -> %s [%s] %s\n",
+			start.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.status, formatDuration(delta), r.Header.Get("X-Bytes-Copied"))
 	})
 }
 

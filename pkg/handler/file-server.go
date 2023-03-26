@@ -13,7 +13,7 @@ import (
 )
 
 type FileServerConfig struct {
-	FS           afero.Fs
+	Fs           afero.Fs
 	SkipDotFiles bool
 	RawEnabled   bool
 	Version      string
@@ -23,21 +23,18 @@ type FileServerConfig struct {
 func FileServer(config FileServerConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		filePath := path.Clean(r.URL.Path)
-		info, err := config.FS.Stat(filePath)
+		info, err := config.Fs.Stat(filePath)
 		if err != nil {
 			sendErrorPage(w, err, config.Version, config.ErrC)
 			return
 		}
 		if info.IsDir() {
-			filesInfo, err := afero.ReadDir(config.FS, filePath)
+			filesInfo, err := afero.ReadDir(config.Fs, filePath)
 			if err != nil {
 				sendErrorPage(w, err, config.Version, config.ErrC)
 				return
 			}
-			var (
-				dirs  = make([]templates.File, 0, len(filesInfo))
-				files = make([]templates.File, 0)
-			)
+			var dirs, files []templates.File
 			for _, fileInfo := range filesInfo {
 				if config.SkipDotFiles && strings.HasPrefix(fileInfo.Name(), ".") {
 					continue
@@ -65,7 +62,7 @@ func FileServer(config FileServerConfig) http.Handler {
 				sendError(w, err, config.ErrC)
 			}
 		} else {
-			sendFile(w, r, config.FS, filePath, config.RawEnabled, config.ErrC)
+			sendFile(w, r, config.Fs, filePath, config.RawEnabled, config.ErrC)
 		}
 	})
 }

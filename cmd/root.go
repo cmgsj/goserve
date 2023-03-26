@@ -45,8 +45,8 @@ func runRootCmdE(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if cacheTime.Abs().Nanoseconds() < time.Minute.Abs().Nanoseconds() {
-		cacheTime = time.Minute
+	if cacheTime < 0 {
+		cacheTime = 0
 	}
 	rawEnabled, err := cmd.Flags().GetBool("raw")
 	if err != nil {
@@ -81,15 +81,15 @@ func runRootCmdE(cmd *cobra.Command, args []string) error {
 			afero.NewMemMapFs(),
 			cacheTime,
 		)
-		errC     = make(chan error)
-		fsConfig = handler.FileServerConfig{
-			FS:           fsys,
+		errC   = make(chan error)
+		config = handler.FileServerConfig{
+			Fs:           fsys,
 			SkipDotFiles: skipDotFiles,
 			RawEnabled:   rawEnabled,
 			Version:      cmd.Version,
 			ErrC:         errC,
 		}
-		httpHandler = handler.FileServer(fsConfig)
+		httpHandler = handler.FileServer(config)
 	)
 	if logEnabled {
 		httpHandler = middleware.Logger(httpHandler, cmd.OutOrStdout())
