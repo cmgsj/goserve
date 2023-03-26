@@ -14,7 +14,6 @@ import (
 
 type FileServerConfig struct {
 	FS           afero.Fs
-	RootFile     string
 	SkipDotFiles bool
 	RawEnabled   bool
 	Version      string
@@ -23,17 +22,14 @@ type FileServerConfig struct {
 
 func FileServer(config FileServerConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var (
-			filePath = path.Clean(r.URL.Path)
-			fullPath = path.Join(config.RootFile, filePath)
-		)
-		info, err := config.FS.Stat(fullPath)
+		filePath := path.Clean(r.URL.Path)
+		info, err := config.FS.Stat(filePath)
 		if err != nil {
 			sendErrorPage(w, err, config.Version, config.ErrC)
 			return
 		}
 		if info.IsDir() {
-			filesInfo, err := afero.ReadDir(config.FS, fullPath)
+			filesInfo, err := afero.ReadDir(config.FS, filePath)
 			if err != nil {
 				sendErrorPage(w, err, config.Version, config.ErrC)
 				return
@@ -69,7 +65,7 @@ func FileServer(config FileServerConfig) http.Handler {
 				sendError(w, err, config.ErrC)
 			}
 		} else {
-			sendFile(w, r, config.FS, fullPath, config.RawEnabled, config.ErrC)
+			sendFile(w, r, config.FS, filePath, config.RawEnabled, config.ErrC)
 		}
 	})
 }

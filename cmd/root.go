@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/cmgsj/goserve/pkg/handler"
 	"github.com/cmgsj/goserve/pkg/middleware"
@@ -28,6 +29,7 @@ func newRootCmd() *cobra.Command {
 		RunE:    runRootCmdE,
 	}
 	rootCmd.PersistentFlags().IntP("port", "p", 1234, "port to listen on")
+	rootCmd.PersistentFlags().Duration("cache-time", time.Minute, "expiration time of files on the in-memory cache")
 	rootCmd.PersistentFlags().Bool("raw", true, "whether to serve raw files or to download")
 	rootCmd.PersistentFlags().Bool("log", true, "whether to log request info to stdout or not")
 	rootCmd.PersistentFlags().Bool("skip-dot-files", true, `whether to skip files whose name starts with "." or not`)
@@ -38,6 +40,13 @@ func runRootCmdE(cmd *cobra.Command, args []string) error {
 	port, err := cmd.Flags().GetInt("port")
 	if err != nil {
 		return err
+	}
+	cacheTime, err := cmd.Flags().GetDuration("cache-time")
+	if err != nil {
+		return err
+	}
+	if cacheTime.Abs().Nanoseconds() < time.Minute.Abs().Nanoseconds() {
+		cacheTime = time.Minute
 	}
 	rawEnabled, err := cmd.Flags().GetBool("raw")
 	if err != nil {
@@ -64,10 +73,17 @@ func runRootCmdE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	var (
+		fsys = afero.NewCacheOnReadFs(
+			afero.NewBasePathFs(
+				afero.NewReadOnlyFs(afero.NewOsFs()),
+				rootFile,
+			),
+			afero.NewMemMapFs(),
+			cacheTime,
+		)
 		errC     = make(chan error)
 		fsConfig = handler.FileServerConfig{
-			FS:           afero.NewOsFs(),
-			RootFile:     rootFile,
+			FS:           fsys,
 			SkipDotFiles: skipDotFiles,
 			RawEnabled:   rawEnabled,
 			Version:      cmd.Version,
@@ -85,6 +101,7 @@ func runRootCmdE(cmd *cobra.Command, args []string) error {
 	}()
 	cmd.Println()
 	cmd.Printf("Root: %s\n", rootFile)
+	cmd.Printf("CacheTime: %s\n", cacheTime)
 	cmd.Printf("SkipDotFiles: %t\n", skipDotFiles)
 	cmd.Printf("RawEnabled: %t\n", rawEnabled)
 	cmd.Printf("LogEnabled: %t\n", logEnabled)
