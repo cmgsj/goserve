@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cmgsj/goserve/pkg/cmd/root"
+	"github.com/cmgsj/goserve/cmd"
 )
 
 func main() {
-	if err := root.Execute(); err != nil {
+	if err := cmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

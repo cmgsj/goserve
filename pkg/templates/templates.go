@@ -17,7 +17,7 @@ type (
 		Ok       bool
 		BackLink string
 		Header   string
-		Files    []*File
+		Files    []File
 		Version  string
 	}
 	File struct {
@@ -28,6 +28,6 @@ type (
 	}
 )
 
-func ExecuteIndex(w io.Writer, page *Page) error {
+func ExecuteIndex(w io.Writer, page Page) error {
 	return indexTmpl.Execute(w, page)
 }

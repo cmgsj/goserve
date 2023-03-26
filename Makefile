@@ -1,13 +1,13 @@
 all: build
 
 build:
-	go build -o ./bin/goserve ./cmd/goserve
+	go build .
 
 install:
-	go install ./cmd/goserve
+	go install .
 
 uninstall:
 	rm -f $$(go env GOPATH)/bin/goserve
 
 clean:
-	rm -f ./bin/*
+	rm -f goserve

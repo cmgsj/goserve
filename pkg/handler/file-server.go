@@ -4,49 +4,53 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/cmgsj/goserve/pkg/templates"
+	"github.com/spf13/afero"
 )
 
-func ServeFile(rootFile string, skipDotFiles, rawEnabled bool, version string, errCh chan<- error) http.Handler {
+type FileServerConfig struct {
+	FS           afero.Fs
+	RootFile     string
+	SkipDotFiles bool
+	RawEnabled   bool
+	Version      string
+	ErrC         chan<- error
+}
+
+func FileServer(config FileServerConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
 			filePath = path.Clean(r.URL.Path)
-			fullPath = path.Join(rootFile, filePath)
+			fullPath = path.Join(config.RootFile, filePath)
 		)
-		info, err := os.Stat(fullPath)
+		info, err := config.FS.Stat(fullPath)
 		if err != nil {
-			sendErrorPage(w, err, version, errCh)
+			sendErrorPage(w, err, config.Version, config.ErrC)
 			return
 		}
 		if info.IsDir() {
-			entries, err := os.ReadDir(fullPath)
+			filesInfo, err := afero.ReadDir(config.FS, fullPath)
 			if err != nil {
-				sendErrorPage(w, err, version, errCh)
+				sendErrorPage(w, err, config.Version, config.ErrC)
 				return
 			}
 			var (
-				dirs  = make([]*templates.File, 0, len(entries))
-				files = make([]*templates.File, 0)
+				dirs  = make([]templates.File, 0, len(filesInfo))
+				files = make([]templates.File, 0)
 			)
-			for _, entry := range entries {
-				if skipDotFiles && strings.HasPrefix(entry.Name(), ".") {
+			for _, fileInfo := range filesInfo {
+				if config.SkipDotFiles && strings.HasPrefix(fileInfo.Name(), ".") {
 					continue
 				}
-				info, err = entry.Info()
-				if err != nil {
-					errCh <- err
-					continue
-				}
-				file := &templates.File{
-					Path:  path.Join(filePath, info.Name()),
-					Name:  info.Name(),
-					Size:  formatFileSize(info.Size()),
-					IsDir: info.IsDir(),
+				file := templates.File{
+					Path:  path.Join(filePath, fileInfo.Name()),
+					Name:  fileInfo.Name(),
+					Size:  formatFileSize(fileInfo.Size()),
+					IsDir: fileInfo.IsDir(),
 				}
 				if file.IsDir {
 					dirs = append(dirs, file)
@@ -54,38 +58,38 @@ func ServeFile(rootFile string, skipDotFiles, rawEnabled bool, version string, e
 					files = append(files, file)
 				}
 			}
-			page := &templates.Page{
+			page := templates.Page{
 				Ok:       true,
 				BackLink: filepath.Dir(filePath),
 				Header:   filePath,
 				Files:    append(dirs, files...),
-				Version:  version,
+				Version:  config.Version,
 			}
 			if err = templates.ExecuteIndex(w, page); err != nil {
-				sendError(w, err, errCh)
+				sendError(w, err, config.ErrC)
 			}
 		} else {
-			sendFile(w, r, fullPath, rawEnabled, errCh)
+			sendFile(w, r, config.FS, fullPath, config.RawEnabled, config.ErrC)
 		}
 	})
 }
 
-func sendErrorPage(w http.ResponseWriter, err error, version string, errCh chan<- error) {
-	page := &templates.Page{
+func sendErrorPage(w http.ResponseWriter, err error, version string, errC chan<- error) {
+	page := templates.Page{
 		Ok:       false,
 		BackLink: "/",
 		Header:   err.Error(),
 		Version:  version,
 	}
 	if err = templates.ExecuteIndex(w, page); err != nil {
-		sendError(w, err, errCh)
+		sendError(w, err, errC)
 	}
 }
 
-func sendFile(w http.ResponseWriter, r *http.Request, filePath string, rawEnabled bool, errCh chan<- error) {
-	f, err := os.Open(filePath)
+func sendFile(w http.ResponseWriter, r *http.Request, fsys afero.Fs, filePath string, rawEnabled bool, errC chan<- error) {
+	f, err := fsys.Open(filePath)
 	if err != nil {
-		sendError(w, err, errCh)
+		sendError(w, err, errC)
 		return
 	}
 	defer f.Close()
@@ -95,14 +99,14 @@ func sendFile(w http.ResponseWriter, r *http.Request, filePath string, rawEnable
 	}
 	n, err := io.Copy(w, f)
 	if err != nil {
-		sendError(w, err, errCh)
+		sendError(w, err, errC)
 		return
 	}
 	r.Header.Set("bytes-copied", formatFileSize(n))
 }
 
-func sendError(w http.ResponseWriter, err error, errCh chan<- error) {
-	errCh <- err
+func sendError(w http.ResponseWriter, err error, errC chan<- error) {
+	errC <- err
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
