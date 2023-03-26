@@ -12,95 +12,111 @@ import (
 	"github.com/spf13/afero"
 )
 
+type Server struct {
+	fs           afero.Fs
+	errC         chan<- error
+	skipDotFiles bool
+	rawEnabled   bool
+	version      string
+}
+
 type ServerConfig struct {
 	Fs           afero.Fs
+	ErrC         chan<- error
 	SkipDotFiles bool
 	RawEnabled   bool
 	Version      string
-	ErrC         chan<- error
 }
 
 func NewServer(config ServerConfig) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		filePath := path.Clean(r.URL.Path)
-		info, err := config.Fs.Stat(filePath)
-		if err != nil {
-			sendErrorPage(w, err, config.Version, config.ErrC)
-			return
-		}
-		if info.IsDir() {
-			filesInfo, err := afero.ReadDir(config.Fs, filePath)
-			if err != nil {
-				sendErrorPage(w, err, config.Version, config.ErrC)
-				return
-			}
-			var dirs, files []templates.File
-			for _, fileInfo := range filesInfo {
-				if config.SkipDotFiles && strings.HasPrefix(fileInfo.Name(), ".") {
-					continue
-				}
-				file := templates.File{
-					Path:  path.Join(filePath, fileInfo.Name()),
-					Name:  fileInfo.Name(),
-					Size:  formatFileSize(fileInfo.Size()),
-					IsDir: fileInfo.IsDir(),
-				}
-				if file.IsDir {
-					dirs = append(dirs, file)
-				} else {
-					files = append(files, file)
-				}
-			}
-			page := templates.Page{
-				Ok:       true,
-				BackLink: filepath.Dir(filePath),
-				Header:   filePath,
-				Files:    append(dirs, files...),
-				Version:  config.Version,
-			}
-			if err = templates.ExecuteIndex(w, page); err != nil {
-				sendError(w, err, config.ErrC)
-			}
-		} else {
-			sendFile(w, r, config.Fs, filePath, config.RawEnabled, config.ErrC)
-		}
-	})
+	return &Server{
+		fs:           config.Fs,
+		errC:         config.ErrC,
+		skipDotFiles: config.SkipDotFiles,
+		rawEnabled:   config.RawEnabled,
+		version:      config.Version,
+	}
 }
 
-func sendErrorPage(w http.ResponseWriter, err error, version string, errC chan<- error) {
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	filePath := path.Clean(r.URL.Path)
+	info, err := s.fs.Stat(filePath)
+	if err != nil {
+		s.sendErrorPage(w, err)
+		return
+	}
+	if info.IsDir() {
+		filesInfo, err := afero.ReadDir(s.fs, filePath)
+		if err != nil {
+			s.sendErrorPage(w, err)
+			return
+		}
+		var dirs, files []templates.File
+		for _, fileInfo := range filesInfo {
+			if s.skipDotFiles && strings.HasPrefix(fileInfo.Name(), ".") {
+				continue
+			}
+			file := templates.File{
+				Path:  path.Join(filePath, fileInfo.Name()),
+				Name:  fileInfo.Name(),
+				Size:  formatFileSize(fileInfo.Size()),
+				IsDir: fileInfo.IsDir(),
+			}
+			if file.IsDir {
+				dirs = append(dirs, file)
+			} else {
+				files = append(files, file)
+			}
+		}
+		page := templates.Page{
+			Ok:       true,
+			BackLink: filepath.Dir(filePath),
+			Header:   filePath,
+			Files:    append(dirs, files...),
+			Version:  s.version,
+		}
+		if err = templates.ExecuteIndex(w, page); err != nil {
+			s.sendError(w, err)
+		}
+	} else {
+		s.sendFile(w, r, filePath)
+	}
+}
+
+func (s *Server) sendErrorPage(w http.ResponseWriter, err error) {
 	page := templates.Page{
 		Ok:       false,
 		BackLink: "/",
 		Header:   err.Error(),
-		Version:  version,
+		Version:  s.version,
 	}
 	if err = templates.ExecuteIndex(w, page); err != nil {
-		sendError(w, err, errC)
+		s.sendError(w, err)
 	}
 }
 
-func sendFile(w http.ResponseWriter, r *http.Request, fsys afero.Fs, filePath string, rawEnabled bool, errC chan<- error) {
-	f, err := fsys.Open(filePath)
+func (s *Server) sendFile(w http.ResponseWriter, r *http.Request, filePath string) {
+	f, err := s.fs.Open(filePath)
 	if err != nil {
-		sendError(w, err, errC)
+		s.sendError(w, err)
 		return
 	}
 	defer f.Close()
-	if !rawEnabled {
+	if !s.rawEnabled {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filepath.Base(filePath)))
 		w.Header().Set("Content-Type", "application/octet-stream")
 	}
 	n, err := io.Copy(w, f)
 	if err != nil {
-		sendError(w, err, errC)
+		s.sendError(w, err)
 		return
 	}
 	r.Header.Set("bytes-copied", formatFileSize(n))
 }
 
-func sendError(w http.ResponseWriter, err error, errC chan<- error) {
-	errC <- err
+func (s *Server) sendError(w http.ResponseWriter, err error) {
 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	s.errC <- err
 }
 
 func formatFileSize(size int64) string {

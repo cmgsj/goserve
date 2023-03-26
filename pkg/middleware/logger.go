@@ -7,13 +7,31 @@ import (
 	"time"
 )
 
+type httpLogger struct {
+	base http.Handler
+	out  io.Writer
+}
+
+func NewHTTPLogger(base http.Handler, out io.Writer) http.Handler {
+	return &httpLogger{base: base, out: out}
+}
+
+func (l *httpLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	rec := newHTTPRecorder(w)
+	start := time.Now()
+	l.base.ServeHTTP(rec, r)
+	delta := time.Since(start)
+	fmt.Fprintf(l.out, "%s %s %s %s -> %s [%s] %s\n",
+		start.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.status, formatDuration(delta), r.Header.Get("X-Bytes-Copied"))
+}
+
 type httpRecorder struct {
 	http.ResponseWriter
 	code   int
 	status string
 }
 
-func newHttpRecorder(w http.ResponseWriter) *httpRecorder {
+func newHTTPRecorder(w http.ResponseWriter) *httpRecorder {
 	return &httpRecorder{
 		ResponseWriter: w,
 		code:           http.StatusOK,
@@ -27,22 +45,11 @@ func (r *httpRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
-func LogHTTP(next http.Handler, out io.Writer) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		rec := newHttpRecorder(w)
-		start := time.Now()
-		next.ServeHTTP(rec, r)
-		delta := time.Since(start)
-		fmt.Fprintf(out, "%s %s %s %s -> %s [%s] %s\n",
-			start.Format("2006/01/02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr, rec.status, formatDuration(delta), r.Header.Get("X-Bytes-Copied"))
-	})
-}
-
-func formatDuration(t time.Duration) string {
+func formatDuration(d time.Duration) string {
 	var (
 		unit   string
 		factor int64
-		n      = t.Nanoseconds()
+		n      = d.Nanoseconds()
 	)
 	if factor = 60 * 1000 * 1000 * 1000; n >= factor {
 		unit = "min"
