@@ -28,13 +28,13 @@ type ServerConfig struct {
 	Version      string
 }
 
-func NewServer(config ServerConfig) http.Handler {
+func NewServer(c ServerConfig) http.Handler {
 	return &Server{
-		fs:           config.Fs,
-		errC:         config.ErrC,
-		skipDotFiles: config.SkipDotFiles,
-		rawEnabled:   config.RawEnabled,
-		version:      config.Version,
+		fs:           c.Fs,
+		errC:         c.ErrC,
+		skipDotFiles: c.SkipDotFiles,
+		rawEnabled:   c.RawEnabled,
+		version:      c.Version,
 	}
 }
 
@@ -70,7 +70,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		page := templates.Page{
 			Ok:       true,
-			BackLink: filepath.Dir(filePath),
+			BackLink: path.Dir(filePath),
 			Header:   filePath,
 			Files:    append(dirs, files...),
 			Version:  s.version,
