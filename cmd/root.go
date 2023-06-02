@@ -23,7 +23,7 @@ func newRootCmd() *cobra.Command {
 		Use:     "goserve [filepath]",
 		Short:   "Static file server",
 		Long:    "Http static file server with web UI.",
-		Version: "1.0.0",
+		Version: "1.0.3",
 		Args:    cobra.MaximumNArgs(1),
 		RunE:    runRootCmdE,
 	}
