@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
@@ -13,51 +14,41 @@ import (
 )
 
 type Server struct {
-	fs           afero.Fs
-	errC         chan<- error
-	skipDotFiles bool
-	rawEnabled   bool
-	version      string
-}
-
-type ServerConfig struct {
 	Fs           afero.Fs
-	ErrC         chan<- error
+	Stderr       io.Writer
 	SkipDotFiles bool
 	RawEnabled   bool
-	Version      string
 }
 
-func NewServer(c ServerConfig) http.Handler {
+func NewServer(fsys afero.Fs, stderr io.Writer, skipDotFiles, rawEnabled bool) http.Handler {
 	return &Server{
-		fs:           c.Fs,
-		errC:         c.ErrC,
-		skipDotFiles: c.SkipDotFiles,
-		rawEnabled:   c.RawEnabled,
-		version:      c.Version,
+		Fs:           fsys,
+		Stderr:       stderr,
+		SkipDotFiles: skipDotFiles,
+		RawEnabled:   rawEnabled,
 	}
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	filePath := path.Clean(r.URL.Path)
-	info, err := s.fs.Stat(filePath)
+	info, err := s.Fs.Stat(filePath)
 	if err != nil {
 		s.sendErrorPage(w, err)
 		return
 	}
 	if info.IsDir() {
-		filesInfo, err := afero.ReadDir(s.fs, filePath)
+		filesInfo, err := afero.ReadDir(s.Fs, filePath)
 		if err != nil {
 			s.sendErrorPage(w, err)
 			return
 		}
 		var dirs, files []templates.File
 		for _, fileInfo := range filesInfo {
-			if s.skipDotFiles && strings.HasPrefix(fileInfo.Name(), ".") {
+			if s.SkipDotFiles && strings.HasPrefix(fileInfo.Name(), ".") {
 				continue
 			}
 			file := templates.File{
-				Path:  path.Join(filePath, fileInfo.Name()),
+				Path:  url.PathEscape(path.Join(filePath, fileInfo.Name())),
 				Name:  fileInfo.Name(),
 				Size:  formatFileSize(fileInfo.Size()),
 				IsDir: fileInfo.IsDir(),
@@ -70,10 +61,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		page := templates.Page{
 			Ok:       true,
-			BackLink: path.Dir(filePath),
+			BackLink: url.PathEscape(path.Dir(filePath)),
 			Header:   filePath,
 			Files:    append(dirs, files...),
-			Version:  s.version,
 		}
 		if err = templates.ExecuteIndex(w, page); err != nil {
 			s.sendError(w, err)
@@ -88,7 +78,6 @@ func (s *Server) sendErrorPage(w http.ResponseWriter, err error) {
 		Ok:       false,
 		BackLink: "/",
 		Header:   err.Error(),
-		Version:  s.version,
 	}
 	if err = templates.ExecuteIndex(w, page); err != nil {
 		s.sendError(w, err)
@@ -96,13 +85,13 @@ func (s *Server) sendErrorPage(w http.ResponseWriter, err error) {
 }
 
 func (s *Server) sendFile(w http.ResponseWriter, r *http.Request, filePath string) {
-	f, err := s.fs.Open(filePath)
+	f, err := s.Fs.Open(filePath)
 	if err != nil {
 		s.sendError(w, err)
 		return
 	}
 	defer f.Close()
-	if !s.rawEnabled {
+	if !s.RawEnabled {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filepath.Base(filePath)))
 		w.Header().Set("Content-Type", "application/octet-stream")
 	}
@@ -116,7 +105,7 @@ func (s *Server) sendFile(w http.ResponseWriter, r *http.Request, filePath strin
 
 func (s *Server) sendError(w http.ResponseWriter, err error) {
 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	s.errC <- err
+	fmt.Fprintln(s.Stderr, err)
 }
 
 func formatFileSize(size int64) string {
