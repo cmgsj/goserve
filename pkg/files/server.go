@@ -48,16 +48,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var files []templates.File
-		for _, info := range dir {
-			name := info.Name()
+		for _, file := range dir {
+			name := file.Name()
 			if s.SkipDotFiles && strings.HasPrefix(name, ".") {
 				continue
 			}
 			files = append(files, templates.File{
 				Path:  (&url.URL{Path: name}).String(),
 				Name:  templates.ReplaceHTML(name),
-				Size:  formatFileSize(info.Size()),
-				IsDir: info.IsDir(),
+				Size:  formatFileSize(file.Size()),
+				IsDir: file.IsDir(),
 			})
 		}
 		sort.Sort(FileSlice(files))
