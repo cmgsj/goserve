@@ -1,21 +1,12 @@
 package cmd
 
 import (
-	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
-	"errors"
 	"fmt"
-	"math/big"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	cmdutil "github.com/cmgsj/goserve/pkg/cmd/util"
 	"github.com/cmgsj/goserve/pkg/files"
@@ -75,6 +66,7 @@ type RootOptions struct {
 
 func (o *RootOptions) Complete(cmd *cobra.Command, args []string) error {
 	o.IOStreams = cmdutil.NewIOStreamsFromCmd(cmd)
+	fmt.Fprintln(o.Out())
 	if len(args) > 0 {
 		o.RootPath = args[0]
 	}
@@ -124,11 +116,6 @@ func (o *RootOptions) LoadRootPath() error {
 	return err
 }
 
-var (
-	certFile = filepath.FromSlash("/tmp/goserve.cert")
-	keyFile  = filepath.FromSlash("/tmp/goserve.key")
-)
-
 func (o *RootOptions) LoadTLSConfig() error {
 	var (
 		cert tls.Certificate
@@ -137,8 +124,7 @@ func (o *RootOptions) LoadTLSConfig() error {
 	if o.CertFile != "" && o.KeyFile != "" {
 		cert, err = tls.LoadX509KeyPair(o.CertFile, o.KeyFile)
 	} else {
-		cert, err = o.GenerateX509KeyPair()
-		o.CertFile, o.KeyFile = certFile, keyFile
+		cert, o.CertFile, o.KeyFile, err = cmdutil.GenerateX509KeyPair(o)
 	}
 	if err != nil {
 		return err
@@ -159,51 +145,4 @@ func (o *RootOptions) LoadTLSConfig() error {
 		o.TLSConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	}
 	return nil
-}
-
-func (o *RootOptions) GenerateX509KeyPair() (tls.Certificate, error) {
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	if err == nil {
-		fmt.Fprintln(o.Out(), "Loaded existing cert and key files")
-		return cert, nil
-	}
-	fmt.Fprintln(o.Out(), "Generating new cert and key files...")
-	now := time.Now()
-	template := &x509.Certificate{
-		SerialNumber: big.NewInt(now.Unix()),
-		Subject: pkix.Name{
-			Organization: []string{"GoServe, INC."},
-		},
-		IPAddresses:           []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
-		NotBefore:             now,
-		NotAfter:              now.AddDate(0, 0, 1),
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
-		BasicConstraintsValid: true,
-	}
-	priv, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-	certBytes, err := x509.CreateCertificate(rand.Reader, template, template, priv.Public(), priv)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-	certPEMBlock := new(bytes.Buffer)
-	pem.Encode(certPEMBlock, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: certBytes,
-	})
-	keyPEMBlock := new(bytes.Buffer)
-	pem.Encode(keyPEMBlock, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(priv),
-	})
-	err = errors.Join(
-		os.WriteFile(certFile, certPEMBlock.Bytes(), 0644),
-		os.WriteFile(keyFile, keyPEMBlock.Bytes(), 0644),
-	)
-	if err != nil {
-		fmt.Fprintln(o.Err(), "Failed to save cert and key files:", err)
-	}
-	return tls.X509KeyPair(certPEMBlock.Bytes(), keyPEMBlock.Bytes())
 }
