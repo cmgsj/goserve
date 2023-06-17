@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/cmgsj/goserve/pkg/templates"
@@ -20,13 +21,17 @@ type Server struct {
 	RawEnabled   bool
 }
 
-func NewServer(fsys afero.Fs, stderr io.Writer, skipDotFiles, rawEnabled bool) http.Handler {
-	return &Server{
+func NewServer(fsys afero.Fs, stdout, stderr io.Writer, skipDotFiles, rawEnabled, logEnabled bool) http.Handler {
+	s := &Server{
 		Fs:           fsys,
 		Stderr:       stderr,
 		SkipDotFiles: skipDotFiles,
 		RawEnabled:   rawEnabled,
 	}
+	if logEnabled {
+		return RequestLogger(s, stdout)
+	}
+	return s
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -37,35 +42,32 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if info.IsDir() {
-		filesInfo, err := afero.ReadDir(s.Fs, filePath)
+		dir, err := afero.ReadDir(s.Fs, filePath)
 		if err != nil {
 			s.sendErrorPage(w, err)
 			return
 		}
-		var dirs, files []templates.File
-		for _, fileInfo := range filesInfo {
-			if s.SkipDotFiles && strings.HasPrefix(fileInfo.Name(), ".") {
+		var files []templates.File
+		for _, info := range dir {
+			name := info.Name()
+			if s.SkipDotFiles && strings.HasPrefix(name, ".") {
 				continue
 			}
-			file := templates.File{
-				Path:  url.PathEscape(path.Join(filePath, fileInfo.Name())),
-				Name:  fileInfo.Name(),
-				Size:  formatFileSize(fileInfo.Size()),
-				IsDir: fileInfo.IsDir(),
-			}
-			if file.IsDir {
-				dirs = append(dirs, file)
-			} else {
-				files = append(files, file)
-			}
+			files = append(files, templates.File{
+				Path:  (&url.URL{Path: name}).String(),
+				Name:  templates.ReplaceHTML(name),
+				Size:  formatFileSize(info.Size()),
+				IsDir: info.IsDir(),
+			})
 		}
-		page := templates.Page{
+		sort.Sort(FileSlice(files))
+		err = templates.ExecuteIndex(w, templates.Page{
 			Ok:       true,
-			BackLink: url.PathEscape(path.Dir(filePath)),
+			BackLink: path.Dir(filePath),
 			Header:   filePath,
-			Files:    append(dirs, files...),
-		}
-		if err = templates.ExecuteIndex(w, page); err != nil {
+			Files:    files,
+		})
+		if err != nil {
 			s.sendError(w, err)
 		}
 	} else {
@@ -74,12 +76,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) sendErrorPage(w http.ResponseWriter, err error) {
-	page := templates.Page{
+	err = templates.ExecuteIndex(w, templates.Page{
 		Ok:       false,
 		BackLink: "/",
 		Header:   err.Error(),
-	}
-	if err = templates.ExecuteIndex(w, page); err != nil {
+	})
+	if err != nil {
 		s.sendError(w, err)
 	}
 }
@@ -100,28 +102,10 @@ func (s *Server) sendFile(w http.ResponseWriter, r *http.Request, filePath strin
 		s.sendError(w, err)
 		return
 	}
-	r.Header.Set("bytes-copied", formatFileSize(n))
+	r.Header.Set(BytesCopiedHeader, formatFileSize(n))
 }
 
 func (s *Server) sendError(w http.ResponseWriter, err error) {
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 	fmt.Fprintln(s.Stderr, err)
-}
-
-func formatFileSize(size int64) string {
-	var (
-		unit   string
-		factor int64
-	)
-	if factor = 1024 * 1024 * 1024; size >= factor {
-		unit = "GB"
-	} else if factor = 1024 * 1024; size >= factor {
-		unit = "MB"
-	} else if factor = 1024; size >= factor {
-		unit = "KB"
-	} else {
-		unit = "B"
-		factor = 1
-	}
-	return fmt.Sprintf("%0.2f%s", float64(size)/float64(factor), unit)
 }

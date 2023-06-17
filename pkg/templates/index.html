@@ -14,7 +14,7 @@
                 {{range .Files}}
                 <li class="main-ul-li" id="{{.Name}}">
                     {{if .IsDir}}
-                    <a class="dir" href="{{.Path}}">{{.Name}}/</a>
+                    <a class="dir" href="{{.Path}}/">{{.Name}}/</a>
                     {{else}}
                     <a class="file" href="{{.Path}}"
                         >{{.Name}} <code class="size">[{{.Size}}]</code></a

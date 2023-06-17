@@ -4,14 +4,22 @@ import (
 	_ "embed"
 	"html/template"
 	"io"
+	"strings"
 
 	"github.com/cmgsj/goserve/pkg/version"
 )
 
 var (
 	//go:embed index.html
-	indexHTML string
-	indexTmpl = template.Must(template.New("index").Parse(indexHTML))
+	indexHTML    string
+	indexTmpl    = template.Must(template.New("index").Parse(indexHTML))
+	htmlReplacer = strings.NewReplacer(
+		"&", "&amp;",
+		"<", "&lt;",
+		">", "&gt;",
+		`"`, "&#34;",
+		"'", "&#39;",
+	)
 )
 
 type Page struct {
@@ -32,4 +40,8 @@ type File struct {
 func ExecuteIndex(w io.Writer, p Page) error {
 	p.Version = version.Version
 	return indexTmpl.Execute(w, p)
+}
+
+func ReplaceHTML(s string) string {
+	return htmlReplacer.Replace(s)
 }
