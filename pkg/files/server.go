@@ -1,111 +1,223 @@
 package files
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"io/fs"
+	"log/slog"
 	"net/http"
-	"net/url"
 	"path"
-	"path/filepath"
 	"sort"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/cmgsj/goserve/pkg/templates"
-	"github.com/spf13/afero"
+	"github.com/cmgsj/goserve/pkg/util/units"
 )
 
 type Server struct {
-	Fs           afero.Fs
-	Stderr       io.Writer
-	SkipDotFiles bool
-	RawEnabled   bool
+	fs.FS
+	includeDotfiles bool
+	version         string
 }
 
-func NewServer(fsys afero.Fs, stdout, stderr io.Writer, skipDotFiles, rawEnabled, logEnabled bool) http.Handler {
-	s := &Server{
-		Fs:           fsys,
-		Stderr:       stderr,
-		SkipDotFiles: skipDotFiles,
-		RawEnabled:   rawEnabled,
+func NewServer(fs fs.FS, includeDotfiles bool, version string) *Server {
+	return &Server{
+		FS:              fs,
+		includeDotfiles: includeDotfiles,
+		version:         version,
 	}
-	if logEnabled {
-		return RequestLogger(s, stdout)
-	}
-	return s
 }
 
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	filePath := path.Clean(r.URL.Path)
-	info, err := s.Fs.Stat(filePath)
-	if err != nil {
-		s.sendErrorPage(w, err)
-		return
-	}
-	if info.IsDir() {
-		dir, err := afero.ReadDir(s.Fs, filePath)
+func (s *Server) ServeText() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		filepath := path.Clean(r.PathValue("path"))
+
+		info, err := fs.Stat(s, filepath)
+		if err != nil {
+			sendError(w, err)
+			return
+		}
+
+		if !info.IsDir() {
+			err = s.sendFile(w, r, filepath)
+			if err != nil {
+				sendError(w, err)
+			}
+			return
+		}
+
+		entries, err := fs.ReadDir(s, filepath)
+		if err != nil {
+			sendError(w, err)
+			return
+		}
+
+		err = s.sendRaw(w, entries)
+		if err != nil {
+			sendError(w, err)
+		}
+	})
+}
+
+func (s *Server) ServeTemplate() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		filepath := path.Clean(r.PathValue("path"))
+
+		info, err := fs.Stat(s, filepath)
 		if err != nil {
 			s.sendErrorPage(w, err)
 			return
 		}
-		var files []templates.File
-		for _, file := range dir {
-			name := file.Name()
-			if s.SkipDotFiles && strings.HasPrefix(name, ".") {
-				continue
+
+		if !info.IsDir() {
+			err = s.sendFile(w, r, filepath)
+			if err != nil {
+				s.sendErrorPage(w, err)
 			}
-			files = append(files, templates.File{
-				Path:  (&url.URL{Path: name}).String(),
-				Name:  templates.ReplaceHTML(name),
-				Size:  formatFileSize(file.Size()),
-				IsDir: file.IsDir(),
+			return
+		}
+
+		entries, err := fs.ReadDir(s, filepath)
+		if err != nil {
+			s.sendErrorPage(w, err)
+			return
+		}
+
+		err = s.sendTemplate(w, entries, filepath)
+		if err != nil {
+			s.sendErrorPage(w, err)
+		}
+	})
+}
+
+func (s *Server) Health() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+}
+
+func (s *Server) Version() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, s.version)
+	})
+}
+
+func (s *Server) sendFile(w http.ResponseWriter, r *http.Request, filepath string) error {
+	f, err := s.Open(filepath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = io.Copy(w, f)
+
+	return err
+}
+
+func (s *Server) sendRaw(w io.Writer, entries []fs.DirEntry) error {
+	var buf bytes.Buffer
+
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].IsDir() != entries[j].IsDir() {
+			return entries[i].IsDir()
+		}
+		return entries[i].Name() < entries[j].Name()
+	})
+
+	for _, entry := range entries {
+		if !s.includeFile(entry.Name()) {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+
+		buf.WriteString(info.Name())
+		if info.IsDir() {
+			buf.WriteByte('/')
+		} else {
+			buf.WriteByte('\t')
+			buf.WriteString(units.FormatSize(info.Size()))
+		}
+		buf.WriteByte('\n')
+	}
+
+	tab := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
+	defer tab.Flush()
+
+	_, err := io.Copy(tab, &buf)
+
+	return err
+}
+
+func (s *Server) sendTemplate(w io.Writer, entries []fs.DirEntry, filepath string) error {
+	var breadcrumbs []templates.File
+
+	if filepath != "." {
+		var pathPrefix string
+		for _, name := range strings.Split(filepath, "/") {
+			pathPrefix = path.Join(pathPrefix, name)
+			breadcrumbs = append(breadcrumbs, templates.File{
+				Path: pathPrefix,
+				Name: name,
 			})
 		}
-		sort.Sort(FileSlice(files))
-		err = templates.ExecuteIndex(w, templates.Page{
-			Ok:       true,
-			BackLink: path.Dir(filePath),
-			Header:   filePath,
-			Files:    files,
-		})
-		if err != nil {
-			s.sendError(w, err)
-		}
-	} else {
-		s.sendFile(w, r, filePath)
 	}
+
+	var files []templates.File
+
+	for _, entry := range entries {
+		if !s.includeFile(entry.Name()) {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+
+		files = append(files, templates.File{
+			Path:  path.Join(filepath, info.Name()),
+			Name:  info.Name(),
+			Size:  units.FormatSize(info.Size()),
+			IsDir: info.IsDir(),
+		})
+	}
+
+	sort.Slice(files, func(i, j int) bool {
+		if files[i].IsDir != files[j].IsDir {
+			return files[i].IsDir
+		}
+		return files[i].Name < files[j].Name
+	})
+
+	return templates.ExecuteIndex(w, templates.Page{
+		Breadcrumbs: breadcrumbs,
+		Files:       files,
+		Version:     s.version,
+	})
+}
+
+func (s *Server) includeFile(name string) bool {
+	return s.includeDotfiles || !strings.HasPrefix(name, ".")
 }
 
 func (s *Server) sendErrorPage(w http.ResponseWriter, err error) {
 	err = templates.ExecuteIndex(w, templates.Page{
-		Ok:       false,
-		BackLink: "/",
-		Header:   err.Error(),
+		Error:   err.Error(),
+		Version: s.version,
 	})
 	if err != nil {
-		s.sendError(w, err)
+		sendError(w, err)
 	}
 }
 
-func (s *Server) sendFile(w http.ResponseWriter, r *http.Request, filePath string) {
-	f, err := s.Fs.Open(filePath)
-	if err != nil {
-		s.sendError(w, err)
-		return
-	}
-	defer f.Close()
-	if !s.RawEnabled {
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filepath.Base(filePath)))
-		w.Header().Set("Content-Type", "application/octet-stream")
-	}
-	n, err := io.Copy(w, f)
-	if err != nil {
-		s.sendError(w, err)
-		return
-	}
-	r.Header.Set(BytesCopiedHeader, formatFileSize(n))
-}
-
-func (s *Server) sendError(w http.ResponseWriter, err error) {
+func sendError(w http.ResponseWriter, err error) {
 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	fmt.Fprintln(s.Stderr, err)
+	slog.Error("an error ocurred", "error", err)
 }
