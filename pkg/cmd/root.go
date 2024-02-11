@@ -8,16 +8,12 @@ import (
 	"os"
 	"path/filepath"
 
-	cmdutil "github.com/cmgsj/goserve/pkg/cmd/util"
 	"github.com/cmgsj/goserve/pkg/files"
+	utiltls "github.com/cmgsj/goserve/pkg/util/tls"
 	"github.com/cmgsj/goserve/pkg/version"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
-
-func ExecuteRootCmd() error {
-	return NewRootCmd().Execute()
-}
 
 func NewRootCmd() *cobra.Command {
 	o := &RootOptions{
@@ -52,7 +48,6 @@ func NewRootCmd() *cobra.Command {
 }
 
 type RootOptions struct {
-	cmdutil.IOStreams
 	Port         int
 	RawEnabled   bool
 	LogEnabled   bool
@@ -65,8 +60,7 @@ type RootOptions struct {
 }
 
 func (o *RootOptions) Complete(cmd *cobra.Command, args []string) error {
-	o.IOStreams = cmdutil.NewIOStreamsFromCmd(cmd)
-	fmt.Fprintln(o.Out())
+	fmt.Println()
 	if len(args) > 0 {
 		o.RootPath = args[0]
 	}
@@ -90,20 +84,20 @@ func (o *RootOptions) Run(cmd *cobra.Command, args []string) error {
 }
 
 func (o *RootOptions) PrintInfo() {
-	fmt.Fprintln(o.Out())
-	fmt.Fprintf(o.Out(), "Root: %s\n", o.RootPath)
-	fmt.Fprintf(o.Out(), "SkipDotFiles: %t\n", o.SkipDotFiles)
-	fmt.Fprintf(o.Out(), "RawEnabled: %t\n", o.RawEnabled)
-	fmt.Fprintf(o.Out(), "LogEnabled: %t\n", o.LogEnabled)
-	fmt.Fprintf(o.Out(), "CertFile: %s\n", o.CertFile)
-	fmt.Fprintf(o.Out(), "KeyFile: %s\n", o.KeyFile)
+	fmt.Println()
+	fmt.Printf("Root: %s\n", o.RootPath)
+	fmt.Printf("SkipDotFiles: %t\n", o.SkipDotFiles)
+	fmt.Printf("RawEnabled: %t\n", o.RawEnabled)
+	fmt.Printf("LogEnabled: %t\n", o.LogEnabled)
+	fmt.Printf("CertFile: %s\n", o.CertFile)
+	fmt.Printf("KeyFile: %s\n", o.KeyFile)
 	if o.RootCAFile != "" {
-		fmt.Fprintf(o.Out(), "RootCAFile: %s\n", o.RootCAFile)
+		fmt.Printf("RootCAFile: %s\n", o.RootCAFile)
 	}
-	fmt.Fprintf(o.Out(), "Address: https://localhost:%d\n", o.Port)
-	fmt.Fprintln(o.Out())
-	fmt.Fprintln(o.Out(), "Ready to accept connections")
-	fmt.Fprintln(o.Out())
+	fmt.Printf("Address: https://localhost:%d\n", o.Port)
+	fmt.Println()
+	fmt.Println("Ready to accept connections")
+	fmt.Println()
 }
 
 func (o *RootOptions) LoadRootPath() error {
@@ -124,7 +118,7 @@ func (o *RootOptions) LoadTLSConfig() error {
 	if o.CertFile != "" && o.KeyFile != "" {
 		cert, err = tls.LoadX509KeyPair(o.CertFile, o.KeyFile)
 	} else {
-		cert, o.CertFile, o.KeyFile, err = cmdutil.GenerateX509KeyPair(o)
+		cert, o.CertFile, o.KeyFile, err = utiltls.GenerateX509KeyPair()
 	}
 	if err != nil {
 		return err

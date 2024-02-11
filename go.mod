@@ -1,6 +1,6 @@
 module github.com/cmgsj/goserve
 
-go 1.20
+go 1.22.0
 
 require (
 	github.com/spf13/afero v1.9.5
