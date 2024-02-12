@@ -17,13 +17,14 @@ func Log(base http.Handler) http.Handler {
 
 		base.ServeHTTP(recorder, r)
 
-		delta := time.Since(start)
-
-		slog.Info(
-			fmt.Sprintf("%s %s", r.Method, r.URL.Path),
-			"address", r.RemoteAddr,
-			"status", recorder.Status(),
-			"duration", delta,
-		)
+		defer func() {
+			delta := time.Since(start)
+			slog.Info(
+				fmt.Sprintf("%s %s", r.Method, r.URL.Path),
+				"address", r.RemoteAddr,
+				"status", recorder.Status(),
+				"duration", delta,
+			)
+		}()
 	})
 }
