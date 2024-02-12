@@ -1,2 +1,3 @@
 # goserve
-simple static file server
+
+HTTP file server

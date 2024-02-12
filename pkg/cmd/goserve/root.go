@@ -15,24 +15,38 @@ import (
 )
 
 func Run() error {
-	includeDotfiles := flag.Bool("dotfiles", false, "include dotfiles")
-	port := flag.Uint("port", 80, "port")
-	printVersion := flag.Bool("v", false, "print version")
+	var includeDotfiles bool
+	var port uint = 80
+	var printVersion bool
+
+	flag.Usage = func() {
+		fmt.Println("HTTP file server")
+		fmt.Println()
+		fmt.Println("Usage:")
+		fmt.Println("  goserve [flags] [path]")
+		fmt.Println()
+		fmt.Println("Flags:")
+		flag.CommandLine.PrintDefaults()
+	}
+	flag.BoolVar(&includeDotfiles, "dotfiles", includeDotfiles, "include dotfiles")
+	flag.UintVar(&port, "port", port, "port")
+	flag.BoolVar(&printVersion, "version", printVersion, "print version")
 
 	flag.Parse()
 
-	if len(os.Args) > 2 {
-		return fmt.Errorf("%s [flags] [path]\n", os.Args[0])
+	if len(flag.Args()) > 1 {
+		flag.Usage()
+		return fmt.Errorf("invalid number of arguments, expected at most 1, received %d", len(flag.Args()))
 	}
 
-	if *printVersion {
+	if printVersion {
 		fmt.Println(version.Get())
 		return nil
 	}
 
 	root := "."
-	if len(os.Args) > 1 {
-		root = os.Args[1]
+	if len(flag.Args()) > 0 {
+		root = flag.Arg(0)
 	}
 
 	abs, err := filepath.Abs(root)
@@ -58,7 +72,7 @@ func Run() error {
 		}
 	}
 
-	fileServer := files.NewServer(rootFS, *includeDotfiles, version.Get())
+	fileServer := files.NewServer(rootFS, includeDotfiles, version.Get())
 
 	mux := http.NewServeMux()
 
@@ -71,16 +85,11 @@ func Run() error {
 	registerRoute(mux, "GET /health", logger.Log(fileServer.Health()))
 	registerRoute(mux, "GET /version", logger.Log(fileServer.Version()))
 
-	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", *port),
-		Handler: mux,
-	}
-
-	slog.Info("starting server", "root", root, "port", *port)
+	slog.Info("starting server", "root", root, "port", port)
 
 	slog.Info("ready to accept connections")
 
-	return server.ListenAndServe()
+	return http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
 }
 
 func registerRoute(mux *http.ServeMux, pattern string, handler http.Handler) {
