@@ -13,7 +13,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/cmgsj/goserve/pkg/templates"
-	"github.com/cmgsj/goserve/pkg/util/units"
+	utilbytes "github.com/cmgsj/goserve/pkg/util/bytes"
 )
 
 const (
@@ -175,7 +175,7 @@ func (s *Server) sendPage(w http.ResponseWriter, entries []fs.DirEntry, filepath
 		files = append(files, templates.File{
 			Path:  path.Join(filepath, info.Name()),
 			Name:  info.Name(),
-			Size:  units.FormatSize(info.Size()),
+			Size:  utilbytes.FormatSize(info.Size()),
 			IsDir: info.IsDir(),
 		})
 	}
@@ -211,7 +211,7 @@ func (s *Server) sendText(w io.Writer, entries []fs.DirEntry, filepath string) e
 
 		files = append(files, templates.File{
 			Name:  info.Name(),
-			Size:  units.FormatSize(info.Size()),
+			Size:  utilbytes.FormatSize(info.Size()),
 			IsDir: info.IsDir(),
 		})
 	}
