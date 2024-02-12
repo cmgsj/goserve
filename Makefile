@@ -12,7 +12,7 @@ default: build
 build:
 	@for goos in $(GOOS); do \
 		for goarch in $(GOARCH); do \
-		out="$(BIN)/$$goos-$$goarch/goserve" ; \
+		out="$(BIN)/$$goos/$$goarch/goserve" ; \
 		if [ $$goos = "windows" ]; then out="$$out.exe" ; fi ; \
 		GOOS=$$goos GOARCH=$$goarch go build \
 			-trimpath \
