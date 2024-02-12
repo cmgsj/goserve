@@ -124,10 +124,13 @@
       background-color: rgb(30, 32, 37);
     }
     .main {
+      display: flex;
+      flex-direction: column;
       margin-bottom: 25px;
       margin-left: 25px;
       margin-right: 25px;
-      margin-top: 85px;
+      margin-top: 65px;
+      min-height: 100vh;
     }
     .main-table {
       border-radius: 6px;
@@ -141,6 +144,7 @@
       background-color: rgb(30, 33, 38);
     }
     .main-table-thead-th {
+      overflow-x: auto;
       padding: 10px;
       text-align: left;
     }
@@ -155,6 +159,7 @@
     }
     .main-table-tbody-tr-td {
       border-top: 1px solid rgb(53, 57, 63);
+      overflow-x: auto;
       padding: 10px;
       text-align: left;
     }
@@ -173,11 +178,11 @@
       color: rgb(134, 140, 149);
     }
     .footer {
-      position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
       margin-bottom: 10px;
+      margin-top: auto;
       text-align: center;
       width: 100%;
     }
