@@ -6,7 +6,7 @@ GOBIN ?= $(shell go env GOPATH)/bin
 VERSION := $(shell git describe --tags --abbrev=0)
 
 .PHONY: default
-default: build
+default: build install
 
 .PHONY: build
 build:
