@@ -6,9 +6,9 @@
   <body class="body">
     <header class="header">
       <label class="header-label">
-        <a class="breadcrumb" href="/html">home</a>/{{range .Breadcrumbs}}<a
+        <a class="breadcrumb" href="/files">home</a>/{{range .Breadcrumbs}}<a
           class="breadcrumb"
-          href="/html/{{.Path}}/"
+          href="/files/{{.Path}}/"
           >{{.Name}}</a
         >/{{end}}
       </label>
@@ -67,7 +67,7 @@
                 />
               </svg>
               {{end}}
-              <a class="file" href="/html/{{.Path}}/">{{.Name}}</a>
+              <a class="file" href="/files/{{.Path}}/">{{.Name}}</a>
             </td>
             <td class="main-table-tbody-tr-td">
               {{if not .IsDir}}
