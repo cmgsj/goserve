@@ -87,7 +87,7 @@ func Run() error {
 	registerRoute(mux, "GET /health", server.Health())
 	registerRoute(mux, "GET /version", server.Version())
 
-	slog.Info("starting server", "root", rootPath, "port", port)
+	slog.Info("starting server", "root", rootPath, "dotfiles", includeDotfiles, "port", port)
 
 	slog.Info("ready to accept connections")
 
