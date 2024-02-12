@@ -6,16 +6,21 @@
   <body class="body">
     <header class="header">
       <label class="header-label">
-        <a class="breadcrumb" href="/files">home</a>/{{range .Breadcrumbs}}<a
-          class="breadcrumb"
-          href="/files/{{.Path}}/"
-          >{{.Name}}</a
-        >/{{end}}
+        <a class="breadcrumb" href="/files">home</a>{{if not .Error}}{{range
+        .Breadcrumbs}}<span>/</span
+        ><a class="breadcrumb" href="/files/{{.Path}}/">{{.Name}}</a
+        >{{end}}<span>/</span>{{end}}
       </label>
     </header>
     <main class="main">
-      {{if ne .Error ""}}
-      <div class="error">Error: {{.Error}}</div>
+      {{if .Error}}
+      <code class="error">
+        Error
+        <br />
+        Status: {{.Error.Status}}
+        <br />
+        Message: {{.Error.Message}}
+      </code>
       {{else}}
       <table class="main-table">
         <thead class="main-table-thead">
@@ -27,7 +32,7 @@
         <tbody>
           {{range .Files}}
           <tr class="main-table-tbody-tr">
-            <td class="main-table-tbody-tr-td">
+            <td class="main-table-tbody-tr-td main-table-tbody-tr-td-left">
               {{if .IsDir}}
               <svg
                 aria-hidden="true"
@@ -69,7 +74,7 @@
               {{end}}
               <a class="file" href="/files/{{.Path}}/">{{.Name}}</a>
             </td>
-            <td class="main-table-tbody-tr-td">
+            <td class="main-table-tbody-tr-td main-table-tbody-tr-td-right">
               {{if not .IsDir}}
               <code class="size">{{.Size}}</code>
               {{end}}
@@ -81,12 +86,11 @@
       {{end}}
     </main>
     <footer class="footer">
-      <a class="version" href="https://github.com/cmgsj/goserve"> goserve </a>
       <a
         class="version"
         href="https://github.com/cmgsj/goserve/releases/tag/{{.Version}}"
       >
-        {{.Version}}
+        goserve {{.Version}}
       </a>
     </footer>
   </body>
@@ -101,7 +105,7 @@
       background-color: rgb(3, 5, 10);
       display: flex;
       flex-direction: row;
-      font-size: 20px;
+      font-size: 15px;
       padding: 15px;
       position: fixed;
       top: 0;
@@ -136,6 +140,7 @@
       border-radius: 6px;
       border-spacing: 0;
       border: 1px solid rgb(53, 57, 63);
+      font-size: 12px;
       margin-top: 20px;
       table-layout: fixed;
       width: 100%;
@@ -150,9 +155,11 @@
     }
     .main-table-thead-th-left {
       border-top-left-radius: 6px;
+      text-align: left;
     }
     .main-table-thead-th-right {
       border-top-right-radius: 6px;
+      text-align: right;
     }
     .main-table-tbody-tr:hover {
       background-color: rgb(30, 33, 38);
@@ -161,10 +168,16 @@
       border-top: 1px solid rgb(53, 57, 63);
       overflow-x: auto;
       padding: 10px;
+    }
+    .main-table-tbody-tr-td-left {
       text-align: left;
     }
+    .main-table-tbody-tr-td-right {
+      text-align: right;
+    }
     .error {
-      font-size: 20px;
+      font-size: 12px;
+      line-height: 25px;
     }
     .file {
       color: rgb(231, 237, 242);
