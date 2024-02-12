@@ -44,18 +44,20 @@ func Run() error {
 		return nil
 	}
 
-	root := "."
+	rootPath := "."
+
 	if len(flag.Args()) > 0 {
-		root = flag.Arg(0)
+		rootPath = flag.Arg(0)
 	}
 
-	abs, err := filepath.Abs(root)
+	var err error
+
+	rootPath, err = filepath.Abs(rootPath)
 	if err != nil {
 		return err
 	}
-	root = abs
 
-	info, err := os.Stat(root)
+	info, err := os.Stat(rootPath)
 	if err != nil {
 		return err
 	}
@@ -63,29 +65,29 @@ func Run() error {
 	var rootFS fs.FS
 
 	if info.IsDir() {
-		rootFS = os.DirFS(root)
+		rootFS = os.DirFS(rootPath)
 	} else {
-		rootFS = os.DirFS(filepath.Dir(root))
-		rootFS, err = fs.Sub(rootFS, filepath.Base(root))
+		rootFS = os.DirFS(filepath.Dir(rootPath))
+		rootFS, err = fs.Sub(rootFS, filepath.Base(rootPath))
 		if err != nil {
 			return err
 		}
 	}
 
-	fileServer := files.NewServer(rootFS, includeDotfiles, version.Get())
+	server := files.NewServer(rootFS, includeDotfiles, version.Get())
 
 	mux := http.NewServeMux()
 
 	slog.Info("registering routes")
 
-	registerRoute(mux, "GET /text", logger.Log(fileServer.ServeText()))
-	registerRoute(mux, "GET /text/{path...}", logger.Log(fileServer.ServeText()))
-	registerRoute(mux, "GET /html", logger.Log(fileServer.ServeTemplate()))
-	registerRoute(mux, "GET /html/{path...}", logger.Log(fileServer.ServeTemplate()))
-	registerRoute(mux, "GET /health", logger.Log(fileServer.Health()))
-	registerRoute(mux, "GET /version", logger.Log(fileServer.Version()))
+	registerRoute(mux, "GET /files", server.ServeTemplate())
+	registerRoute(mux, "GET /files/{path...}", server.ServeTemplate())
+	registerRoute(mux, "GET /text/files", server.ServeText())
+	registerRoute(mux, "GET /text/files/{path...}", server.ServeText())
+	registerRoute(mux, "GET /health", server.Health())
+	registerRoute(mux, "GET /version", server.Version())
 
-	slog.Info("starting server", "root", root, "port", port)
+	slog.Info("starting server", "root", rootPath, "port", port)
 
 	slog.Info("ready to accept connections")
 
@@ -93,6 +95,6 @@ func Run() error {
 }
 
 func registerRoute(mux *http.ServeMux, pattern string, handler http.Handler) {
-	mux.Handle(pattern, handler)
+	mux.Handle(pattern, logger.Log(handler))
 	slog.Info(pattern)
 }

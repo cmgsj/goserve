@@ -4,130 +4,189 @@
     <title>goserve</title>
   </head>
   <body class="body">
-    {{if ne .Error ""}}
     <header class="header">
       <label class="header-label">
-        <a class="dir" href="/html">HOME</a>
+        <a class="breadcrumb" href="/html">home</a>/{{range .Breadcrumbs}}<a
+          class="breadcrumb"
+          href="/html/{{.Path}}/"
+          >{{.Name}}</a
+        >/{{end}}
       </label>
     </header>
     <main class="main">
-      <div class="main-div">Error: {{.Error}}</div>
-    </main>
-    {{else}}
-    <header class="header">
-      <label class="header-label">
-        <a class="dir" href="/html">HOME</a> / {{range .Breadcrumbs}}
-        <a class="dir" href="/html/{{.Path}}/">{{.Name}}</a> / {{end}}
-      </label>
-    </header>
-    <main class="main">
-      <ul class="main-ul">
-        {{range .Files}}
-        <li class="main-ul-li" id="{{.Name}}">
-          {{if .IsDir}}
-          <a class="dir" href="/html/{{.Path}}/">
-            <svg
-              aria-hidden="true"
-              focusable="false"
-              role="img"
-              class="icon-directory"
-              viewBox="0 0 16 16"
-              width="16"
-              height="16"
-              fill="currentColor"
-              style="
-                display: inline-block;
-                vertical-align: text-bottom;
-                overflow: visible;
-              "
-            >
-              <path
-                d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z"
-              ></path>
-            </svg>
-            {{.Name}}</a
-          >
-          {{else}}
-          <svg
-            aria-hidden="true"
-            focusable="false"
-            role="img"
-            class="color-fg-muted"
-            viewBox="0 0 16 16"
-            width="16"
-            height="16"
-            fill="currentColor"
-            style="
-              display: inline-block;
-              vertical-align: text-bottom;
-              overflow: visible;
-            "
-          >
-            <path
-              d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"
-            ></path>
-          </svg>
-          <a class="file" href="/html/{{.Path}}"
-            >{{.Name}} <code class="size">{{.Size}}</code></a
-          >
+      {{if ne .Error ""}}
+      <div class="error">Error: {{.Error}}</div>
+      {{else}}
+      <table class="main-table">
+        <thead class="main-table-thead">
+          <th class="main-table-thead-th main-table-thead-th-left">
+            File Name
+          </th>
+          <th class="main-table-thead-th main-table-thead-th-right">Size</th>
+        </thead>
+        <tbody>
+          {{range .Files}}
+          <tr class="main-table-tbody-tr">
+            <td class="main-table-tbody-tr-td">
+              {{if .IsDir}}
+              <svg
+                aria-hidden="true"
+                focusable="false"
+                role="img"
+                viewBox="0 0 16 16"
+                width="16"
+                height="16"
+                fill="currentColor"
+                style="
+                  display: inline-block;
+                  vertical-align: text-bottom;
+                  overflow: visible;
+                "
+              >
+                <path
+                  d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z"
+                />
+              </svg>
+              {{else}}
+              <svg
+                aria-hidden="true"
+                focusable="false"
+                role="img"
+                viewBox="0 0 16 16"
+                width="16"
+                height="16"
+                fill="currentColor"
+                style="
+                  display: inline-block;
+                  vertical-align: text-bottom;
+                  overflow: visible;
+                "
+              >
+                <path
+                  d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"
+                />
+              </svg>
+              {{end}}
+              <a class="file" href="/html/{{.Path}}/">{{.Name}}</a>
+            </td>
+            <td class="main-table-tbody-tr-td">
+              {{if not .IsDir}}
+              <code class="size">{{.Size}}</code>
+              {{end}}
+            </td>
+          </tr>
           {{end}}
-        </li>
-        {{end}}
-      </ul>
+        </tbody>
+      </table>
+      {{end}}
     </main>
-    {{end}}
-    <footer class="footer">goserve {{.Version}}</footer>
+    <footer class="footer">
+      <a class="version" href="https://github.com/cmgsj/goserve"> goserve </a>
+      <a
+        class="version"
+        href="https://github.com/cmgsj/goserve/releases/tag/{{.Version}}"
+      >
+        {{.Version}}
+      </a>
+    </footer>
   </body>
   <style>
     .body {
       background-color: rgb(19, 23, 29);
       color: rgb(231, 237, 242);
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: -apple-system;
       margin: 0;
     }
     .header {
       background-color: rgb(3, 5, 10);
       display: flex;
       flex-direction: row;
+      font-size: 20px;
+      padding: 15px;
       position: fixed;
       top: 0;
       width: 100%;
-      padding: 15px;
-      font-size: 20px;
     }
     .header-label {
-      margin-top: 3px;
       margin-left: 10px;
       margin-right: 10px;
       overflow-x: auto;
     }
+    .breadcrumb {
+      border-radius: 6px;
+      color: rgb(231, 237, 242);
+      display: inline-block;
+      padding: 3px 5px;
+      text-decoration: none;
+    }
+    .breadcrumb:hover {
+      color: rgb(82, 128, 243);
+      background-color: rgb(30, 32, 37);
+    }
     .main {
-      margin-top: 75px;
-      margin-bottom: 15px;
+      margin-bottom: 25px;
+      margin-left: 25px;
+      margin-right: 25px;
+      margin-top: 85px;
     }
-    .main-ul-li {
-      margin-bottom: 5px;
+    .main-table {
+      border-radius: 6px;
+      border-spacing: 0;
+      border: 1px solid rgb(53, 57, 63);
+      margin-top: 20px;
+      table-layout: fixed;
+      width: 100%;
     }
-    .main-div {
-      margin-left: 15px;
+    .main-table-thead {
+      background-color: rgb(30, 33, 38);
+    }
+    .main-table-thead-th {
+      padding: 10px;
+      text-align: left;
+    }
+    .main-table-thead-th-left {
+      border-top-left-radius: 6px;
+    }
+    .main-table-thead-th-right {
+      border-top-right-radius: 6px;
+    }
+    .main-table-tbody-tr:hover {
+      background-color: rgb(30, 33, 38);
+    }
+    .main-table-tbody-tr-td {
+      border-top: 1px solid rgb(53, 57, 63);
+      padding: 10px;
+      text-align: left;
+    }
+    .error {
       font-size: 20px;
     }
-    .backLink,
-    .file,
-    .dir {
+    .file {
       color: rgb(231, 237, 242);
       text-decoration: none;
     }
-    .size,
-    .footer {
+    .file:hover {
+      color: rgb(82, 128, 243);
+      text-decoration: underline;
+    }
+    .size {
       color: rgb(134, 140, 149);
     }
     .footer {
       position: fixed;
-      text-align: center;
-      left: 0;
       bottom: 0;
+      left: 0;
+      right: 0;
+      margin-bottom: 10px;
+      text-align: center;
       width: 100%;
+    }
+    .version {
+      color: rgb(231, 237, 242);
+      text-decoration: none;
+    }
+    .version:hover {
+      color: rgb(82, 128, 243);
     }
   </style>
 </html>
