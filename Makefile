@@ -15,7 +15,9 @@ build:
 		out="$(BIN)/$$goos-$$goarch/goserve" ; \
 		if [ $$goos = "windows" ]; then out="$$out.exe" ; fi ; \
 		GOOS=$$goos GOARCH=$$goarch go build \
-			-ldflags "-X github.com/cmgsj/goserve/internal/version.version=$(VERSION)" -o $$out; \
+			-trimpath \
+			-ldflags "-s -w -extldflags "-static" -X github.com/cmgsj/goserve/internal/version.version=$(VERSION)" \
+			-o $$out; \
 		done \
 	done
 
