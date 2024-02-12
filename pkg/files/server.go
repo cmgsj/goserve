@@ -2,18 +2,23 @@ package files
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
 	"net/http"
 	"path"
-	"sort"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/cmgsj/goserve/pkg/templates"
 	"github.com/cmgsj/goserve/pkg/util/units"
+)
+
+const (
+	rootDir   = "."
+	parentDir = ".."
 )
 
 type Server struct {
@@ -30,33 +35,42 @@ func NewServer(fs fs.FS, includeDotfiles bool, version string) *Server {
 	}
 }
 
-func (s *Server) ServeTemplate() http.Handler {
+func (s *Server) ServePage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		filepath := path.Clean(r.PathValue("path"))
 
 		info, err := fs.Stat(s, filepath)
 		if err != nil {
-			s.sendErrorPage(w, err)
+			if errors.Is(err, fs.ErrNotExist) {
+				s.sendErrorPage(w, err, http.StatusNotFound)
+			} else {
+				s.sendErrorPage(w, err, http.StatusInternalServerError)
+			}
+			return
+		}
+
+		if !s.isAllowed(filepath) {
+			s.sendErrorPage(w, errOpenNoSuchFileOrDirectory(filepath), http.StatusNotFound)
 			return
 		}
 
 		if !info.IsDir() {
 			err = s.sendFile(w, r, filepath)
 			if err != nil {
-				s.sendErrorPage(w, err)
+				s.sendErrorPage(w, err, http.StatusInternalServerError)
 			}
 			return
 		}
 
 		entries, err := fs.ReadDir(s, filepath)
 		if err != nil {
-			s.sendErrorPage(w, err)
+			s.sendErrorPage(w, err, http.StatusInternalServerError)
 			return
 		}
 
-		err = s.sendTemplate(w, entries, filepath)
+		err = s.sendPage(w, entries, filepath)
 		if err != nil {
-			s.sendErrorPage(w, err)
+			s.sendErrorPage(w, err, http.StatusInternalServerError)
 		}
 	})
 }
@@ -67,27 +81,36 @@ func (s *Server) ServeText() http.Handler {
 
 		info, err := fs.Stat(s, filepath)
 		if err != nil {
-			sendError(w, err)
+			if errors.Is(err, fs.ErrNotExist) {
+				sendError(w, err, http.StatusNotFound)
+			} else {
+				sendError(w, err, http.StatusInternalServerError)
+			}
+			return
+		}
+
+		if !s.isAllowed(filepath) {
+			sendError(w, errOpenNoSuchFileOrDirectory(filepath), http.StatusNotFound)
 			return
 		}
 
 		if !info.IsDir() {
 			err = s.sendFile(w, r, filepath)
 			if err != nil {
-				sendError(w, err)
+				sendError(w, err, http.StatusInternalServerError)
 			}
 			return
 		}
 
 		entries, err := fs.ReadDir(s, filepath)
 		if err != nil {
-			sendError(w, err)
+			sendError(w, err, http.StatusInternalServerError)
 			return
 		}
 
 		err = s.sendText(w, entries, filepath)
 		if err != nil {
-			sendError(w, err)
+			sendError(w, err, http.StatusInternalServerError)
 		}
 	})
 }
@@ -117,10 +140,10 @@ func (s *Server) sendFile(w http.ResponseWriter, r *http.Request, filepath strin
 	return err
 }
 
-func (s *Server) sendTemplate(w io.Writer, entries []fs.DirEntry, filepath string) error {
+func (s *Server) sendPage(w http.ResponseWriter, entries []fs.DirEntry, filepath string) error {
 	var breadcrumbs, files []templates.File
 
-	if filepath != "." {
+	if filepath != rootDir {
 		var pathPrefix string
 
 		for _, name := range strings.Split(filepath, "/") {
@@ -134,13 +157,13 @@ func (s *Server) sendTemplate(w io.Writer, entries []fs.DirEntry, filepath strin
 
 		files = append(files, templates.File{
 			Path:  path.Dir(filepath),
-			Name:  "..",
+			Name:  parentDir,
 			IsDir: true,
 		})
 	}
 
 	for _, entry := range entries {
-		if !s.includeFile(entry.Name()) {
+		if !s.isAllowed(entry.Name()) {
 			continue
 		}
 
@@ -157,9 +180,9 @@ func (s *Server) sendTemplate(w io.Writer, entries []fs.DirEntry, filepath strin
 		})
 	}
 
-	sortFiles(files)
+	templates.SortFiles(files)
 
-	return templates.ExecuteIndex(w, templates.Page{
+	return templates.ExecuteIndex(w, templates.Index{
 		Breadcrumbs: breadcrumbs,
 		Files:       files,
 		Version:     s.version,
@@ -169,15 +192,15 @@ func (s *Server) sendTemplate(w io.Writer, entries []fs.DirEntry, filepath strin
 func (s *Server) sendText(w io.Writer, entries []fs.DirEntry, filepath string) error {
 	var files []templates.File
 
-	if filepath != "." {
+	if filepath != rootDir {
 		files = append(files, templates.File{
-			Name:  "..",
+			Name:  parentDir,
 			IsDir: true,
 		})
 	}
 
 	for _, entry := range entries {
-		if !s.includeFile(entry.Name()) {
+		if !s.isAllowed(entry.Name()) {
 			continue
 		}
 
@@ -193,7 +216,7 @@ func (s *Server) sendText(w io.Writer, entries []fs.DirEntry, filepath string) e
 		})
 	}
 
-	sortFiles(files)
+	templates.SortFiles(files)
 
 	var buf bytes.Buffer
 
@@ -216,30 +239,39 @@ func (s *Server) sendText(w io.Writer, entries []fs.DirEntry, filepath string) e
 	return err
 }
 
-func (s *Server) includeFile(name string) bool {
-	return s.includeDotfiles || !strings.HasPrefix(name, ".")
+func (s *Server) isAllowed(filepath string) bool {
+	name := path.Base(filepath)
+	if name == rootDir {
+		return true
+	}
+	if !s.includeDotfiles {
+		return !strings.HasPrefix(name, ".")
+	}
+	return true
 }
 
-func (s *Server) sendErrorPage(w http.ResponseWriter, err error) {
-	err = templates.ExecuteIndex(w, templates.Page{
-		Error:   err.Error(),
+func (s *Server) sendErrorPage(w http.ResponseWriter, err error, code int) {
+	err = templates.ExecuteIndex(w, templates.Index{
+		Error: &templates.Error{
+			Status:  http.StatusText(code),
+			Message: err.Error(),
+		},
 		Version: s.version,
 	})
 	if err != nil {
-		sendError(w, err)
+		sendError(w, err, http.StatusInternalServerError)
 	}
 }
 
-func sendError(w http.ResponseWriter, err error) {
-	http.Error(w, err.Error(), http.StatusInternalServerError)
+func sendError(w http.ResponseWriter, err error, code int) {
+	http.Error(w, err.Error(), code)
 	slog.Error("an error ocurred", "error", err)
 }
 
-func sortFiles(files []templates.File) {
-	sort.Slice(files, func(i, j int) bool {
-		if files[i].IsDir != files[j].IsDir {
-			return files[i].IsDir
-		}
-		return files[i].Name < files[j].Name
-	})
+func errOpenNoSuchFileOrDirectory(filepath string) error {
+	return &fs.PathError{
+		Op:   "open",
+		Path: filepath,
+		Err:  fs.ErrNotExist,
+	}
 }

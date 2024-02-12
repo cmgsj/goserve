@@ -80,8 +80,8 @@ func Run() error {
 
 	slog.Info("registering routes")
 
-	registerRoute(mux, "GET /files", server.ServeTemplate())
-	registerRoute(mux, "GET /files/{path...}", server.ServeTemplate())
+	registerRoute(mux, "GET /files", server.ServePage())
+	registerRoute(mux, "GET /files/{path...}", server.ServePage())
 	registerRoute(mux, "GET /text/files", server.ServeText())
 	registerRoute(mux, "GET /text/files/{path...}", server.ServeText())
 	registerRoute(mux, "GET /health", server.Health())
