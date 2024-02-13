@@ -1,6 +1,6 @@
 package version
 
-var version = "none"
+var version = "dev"
 
 func Get() string {
 	return version

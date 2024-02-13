@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"syscall"
 	"text/tabwriter"
 
 	"github.com/cmgsj/goserve/pkg/templates"
@@ -19,6 +20,8 @@ import (
 const (
 	rootDir   = "."
 	parentDir = ".."
+
+	pathValueFile = "file"
 )
 
 type Server struct {
@@ -37,9 +40,11 @@ func NewServer(fs fs.FS, includeDotfiles bool, version string) *Server {
 
 func (s *Server) ServePage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		filepath := path.Clean(r.PathValue("path"))
+		file := r.PathValue(pathValueFile)
 
-		info, err := fs.Stat(s, filepath)
+		file = path.Clean(file)
+
+		info, err := fs.Stat(s, file)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				s.sendErrorPage(w, err, http.StatusNotFound)
@@ -49,26 +54,26 @@ func (s *Server) ServePage() http.Handler {
 			return
 		}
 
-		if !s.isAllowed(filepath) {
-			s.sendErrorPage(w, errOpenNoSuchFileOrDirectory(filepath), http.StatusNotFound)
+		if !s.isAllowed(file) {
+			s.sendErrorPage(w, errFileNotFound(file), http.StatusNotFound)
 			return
 		}
 
 		if !info.IsDir() {
-			err = s.sendFile(w, r, filepath)
+			err = s.sendFile(w, file)
 			if err != nil {
 				s.sendErrorPage(w, err, http.StatusInternalServerError)
 			}
 			return
 		}
 
-		entries, err := fs.ReadDir(s, filepath)
+		entries, err := fs.ReadDir(s, file)
 		if err != nil {
 			s.sendErrorPage(w, err, http.StatusInternalServerError)
 			return
 		}
 
-		err = s.sendPage(w, entries, filepath)
+		err = s.sendPage(w, entries, file)
 		if err != nil {
 			s.sendErrorPage(w, err, http.StatusInternalServerError)
 		}
@@ -77,9 +82,11 @@ func (s *Server) ServePage() http.Handler {
 
 func (s *Server) ServeText() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		filepath := path.Clean(r.PathValue("path"))
+		file := r.PathValue(pathValueFile)
 
-		info, err := fs.Stat(s, filepath)
+		file = path.Clean(file)
+
+		info, err := fs.Stat(s, file)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				sendError(w, err, http.StatusNotFound)
@@ -89,26 +96,26 @@ func (s *Server) ServeText() http.Handler {
 			return
 		}
 
-		if !s.isAllowed(filepath) {
-			sendError(w, errOpenNoSuchFileOrDirectory(filepath), http.StatusNotFound)
+		if !s.isAllowed(file) {
+			sendError(w, errFileNotFound(file), http.StatusNotFound)
 			return
 		}
 
 		if !info.IsDir() {
-			err = s.sendFile(w, r, filepath)
+			err = s.sendFile(w, file)
 			if err != nil {
 				sendError(w, err, http.StatusInternalServerError)
 			}
 			return
 		}
 
-		entries, err := fs.ReadDir(s, filepath)
+		entries, err := fs.ReadDir(s, file)
 		if err != nil {
 			sendError(w, err, http.StatusInternalServerError)
 			return
 		}
 
-		err = s.sendText(w, entries, filepath)
+		err = s.sendText(w, entries, file)
 		if err != nil {
 			sendError(w, err, http.StatusInternalServerError)
 		}
@@ -128,25 +135,31 @@ func (s *Server) Version() http.Handler {
 	})
 }
 
-func (s *Server) sendFile(w http.ResponseWriter, r *http.Request, filepath string) error {
-	f, err := s.Open(filepath)
+func (s *Server) sendFile(w http.ResponseWriter, file string) error {
+	f, err := s.Open(file)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+
+	defer func() {
+		err := f.Close()
+		if err != nil {
+			slog.Error("failed to close file", "file", file, "error", err)
+		}
+	}()
 
 	_, err = io.Copy(w, f)
 
 	return err
 }
 
-func (s *Server) sendPage(w http.ResponseWriter, entries []fs.DirEntry, filepath string) error {
+func (s *Server) sendPage(w http.ResponseWriter, entries []fs.DirEntry, file string) error {
 	var breadcrumbs, files []templates.File
 
-	if filepath != rootDir {
+	if file != rootDir {
 		var pathPrefix string
 
-		for _, name := range strings.Split(filepath, "/") {
+		for _, name := range strings.Split(file, "/") {
 			pathPrefix = path.Join(pathPrefix, name)
 
 			breadcrumbs = append(breadcrumbs, templates.File{
@@ -156,7 +169,7 @@ func (s *Server) sendPage(w http.ResponseWriter, entries []fs.DirEntry, filepath
 		}
 
 		files = append(files, templates.File{
-			Path:  path.Dir(filepath),
+			Path:  path.Dir(file),
 			Name:  parentDir,
 			IsDir: true,
 		})
@@ -173,7 +186,7 @@ func (s *Server) sendPage(w http.ResponseWriter, entries []fs.DirEntry, filepath
 		}
 
 		files = append(files, templates.File{
-			Path:  path.Join(filepath, info.Name()),
+			Path:  path.Join(file, info.Name()),
 			Name:  info.Name(),
 			Size:  utilbytes.FormatSize(info.Size()),
 			IsDir: info.IsDir(),
@@ -189,10 +202,10 @@ func (s *Server) sendPage(w http.ResponseWriter, entries []fs.DirEntry, filepath
 	})
 }
 
-func (s *Server) sendText(w io.Writer, entries []fs.DirEntry, filepath string) error {
+func (s *Server) sendText(w io.Writer, entries []fs.DirEntry, file string) error {
 	var files []templates.File
 
-	if filepath != rootDir {
+	if file != rootDir {
 		files = append(files, templates.File{
 			Name:  parentDir,
 			IsDir: true,
@@ -239,14 +252,17 @@ func (s *Server) sendText(w io.Writer, entries []fs.DirEntry, filepath string) e
 	return err
 }
 
-func (s *Server) isAllowed(filepath string) bool {
-	name := path.Base(filepath)
+func (s *Server) isAllowed(file string) bool {
+	name := path.Base(file)
+
 	if name == rootDir {
 		return true
 	}
+
 	if !s.includeDotfiles {
 		return !strings.HasPrefix(name, ".")
 	}
+
 	return true
 }
 
@@ -268,10 +284,10 @@ func sendError(w http.ResponseWriter, err error, code int) {
 	slog.Error("an error ocurred", "error", err)
 }
 
-func errOpenNoSuchFileOrDirectory(filepath string) error {
+func errFileNotFound(file string) error {
 	return &fs.PathError{
 		Op:   "open",
-		Path: filepath,
-		Err:  fs.ErrNotExist,
+		Path: file,
+		Err:  syscall.ENOENT,
 	}
 }

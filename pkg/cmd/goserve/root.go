@@ -20,12 +20,9 @@ func Run() error {
 	var printVersion bool
 
 	flag.Usage = func() {
-		fmt.Println("HTTP file server")
-		fmt.Println()
-		fmt.Println("Usage:")
-		fmt.Println("  goserve [flags] [path]")
-		fmt.Println()
-		fmt.Println("Flags:")
+		fmt.Printf("HTTP file server\n\n")
+		fmt.Printf("Usage:\n  goserve [flags] FILE\n\n")
+		fmt.Printf("Flags:\n")
 		flag.CommandLine.PrintDefaults()
 	}
 	flag.BoolVar(&includeDotfiles, "dotfiles", includeDotfiles, "include dotfiles")
@@ -34,25 +31,18 @@ func Run() error {
 
 	flag.Parse()
 
-	if len(flag.Args()) > 1 {
-		flag.Usage()
-		return fmt.Errorf("invalid number of arguments, expected at most 1, received %d", len(flag.Args()))
-	}
-
 	if printVersion {
 		fmt.Println(version.Get())
 		return nil
 	}
 
-	rootPath := "."
-
-	if len(flag.Args()) > 0 {
-		rootPath = flag.Arg(0)
+	if len(flag.Args()) != 1 {
+		return fmt.Errorf("accepts %d arg(s), received %d", 1, len(flag.Args()))
 	}
 
-	var err error
+	rootPath := flag.Arg(0)
 
-	rootPath, err = filepath.Abs(rootPath)
+	rootPath, err := filepath.Abs(rootPath)
 	if err != nil {
 		return err
 	}
@@ -81,13 +71,13 @@ func Run() error {
 	slog.Info("registering routes")
 
 	registerRoute(mux, "GET /files", server.ServePage())
-	registerRoute(mux, "GET /files/{path...}", server.ServePage())
+	registerRoute(mux, "GET /files/{file...}", server.ServePage())
 	registerRoute(mux, "GET /text/files", server.ServeText())
-	registerRoute(mux, "GET /text/files/{path...}", server.ServeText())
+	registerRoute(mux, "GET /text/files/{file...}", server.ServeText())
 	registerRoute(mux, "GET /health", server.Health())
 	registerRoute(mux, "GET /version", server.Version())
 
-	slog.Info("starting server", "root", rootPath, "dotfiles", includeDotfiles, "port", port)
+	slog.Info("starting http server", "root", rootPath, "dotfiles", includeDotfiles, "port", port)
 
 	slog.Info("ready to accept connections")
 
