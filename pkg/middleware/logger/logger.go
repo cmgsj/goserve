@@ -9,22 +9,22 @@ import (
 	utilhttp "github.com/cmgsj/goserve/pkg/util/http"
 )
 
-func Log(base http.Handler) http.Handler {
+func Log(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		recorder := utilhttp.NewResponseRecorder(w)
 
 		start := time.Now()
-
-		base.ServeHTTP(recorder, r)
 
 		defer func() {
 			delta := time.Since(start)
 			slog.Info(
 				fmt.Sprintf("%s %s", r.Method, r.URL.Path),
 				"address", r.RemoteAddr,
-				"status", recorder.Status(),
+				"status", http.StatusText(recorder.StatusCode()),
 				"duration", delta,
 			)
 		}()
+
+		next.ServeHTTP(recorder, r)
 	})
 }

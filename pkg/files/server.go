@@ -26,15 +26,15 @@ const (
 
 type Server struct {
 	fs.FS
-	includeDotfiles bool
-	version         string
+	dotfiles bool
+	version  string
 }
 
-func NewServer(fs fs.FS, includeDotfiles bool, version string) *Server {
+func NewServer(fs fs.FS, dotfiles bool, version string) *Server {
 	return &Server{
-		FS:              fs,
-		includeDotfiles: includeDotfiles,
-		version:         version,
+		FS:       fs,
+		dotfiles: dotfiles,
+		version:  version,
 	}
 }
 
@@ -245,11 +245,13 @@ func (s *Server) sendText(w io.Writer, entries []fs.DirEntry, file string) error
 	}
 
 	tab := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
-	defer tab.Flush()
 
-	_, err := io.Copy(tab, &buf)
+	_, err := tab.Write(buf.Bytes())
+	if err != nil {
+		return err
+	}
 
-	return err
+	return tab.Flush()
 }
 
 func (s *Server) isAllowed(file string) bool {
@@ -259,7 +261,7 @@ func (s *Server) isAllowed(file string) bool {
 		return true
 	}
 
-	if !s.includeDotfiles {
+	if !s.dotfiles {
 		return !strings.HasPrefix(name, ".")
 	}
 

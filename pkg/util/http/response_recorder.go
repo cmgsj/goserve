@@ -4,7 +4,6 @@ import "net/http"
 
 type ResponseRecorder interface {
 	http.ResponseWriter
-	Status() string
 	StatusCode() int
 }
 
@@ -23,10 +22,6 @@ type responseRecorder struct {
 func (r *responseRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 	r.statusCode = code
-}
-
-func (r *responseRecorder) Status() string {
-	return http.StatusText(r.statusCode)
 }
 
 func (r *responseRecorder) StatusCode() int {

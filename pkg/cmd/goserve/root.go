@@ -9,15 +9,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cmgsj/goserve/internal/version"
+	internalversion "github.com/cmgsj/goserve/internal/version"
 	"github.com/cmgsj/goserve/pkg/files"
 	"github.com/cmgsj/goserve/pkg/middleware/logger"
 )
 
 func Run() error {
-	var includeDotfiles bool
+	var dotfiles bool
 	var port uint = 80
-	var printVersion bool
+	var version bool
 
 	flag.Usage = func() {
 		fmt.Printf("HTTP file server\n\n")
@@ -25,14 +25,14 @@ func Run() error {
 		fmt.Printf("Flags:\n")
 		flag.CommandLine.PrintDefaults()
 	}
-	flag.BoolVar(&includeDotfiles, "dotfiles", includeDotfiles, "include dotfiles")
+	flag.BoolVar(&dotfiles, "dotfiles", dotfiles, "include dotfiles")
 	flag.UintVar(&port, "port", port, "port")
-	flag.BoolVar(&printVersion, "version", printVersion, "print version")
+	flag.BoolVar(&version, "version", version, "print version")
 
 	flag.Parse()
 
-	if printVersion {
-		fmt.Println(version.Get())
+	if version {
+		fmt.Println(internalversion.Get())
 		return nil
 	}
 
@@ -64,7 +64,7 @@ func Run() error {
 		}
 	}
 
-	server := files.NewServer(rootFS, includeDotfiles, version.Get())
+	server := files.NewServer(rootFS, dotfiles, internalversion.Get())
 
 	mux := http.NewServeMux()
 
@@ -77,7 +77,7 @@ func Run() error {
 	registerRoute(mux, "GET /health", server.Health())
 	registerRoute(mux, "GET /version", server.Version())
 
-	slog.Info("starting http server", "root", rootPath, "dotfiles", includeDotfiles, "port", port)
+	slog.Info("starting http server", "root", rootPath, "dotfiles", dotfiles, "port", port)
 
 	slog.Info("ready to accept connections")
 
