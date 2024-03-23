@@ -2,7 +2,8 @@ archives:
   - id: goserve
     builds:
       - goserve
-    files: []
+    files:
+      - "bin/*"
 changelog:
   use: github-native
 builds:
