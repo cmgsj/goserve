@@ -9,4 +9,5 @@
 .vscode
 
 # Binaries
+/bin
 /goserve

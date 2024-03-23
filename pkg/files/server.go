@@ -8,23 +8,22 @@ import (
 	"log/slog"
 	"net/http"
 	"path"
+	"regexp"
 	"slices"
 	"strings"
 )
 
 type Server struct {
 	fs           fs.FS
-	dotfiles     bool
-	version      string
+	exclude      *regexp.Regexp
 	handlers     map[string]Handler
 	contentTypes []string
 }
 
-func NewServer(fs fs.FS, dotfiles bool, version string, handlers ...Handler) *Server {
+func NewServer(fs fs.FS, exclude *regexp.Regexp, handlers ...Handler) *Server {
 	server := &Server{
 		fs:       fs,
-		dotfiles: dotfiles,
-		version:  version,
+		exclude:  exclude,
 		handlers: make(map[string]Handler),
 	}
 
@@ -93,27 +92,17 @@ func (s *Server) HealthHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 }
 
-func (s *Server) VersionHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, s.version)
-	})
-}
-
 func (s *Server) ContentTypes() []string {
 	return s.contentTypes
 }
 
-func (s *Server) Version() string {
-	return s.version
-}
-
 func (s *Server) IsAllowed(file string) bool {
-	if file == RootDir {
+	if file == RootDir || s.exclude == nil {
 		return true
 	}
 
 	for _, path := range strings.Split(file, "/") {
-		if !s.dotfiles && strings.HasPrefix(path, ".") {
+		if s.exclude.MatchString(path) {
 			return false
 		}
 	}
