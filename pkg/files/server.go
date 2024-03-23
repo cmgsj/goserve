@@ -1,7 +1,6 @@
 package files
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -44,7 +43,7 @@ func (s *Server) FilesHandler() http.Handler {
 
 		handler, ok := s.handlers[contentType]
 		if !ok {
-			s.handleError(w, nil, newUnsupportedContentTypeError(s.contentTypes, contentType), http.StatusBadRequest)
+			s.handleError(w, nil, newUnsupportedContentTypeError(contentType, s.contentTypes), http.StatusBadRequest)
 			return
 		}
 
@@ -110,22 +109,6 @@ func (s *Server) IsAllowed(file string) bool {
 	return true
 }
 
-func (s *Server) handleError(w http.ResponseWriter, handler Handler, err error, code int) {
-	slog.Error("an error ocurred", "error", err)
-
-	w.WriteHeader(code)
-
-	if handler != nil {
-		handleErr := handler.HandleError(w, err, code)
-		if handleErr == nil {
-			return
-		}
-		slog.Error("failed to handle error", "error", handleErr)
-	}
-
-	fmt.Fprintln(w, err.Error())
-}
-
 func (s *Server) copyFile(w http.ResponseWriter, file string) error {
 	f, err := s.fs.Open(file)
 	if err != nil {
@@ -185,26 +168,18 @@ func (s *Server) readDir(dir string) ([]File, error) {
 	return files, nil
 }
 
-func newUnsupportedContentTypeError(contentTypes []string, contentType string) error {
-	return fmt.Errorf("unsupported content type %q, supported: [%s]", contentType, strings.Join(contentTypes, ","))
-}
+func (s *Server) handleError(w http.ResponseWriter, handler Handler, err error, code int) {
+	slog.Error("an error ocurred", "error", err)
 
-func newFileNotFoundError(file string) error {
-	return fmt.Errorf("stat %s: no such file or directory", file)
-}
+	w.WriteHeader(code)
 
-func fsErrorStatusCode(err error) int {
-	switch {
-	case errors.Is(err, fs.ErrInvalid):
-		return http.StatusBadRequest
-
-	case errors.Is(err, fs.ErrPermission):
-		return http.StatusUnauthorized
-
-	case errors.Is(err, fs.ErrNotExist):
-		return http.StatusNotFound
-
-	default:
-		return http.StatusInternalServerError
+	if handler != nil {
+		handleErr := handler.HandleError(w, err, code)
+		if handleErr == nil {
+			return
+		}
+		slog.Error("failed to handle error", "error", handleErr)
 	}
+
+	fmt.Fprintln(w, err.Error())
 }
