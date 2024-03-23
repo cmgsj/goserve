@@ -7,3 +7,6 @@
 # IDE directories
 .idea
 .vscode
+
+# Binaries
+/goserve
