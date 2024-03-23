@@ -2,75 +2,42 @@ package json
 
 import (
 	"encoding/json"
-	"io/fs"
 	"net/http"
-	"path"
 
 	"github.com/cmgsj/goserve/pkg/files"
 )
 
-func HandlerFactory() files.HandlerFactory {
-	return func(s *files.Server) files.Handler {
-		return (*handler)(s)
+type Handler struct {
+	indent bool
+}
+
+func NewHandler(indent bool) *Handler {
+	return &Handler{
+		indent: indent,
 	}
 }
 
-type handler files.Server
-
-func (h *handler) ContentType() string {
+func (h *Handler) ContentType() string {
 	return "json"
 }
 
-func (h *handler) HandleDir(w http.ResponseWriter, file string, entries []fs.DirEntry) error {
-	var fileList []files.File
-
-	if file != files.RootDir {
-		fileList = append(fileList, files.File{
-			Name:  files.ParentDir,
-			IsDir: true,
-		})
-	}
-
-	for _, entry := range entries {
-		entryPath := path.Join(file, entry.Name())
-
-		if !(*files.Server)(h).IsAllowed(entryPath) {
-			continue
-		}
-
-		info, err := entry.Info()
-		if err != nil {
-			return err
-		}
-
-		f := files.File{
-			Name:  info.Name(),
-			IsDir: info.IsDir(),
-		}
-
-		if !f.IsDir {
-			f.Size = files.FormatSize(info.Size())
-		}
-
-		fileList = append(fileList, f)
-	}
-
-	files.Sort(fileList)
-
-	encoder := json.NewEncoder(w)
-
-	encoder.SetIndent("", "  ")
-
-	return encoder.Encode(fileList)
+func (h *Handler) HandleDir(w http.ResponseWriter, dir string, entries []files.File) error {
+	return h.encode(w, entries)
 }
 
-func (h *handler) HandleError(w http.ResponseWriter, err error, code int) error {
-	encoder := json.NewEncoder(w)
-
-	encoder.SetIndent("", "  ")
-
-	return encoder.Encode(map[string]interface{}{
+func (h *Handler) HandleError(w http.ResponseWriter, err error, code int) error {
+	return h.encode(w, map[string]interface{}{
 		"status":  http.StatusText(code),
 		"message": err.Error(),
 	})
+}
+
+func (h *Handler) encode(w http.ResponseWriter, v interface{}) error {
+	encoder := json.NewEncoder(w)
+
+	if h.indent {
+		encoder.SetIndent("", "  ")
+	}
+
+	return encoder.Encode(v)
 }

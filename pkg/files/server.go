@@ -20,7 +20,7 @@ type Server struct {
 	contentTypes []string
 }
 
-func NewServer(fs fs.FS, dotfiles bool, version string, factories ...HandlerFactory) *Server {
+func NewServer(fs fs.FS, dotfiles bool, version string, handlers ...Handler) *Server {
 	server := &Server{
 		fs:       fs,
 		dotfiles: dotfiles,
@@ -28,8 +28,7 @@ func NewServer(fs fs.FS, dotfiles bool, version string, factories ...HandlerFact
 		handlers: make(map[string]Handler),
 	}
 
-	for _, factory := range factories {
-		handler := factory(server)
+	for _, handler := range handlers {
 		server.handlers[handler.ContentType()] = handler
 		server.contentTypes = append(server.contentTypes, handler.ContentType())
 	}
@@ -64,14 +63,14 @@ func (s *Server) FilesHandler() http.Handler {
 		}
 
 		if !info.IsDir() {
-			err = s.handleFile(w, file)
+			err = s.copyFile(w, file)
 			if err != nil {
 				s.handleError(w, handler, err, fsErrorStatusCode(err))
 			}
 			return
 		}
 
-		entries, err := fs.ReadDir(s.fs, file)
+		entries, err := s.readDir(file)
 		if err != nil {
 			s.handleError(w, handler, err, fsErrorStatusCode(err))
 			return
@@ -138,7 +137,7 @@ func (s *Server) handleError(w http.ResponseWriter, handler Handler, err error, 
 	fmt.Fprintln(w, err.Error())
 }
 
-func (s *Server) handleFile(w http.ResponseWriter, file string) error {
+func (s *Server) copyFile(w http.ResponseWriter, file string) error {
 	f, err := s.fs.Open(file)
 	if err != nil {
 		return err
@@ -154,6 +153,47 @@ func (s *Server) handleFile(w http.ResponseWriter, file string) error {
 	_, err = io.Copy(w, f)
 
 	return err
+}
+
+func (s *Server) readDir(dir string) ([]File, error) {
+	entries, err := fs.ReadDir(s.fs, dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var files []File
+
+	if dir != RootDir {
+		files = append(files, File{
+			Path:  path.Dir(dir),
+			Name:  ParentDir,
+			IsDir: true,
+		})
+	}
+
+	for _, entry := range entries {
+		file := path.Join(dir, entry.Name())
+
+		if !s.IsAllowed(file) {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			return nil, err
+		}
+
+		files = append(files, File{
+			Path:  file,
+			Name:  info.Name(),
+			Size:  FormatSize(info.Size()),
+			IsDir: info.IsDir(),
+		})
+	}
+
+	Sort(files)
+
+	return files, nil
 }
 
 func newUnsupportedContentTypeError(contentTypes []string, contentType string) error {

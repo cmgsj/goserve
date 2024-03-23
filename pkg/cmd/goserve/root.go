@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	internalversion "github.com/cmgsj/goserve/internal/version"
+	"github.com/cmgsj/goserve/internal/version"
 	"github.com/cmgsj/goserve/pkg/files"
 	"github.com/cmgsj/goserve/pkg/files/handlers/html"
 	"github.com/cmgsj/goserve/pkg/files/handlers/json"
@@ -23,6 +23,7 @@ type Flags struct {
 	HTML     bool
 	JSON     bool
 	Text     bool
+	Indent   bool
 	Version  bool
 }
 
@@ -39,6 +40,7 @@ func (f *Flags) Parse() {
 	flag.BoolVar(&f.HTML, "html", f.HTML, "enable content-type html")
 	flag.BoolVar(&f.JSON, "json", f.JSON, "enable content-type json")
 	flag.BoolVar(&f.Text, "text", f.Text, "enable content-type text")
+	flag.BoolVar(&f.Indent, "indent", f.Indent, "indent json")
 	flag.BoolVar(&f.Version, "version", f.Version, "print version")
 
 	flag.Parse()
@@ -46,16 +48,17 @@ func (f *Flags) Parse() {
 
 func Run() error {
 	flags := Flags{
-		Port: 80,
-		HTML: true,
-		JSON: true,
-		Text: true,
+		Port:   80,
+		HTML:   true,
+		JSON:   true,
+		Indent: true,
+		Text:   true,
 	}
 
 	flags.Parse()
 
 	if flags.Version {
-		fmt.Println(internalversion.Get())
+		fmt.Println(version.String())
 		return nil
 	}
 
@@ -87,29 +90,29 @@ func Run() error {
 		}
 	}
 
-	var factories []files.HandlerFactory
+	var handlers []files.Handler
 
 	if flags.HTML {
-		factories = append(factories, html.HandlerFactory())
+		handlers = append(handlers, html.NewHandler(version.String()))
 	}
 	if flags.JSON {
-		factories = append(factories, json.HandlerFactory())
+		handlers = append(handlers, json.NewHandler(flags.Indent))
 	}
 	if flags.Text {
-		factories = append(factories, text.HandlerFactory())
+		handlers = append(handlers, text.NewHandler())
 	}
 
-	server := files.NewServer(root, flags.DotFiles, internalversion.Get(), factories...)
+	server := files.NewServer(root, flags.DotFiles, version.String(), handlers...)
 
 	mux := http.NewServeMux()
+
+	slog.Info("starting http server", "root", path, "dotfiles", flags.DotFiles, "port", flags.Port, "content_types", server.ContentTypes())
 
 	register(mux, "GET /{content_type}", server.FilesHandler())
 	register(mux, "GET /{content_type}/{file...}", server.FilesHandler())
 	register(mux, "GET /content_types", server.ContentTypesHandler())
 	register(mux, "GET /health", server.HealthHandler())
 	register(mux, "GET /version", server.VersionHandler())
-
-	slog.Info("starting http server", "root", path, "dotfiles", flags.DotFiles, "port", flags.Port, "content_types", server.ContentTypes())
 
 	slog.Info("ready to accept connections")
 
