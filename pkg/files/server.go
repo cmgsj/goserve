@@ -1,7 +1,6 @@
 package files
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -9,255 +8,121 @@ import (
 	"log/slog"
 	"net/http"
 	"path"
+	"slices"
 	"strings"
-	"syscall"
-	"text/tabwriter"
-
-	"github.com/cmgsj/goserve/pkg/templates"
-	utilbytes "github.com/cmgsj/goserve/pkg/util/bytes"
-)
-
-const (
-	rootDir   = "."
-	parentDir = ".."
-
-	pathValueFile = "file"
 )
 
 type Server struct {
-	fs.FS
-	dotfiles bool
-	version  string
+	fs           fs.FS
+	dotfiles     bool
+	version      string
+	handlers     map[string]Handler
+	contentTypes []string
 }
 
-func NewServer(fs fs.FS, dotfiles bool, version string) *Server {
-	return &Server{
-		FS:       fs,
+func NewServer(fs fs.FS, dotfiles bool, version string, factories ...HandlerFactory) *Server {
+	server := &Server{
+		fs:       fs,
 		dotfiles: dotfiles,
 		version:  version,
+		handlers: make(map[string]Handler),
 	}
+
+	for _, factory := range factories {
+		handler := factory(server)
+		server.handlers[handler.ContentType()] = handler
+		server.contentTypes = append(server.contentTypes, handler.ContentType())
+	}
+
+	slices.Sort(server.contentTypes)
+
+	return server
 }
 
-func (s *Server) ServePage() http.Handler {
+func (s *Server) FilesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		file := r.PathValue(pathValueFile)
+		contentType := r.PathValue("content_type")
+		file := r.PathValue("file")
+
+		handler, ok := s.handlers[contentType]
+		if !ok {
+			s.SendError(w, newUnsupportedContentTypeError(s.contentTypes, contentType), http.StatusBadRequest)
+			return
+		}
 
 		file = path.Clean(file)
 
-		info, err := fs.Stat(s, file)
+		info, err := fs.Stat(s.fs, file)
 		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				s.sendErrorPage(w, err, http.StatusNotFound)
-			} else {
-				s.sendErrorPage(w, err, http.StatusInternalServerError)
+			switch {
+			case errors.Is(err, fs.ErrNotExist):
+				handler.SendError(w, err, http.StatusNotFound)
+			case errors.Is(err, fs.ErrPermission):
+				handler.SendError(w, err, http.StatusUnauthorized)
+			default:
+				handler.SendError(w, err, http.StatusInternalServerError)
 			}
 			return
 		}
 
-		if !s.isAllowed(file) {
-			s.sendErrorPage(w, errFileNotFound(file), http.StatusNotFound)
+		if !s.IsAllowed(file) {
+			handler.SendError(w, newFileNotFoundError(file), http.StatusNotFound)
 			return
 		}
 
 		if !info.IsDir() {
 			err = s.sendFile(w, file)
 			if err != nil {
-				s.sendErrorPage(w, err, http.StatusInternalServerError)
+				handler.SendError(w, err, http.StatusInternalServerError)
 			}
 			return
 		}
 
-		entries, err := fs.ReadDir(s, file)
+		entries, err := fs.ReadDir(s.fs, file)
 		if err != nil {
-			s.sendErrorPage(w, err, http.StatusInternalServerError)
+			handler.SendError(w, err, http.StatusInternalServerError)
 			return
 		}
 
-		err = s.sendPage(w, entries, file)
+		err = handler.SendDir(w, file, entries)
 		if err != nil {
-			s.sendErrorPage(w, err, http.StatusInternalServerError)
+			handler.SendError(w, err, http.StatusInternalServerError)
 		}
 	})
 }
 
-func (s *Server) ServeText() http.Handler {
+func (s *Server) ContentTypesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		file := r.PathValue(pathValueFile)
-
-		file = path.Clean(file)
-
-		info, err := fs.Stat(s, file)
-		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				sendError(w, err, http.StatusNotFound)
-			} else {
-				sendError(w, err, http.StatusInternalServerError)
-			}
-			return
-		}
-
-		if !s.isAllowed(file) {
-			sendError(w, errFileNotFound(file), http.StatusNotFound)
-			return
-		}
-
-		if !info.IsDir() {
-			err = s.sendFile(w, file)
-			if err != nil {
-				sendError(w, err, http.StatusInternalServerError)
-			}
-			return
-		}
-
-		entries, err := fs.ReadDir(s, file)
-		if err != nil {
-			sendError(w, err, http.StatusInternalServerError)
-			return
-		}
-
-		err = s.sendText(w, entries, file)
-		if err != nil {
-			sendError(w, err, http.StatusInternalServerError)
-		}
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, s.contentTypes)
 	})
 }
 
-func (s *Server) Health() http.Handler {
+func (s *Server) HealthHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 }
 
-func (s *Server) Version() http.Handler {
+func (s *Server) VersionHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, s.version)
 	})
 }
 
-func (s *Server) sendFile(w http.ResponseWriter, file string) error {
-	f, err := s.Open(file)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		err := f.Close()
-		if err != nil {
-			slog.Error("failed to close file", "file", file, "error", err)
-		}
-	}()
-
-	_, err = io.Copy(w, f)
-
-	return err
+func (s *Server) ContentTypes() []string {
+	return s.contentTypes
 }
 
-func (s *Server) sendPage(w http.ResponseWriter, entries []fs.DirEntry, file string) error {
-	var breadcrumbs, files []templates.File
-
-	if file != rootDir {
-		var pathPrefix string
-
-		for _, name := range strings.Split(file, "/") {
-			pathPrefix = path.Join(pathPrefix, name)
-
-			breadcrumbs = append(breadcrumbs, templates.File{
-				Path: pathPrefix,
-				Name: name,
-			})
-		}
-
-		files = append(files, templates.File{
-			Path:  path.Dir(file),
-			Name:  parentDir,
-			IsDir: true,
-		})
-	}
-
-	for _, entry := range entries {
-		if !s.isAllowed(entry.Name()) {
-			continue
-		}
-
-		info, err := entry.Info()
-		if err != nil {
-			return err
-		}
-
-		files = append(files, templates.File{
-			Path:  path.Join(file, info.Name()),
-			Name:  info.Name(),
-			Size:  utilbytes.FormatSize(info.Size()),
-			IsDir: info.IsDir(),
-		})
-	}
-
-	templates.SortFiles(files)
-
-	return templates.ExecuteIndex(w, templates.Index{
-		Breadcrumbs: breadcrumbs,
-		Files:       files,
-		Version:     s.version,
-	})
+func (s *Server) Version() string {
+	return s.version
 }
 
-func (s *Server) sendText(w io.Writer, entries []fs.DirEntry, file string) error {
-	var files []templates.File
-
-	if file != rootDir {
-		files = append(files, templates.File{
-			Name:  parentDir,
-			IsDir: true,
-		})
-	}
-
-	for _, entry := range entries {
-		if !s.isAllowed(entry.Name()) {
-			continue
-		}
-
-		info, err := entry.Info()
-		if err != nil {
-			return err
-		}
-
-		files = append(files, templates.File{
-			Name:  info.Name(),
-			Size:  utilbytes.FormatSize(info.Size()),
-			IsDir: info.IsDir(),
-		})
-	}
-
-	templates.SortFiles(files)
-
-	var buf bytes.Buffer
-
-	for _, file := range files {
-		buf.WriteString(file.Name)
-		if file.IsDir {
-			buf.WriteByte('/')
-		} else {
-			buf.WriteByte('\t')
-			buf.WriteString(file.Size)
-		}
-		buf.WriteByte('\n')
-	}
-
-	tab := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
-
-	_, err := tab.Write(buf.Bytes())
-	if err != nil {
-		return err
-	}
-
-	return tab.Flush()
-}
-
-func (s *Server) isAllowed(file string) bool {
+func (s *Server) IsAllowed(file string) bool {
 	name := path.Base(file)
 
-	if name == rootDir {
+	if name == RootDir {
 		return true
 	}
 
@@ -268,28 +133,33 @@ func (s *Server) isAllowed(file string) bool {
 	return true
 }
 
-func (s *Server) sendErrorPage(w http.ResponseWriter, err error, code int) {
-	err = templates.ExecuteIndex(w, templates.Index{
-		Error: &templates.Error{
-			Status:  http.StatusText(code),
-			Message: err.Error(),
-		},
-		Version: s.version,
-	})
-	if err != nil {
-		sendError(w, err, http.StatusInternalServerError)
-	}
-}
-
-func sendError(w http.ResponseWriter, err error, code int) {
+func (s *Server) SendError(w http.ResponseWriter, err error, code int) {
 	http.Error(w, err.Error(), code)
 	slog.Error("an error ocurred", "error", err)
 }
 
-func errFileNotFound(file string) error {
-	return &fs.PathError{
-		Op:   "open",
-		Path: file,
-		Err:  syscall.ENOENT,
+func (s *Server) sendFile(w http.ResponseWriter, file string) error {
+	f, err := s.fs.Open(file)
+	if err != nil {
+		return err
 	}
+
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			slog.Error("failed to close file", "file", file, "error", err)
+		}
+	}()
+
+	_, err = io.Copy(w, f)
+
+	return err
+}
+
+func newUnsupportedContentTypeError(contentTypes []string, contentType string) error {
+	return fmt.Errorf("unsupported content type %q, supported: [%s]", contentType, strings.Join(contentTypes, ","))
+}
+
+func newFileNotFoundError(file string) error {
+	return fmt.Errorf("stat %s: no such file or directory", file)
 }

@@ -11,27 +11,50 @@ import (
 
 	internalversion "github.com/cmgsj/goserve/internal/version"
 	"github.com/cmgsj/goserve/pkg/files"
+	"github.com/cmgsj/goserve/pkg/files/handlers/html"
+	"github.com/cmgsj/goserve/pkg/files/handlers/json"
+	"github.com/cmgsj/goserve/pkg/files/handlers/text"
 	"github.com/cmgsj/goserve/pkg/middleware/logger"
 )
 
-func Run() error {
-	var dotfiles bool
-	var port uint = 80
-	var version bool
+type Flags struct {
+	Port     uint
+	DotFiles bool
+	HTML     bool
+	JSON     bool
+	Text     bool
+	Version  bool
+}
 
+func (f *Flags) Parse() {
 	flag.Usage = func() {
 		fmt.Printf("HTTP file server\n\n")
 		fmt.Printf("Usage:\n  goserve [flags] FILE\n\n")
 		fmt.Printf("Flags:\n")
 		flag.CommandLine.PrintDefaults()
 	}
-	flag.BoolVar(&dotfiles, "dotfiles", dotfiles, "include dotfiles")
-	flag.UintVar(&port, "port", port, "port")
-	flag.BoolVar(&version, "version", version, "print version")
+
+	flag.BoolVar(&f.DotFiles, "dotfiles", f.DotFiles, "include dotfiles")
+	flag.UintVar(&f.Port, "port", f.Port, "http port")
+	flag.BoolVar(&f.HTML, "html", f.HTML, "enable content-type html")
+	flag.BoolVar(&f.JSON, "json", f.JSON, "enable content-type json")
+	flag.BoolVar(&f.Text, "text", f.Text, "enable content-type text")
+	flag.BoolVar(&f.Version, "version", f.Version, "print version")
 
 	flag.Parse()
+}
 
-	if version {
+func Run() error {
+	flags := Flags{
+		Port: 80,
+		HTML: true,
+		JSON: true,
+		Text: true,
+	}
+
+	flags.Parse()
+
+	if flags.Version {
 		fmt.Println(internalversion.Get())
 		return nil
 	}
@@ -40,51 +63,60 @@ func Run() error {
 		return fmt.Errorf("accepts %d arg(s), received %d", 1, len(flag.Args()))
 	}
 
-	rootPath := flag.Arg(0)
+	path := flag.Arg(0)
 
-	rootPath, err := filepath.Abs(rootPath)
+	path, err := filepath.Abs(path)
 	if err != nil {
 		return err
 	}
 
-	info, err := os.Stat(rootPath)
+	info, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
 
-	var rootFS fs.FS
+	var root fs.FS
 
 	if info.IsDir() {
-		rootFS = os.DirFS(rootPath)
+		root = os.DirFS(path)
 	} else {
-		rootFS = os.DirFS(filepath.Dir(rootPath))
-		rootFS, err = fs.Sub(rootFS, filepath.Base(rootPath))
+		root = os.DirFS(filepath.Dir(path))
+		root, err = fs.Sub(root, filepath.Base(path))
 		if err != nil {
 			return err
 		}
 	}
 
-	server := files.NewServer(rootFS, dotfiles, internalversion.Get())
+	var factories []files.HandlerFactory
+
+	if flags.HTML {
+		factories = append(factories, html.HandlerFactory())
+	}
+	if flags.JSON {
+		factories = append(factories, json.HandlerFactory())
+	}
+	if flags.Text {
+		factories = append(factories, text.HandlerFactory())
+	}
+
+	server := files.NewServer(root, flags.DotFiles, internalversion.Get(), factories...)
 
 	mux := http.NewServeMux()
 
-	slog.Info("registering routes")
+	register(mux, "GET /{content_type}", server.FilesHandler())
+	register(mux, "GET /{content_type}/{file...}", server.FilesHandler())
+	register(mux, "GET /content_types", server.ContentTypesHandler())
+	register(mux, "GET /health", server.HealthHandler())
+	register(mux, "GET /version", server.VersionHandler())
 
-	registerRoute(mux, "GET /files", server.ServePage())
-	registerRoute(mux, "GET /files/{file...}", server.ServePage())
-	registerRoute(mux, "GET /text/files", server.ServeText())
-	registerRoute(mux, "GET /text/files/{file...}", server.ServeText())
-	registerRoute(mux, "GET /health", server.Health())
-	registerRoute(mux, "GET /version", server.Version())
-
-	slog.Info("starting http server", "root", rootPath, "dotfiles", dotfiles, "port", port)
+	slog.Info("starting http server", "root", path, "dotfiles", flags.DotFiles, "port", flags.Port, "content_types", server.ContentTypes())
 
 	slog.Info("ready to accept connections")
 
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
+	return http.ListenAndServe(fmt.Sprintf(":%d", flags.Port), mux)
 }
 
-func registerRoute(mux *http.ServeMux, pattern string, handler http.Handler) {
+func register(mux *http.ServeMux, pattern string, handler http.Handler) {
 	mux.Handle(pattern, logger.Log(handler))
 	slog.Info(pattern)
 }
