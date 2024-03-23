@@ -21,7 +21,7 @@ func (h *handler) ContentType() string {
 	return "html"
 }
 
-func (h *handler) SendDir(w http.ResponseWriter, file string, entries []fs.DirEntry) error {
+func (h *handler) HandleDir(w http.ResponseWriter, file string, entries []fs.DirEntry) error {
 	var breadcrumbList, fileList []files.File
 
 	if file != files.RootDir {
@@ -77,7 +77,7 @@ func (h *handler) SendDir(w http.ResponseWriter, file string, entries []fs.DirEn
 	})
 }
 
-func (h *handler) SendError(w http.ResponseWriter, err error, code int) {
+func (h *handler) HandleError(w http.ResponseWriter, err error, code int) {
 	err = indexTmpl.Execute(w, indexData{
 		Error: &errorData{
 			Status:  http.StatusText(code),
@@ -86,6 +86,6 @@ func (h *handler) SendError(w http.ResponseWriter, err error, code int) {
 		Version: (*files.Server)(h).Version(),
 	})
 	if err != nil {
-		(*files.Server)(h).SendError(w, err, http.StatusInternalServerError)
+		(*files.Server)(h).HandleError(w, err, http.StatusInternalServerError)
 	}
 }

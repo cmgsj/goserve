@@ -46,7 +46,7 @@ func (s *Server) FilesHandler() http.Handler {
 
 		handler, ok := s.handlers[contentType]
 		if !ok {
-			s.SendError(w, newUnsupportedContentTypeError(s.contentTypes, contentType), http.StatusBadRequest)
+			s.HandleError(w, newUnsupportedContentTypeError(s.contentTypes, contentType), http.StatusBadRequest)
 			return
 		}
 
@@ -54,32 +54,32 @@ func (s *Server) FilesHandler() http.Handler {
 
 		info, err := fs.Stat(s.fs, file)
 		if err != nil {
-			handler.SendError(w, err, fsErrorStatusCode(err))
+			handler.HandleError(w, err, fsErrorStatusCode(err))
 			return
 		}
 
 		if !s.IsAllowed(file) {
-			handler.SendError(w, newFileNotFoundError(file), http.StatusNotFound)
+			handler.HandleError(w, newFileNotFoundError(file), http.StatusNotFound)
 			return
 		}
 
 		if !info.IsDir() {
-			err = s.sendFile(w, file)
+			err = s.handleFile(w, file)
 			if err != nil {
-				handler.SendError(w, err, http.StatusInternalServerError)
+				handler.HandleError(w, err, fsErrorStatusCode(err))
 			}
 			return
 		}
 
 		entries, err := fs.ReadDir(s.fs, file)
 		if err != nil {
-			handler.SendError(w, err, fsErrorStatusCode(err))
+			handler.HandleError(w, err, fsErrorStatusCode(err))
 			return
 		}
 
-		err = handler.SendDir(w, file, entries)
+		err = handler.HandleDir(w, file, entries)
 		if err != nil {
-			handler.SendError(w, err, http.StatusInternalServerError)
+			handler.HandleError(w, err, http.StatusInternalServerError)
 		}
 	})
 }
@@ -126,12 +126,12 @@ func (s *Server) IsAllowed(file string) bool {
 	return true
 }
 
-func (s *Server) SendError(w http.ResponseWriter, err error, code int) {
+func (s *Server) HandleError(w http.ResponseWriter, err error, code int) {
 	http.Error(w, err.Error(), code)
 	slog.Error("an error ocurred", "error", err)
 }
 
-func (s *Server) sendFile(w http.ResponseWriter, file string) error {
+func (s *Server) handleFile(w http.ResponseWriter, file string) error {
 	f, err := s.fs.Open(file)
 	if err != nil {
 		return err

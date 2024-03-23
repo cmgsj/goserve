@@ -7,8 +7,8 @@ import (
 
 type Handler interface {
 	ContentType() string
-	SendDir(w http.ResponseWriter, file string, entries []fs.DirEntry) error
-	SendError(w http.ResponseWriter, err error, code int)
+	HandleDir(w http.ResponseWriter, file string, entries []fs.DirEntry) error
+	HandleError(w http.ResponseWriter, err error, code int)
 }
 
 type HandlerFactory func(s *Server) Handler

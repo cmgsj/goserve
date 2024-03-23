@@ -1,3 +1,10 @@
+archives:
+  - id: goserve
+    builds:
+      - goserve
+    files: []
+changelog:
+  use: github-native
 builds:
   - id: goserve
     main: ./cmd/goserve

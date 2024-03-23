@@ -21,7 +21,7 @@ func (h *handler) ContentType() string {
 	return "json"
 }
 
-func (h *handler) SendDir(w http.ResponseWriter, file string, entries []fs.DirEntry) error {
+func (h *handler) HandleDir(w http.ResponseWriter, file string, entries []fs.DirEntry) error {
 	var fileList []files.File
 
 	if file != files.RootDir {
@@ -64,6 +64,6 @@ func (h *handler) SendDir(w http.ResponseWriter, file string, entries []fs.DirEn
 	return encoder.Encode(fileList)
 }
 
-func (h *handler) SendError(w http.ResponseWriter, err error, code int) {
-	(*files.Server)(h).SendError(w, err, code)
+func (h *handler) HandleError(w http.ResponseWriter, err error, code int) {
+	(*files.Server)(h).HandleError(w, err, code)
 }
