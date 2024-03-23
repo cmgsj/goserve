@@ -1,10 +1,11 @@
 package templates
 
 import (
+	"cmp"
 	_ "embed"
 	"html/template"
 	"io"
-	"sort"
+	"slices"
 )
 
 var (
@@ -37,10 +38,13 @@ func ExecuteIndex(w io.Writer, i Index) error {
 }
 
 func SortFiles(files []File) {
-	sort.Slice(files, func(i, j int) bool {
-		if files[i].IsDir != files[j].IsDir {
-			return files[i].IsDir
+	slices.SortFunc(files, func(x, y File) int {
+		if x.IsDir != y.IsDir {
+			if x.IsDir {
+				return -1
+			}
+			return +1
 		}
-		return files[i].Name < files[j].Name
+		return cmp.Compare(x.Name, y.Name)
 	})
 }

@@ -2,15 +2,15 @@ package bytes
 
 import "fmt"
 
-const Factor10e3 = 1000
+const factor = 1e3
 
 type Unit uint64
 
 const (
-	TeraByte Unit = Factor10e3 * GigaByte
-	GigaByte Unit = Factor10e3 * MegaByte
-	MegaByte Unit = Factor10e3 * KiloByte
-	KiloByte Unit = Factor10e3 * Byte
+	TeraByte Unit = factor * GigaByte
+	GigaByte Unit = factor * MegaByte
+	MegaByte Unit = factor * KiloByte
+	KiloByte Unit = factor * Byte
 	Byte     Unit = 1
 )
 
@@ -33,7 +33,7 @@ func (u Unit) String() string {
 
 func FormatSize(size int64) string {
 	unit := Byte
-	for u := TeraByte; u > Byte; u /= Factor10e3 {
+	for u := TeraByte; u > Byte; u /= factor {
 		if size >= int64(u) {
 			unit = u
 			break
