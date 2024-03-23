@@ -1,20 +1,20 @@
-package bytes
+package files
 
 import "fmt"
 
 const factor = 1e3
 
-type Unit uint64
+type SizeUnit uint64
 
 const (
-	TeraByte Unit = factor * GigaByte
-	GigaByte Unit = factor * MegaByte
-	MegaByte Unit = factor * KiloByte
-	KiloByte Unit = factor * Byte
-	Byte     Unit = 1
+	TeraByte SizeUnit = factor * GigaByte
+	GigaByte SizeUnit = factor * MegaByte
+	MegaByte SizeUnit = factor * KiloByte
+	KiloByte SizeUnit = factor * Byte
+	Byte     SizeUnit = 1
 )
 
-func (u Unit) String() string {
+func (u SizeUnit) String() string {
 	switch u {
 	case TeraByte:
 		return "TB"
@@ -24,10 +24,8 @@ func (u Unit) String() string {
 		return "MB"
 	case KiloByte:
 		return "KB"
-	case Byte:
-		return "B"
 	default:
-		return "UNKNOWN"
+		return "B"
 	}
 }
 

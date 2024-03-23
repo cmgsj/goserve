@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"time"
 
-	utilhttp "github.com/cmgsj/goserve/pkg/util/http"
+	middlewarehttp "github.com/cmgsj/goserve/pkg/middleware/http"
 )
 
 func Log(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		recorder := utilhttp.NewResponseRecorder(w)
+		recorder := middlewarehttp.NewResponseRecorder(w)
 
 		start := time.Now()
 

@@ -1,11 +1,11 @@
 package templates
 
 import (
-	"cmp"
 	_ "embed"
 	"html/template"
 	"io"
-	"slices"
+
+	"github.com/cmgsj/goserve/pkg/files"
 )
 
 var (
@@ -16,8 +16,8 @@ var (
 
 type Index struct {
 	Error       *Error
-	Breadcrumbs []File
-	Files       []File
+	Breadcrumbs []files.File
+	Files       []files.File
 	Version     string
 }
 
@@ -26,25 +26,6 @@ type Error struct {
 	Message string
 }
 
-type File struct {
-	Path  string
-	Name  string
-	Size  string
-	IsDir bool
-}
-
 func ExecuteIndex(w io.Writer, i Index) error {
 	return indexTmpl.Execute(w, i)
-}
-
-func SortFiles(files []File) {
-	slices.SortFunc(files, func(x, y File) int {
-		if x.IsDir != y.IsDir {
-			if x.IsDir {
-				return -1
-			}
-			return +1
-		}
-		return cmp.Compare(x.Name, y.Name)
-	})
 }
