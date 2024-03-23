@@ -6,10 +6,10 @@
   <body class="body">
     <header class="header">
       <label class="header-label">
-        <a class="breadcrumb" href="/files/">Home</a>
+        <a class="breadcrumb" href="/html/">Home</a>
         {{- if not .Error -}} {{- range .Breadcrumbs -}}
         <span>/</span
-        ><a class="breadcrumb" href="/files/{{ .Path }}/">{{ .Name }}</a>
+        ><a class="breadcrumb" href="/html/{{ .Path }}/">{{ .Name }}</a>
         {{- end -}}
         <span>/</span>
         {{- end -}}
@@ -75,7 +75,7 @@
                 />
               </svg>
               {{ end }}
-              <a class="file" href="/files/{{ .Path }}/">{{ .Name }}</a>
+              <a class="file" href="/html/{{ .Path }}/">{{ .Name }}</a>
             </td>
             <td class="main-table-tbody-tr-td main-table-tbody-tr-td-right">
               {{ if not .IsDir }}

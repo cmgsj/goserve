@@ -1,9 +1,8 @@
-package templates
+package html
 
 import (
 	_ "embed"
 	"html/template"
-	"io"
 
 	"github.com/cmgsj/goserve/pkg/files"
 )
@@ -14,18 +13,14 @@ var (
 	indexTmpl = template.Must(template.New("index").Parse(indexHTML))
 )
 
-type Index struct {
-	Error       *Error
+type indexData struct {
+	Error       *errorData
 	Breadcrumbs []files.File
 	Files       []files.File
 	Version     string
 }
 
-type Error struct {
+type errorData struct {
 	Status  string
 	Message string
-}
-
-func ExecuteIndex(w io.Writer, i Index) error {
-	return indexTmpl.Execute(w, i)
 }
