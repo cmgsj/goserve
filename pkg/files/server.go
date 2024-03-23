@@ -54,14 +54,7 @@ func (s *Server) FilesHandler() http.Handler {
 
 		info, err := fs.Stat(s.fs, file)
 		if err != nil {
-			switch {
-			case errors.Is(err, fs.ErrNotExist):
-				handler.SendError(w, err, http.StatusNotFound)
-			case errors.Is(err, fs.ErrPermission):
-				handler.SendError(w, err, http.StatusUnauthorized)
-			default:
-				handler.SendError(w, err, http.StatusInternalServerError)
-			}
+			handler.SendError(w, err, fsErrorStatusCode(err))
 			return
 		}
 
@@ -80,7 +73,7 @@ func (s *Server) FilesHandler() http.Handler {
 
 		entries, err := fs.ReadDir(s.fs, file)
 		if err != nil {
-			handler.SendError(w, err, http.StatusInternalServerError)
+			handler.SendError(w, err, fsErrorStatusCode(err))
 			return
 		}
 
@@ -118,7 +111,6 @@ func (s *Server) ContentTypes() []string {
 func (s *Server) Version() string {
 	return s.version
 }
-
 func (s *Server) IsAllowed(file string) bool {
 	name := path.Base(file)
 
@@ -162,4 +154,20 @@ func newUnsupportedContentTypeError(contentTypes []string, contentType string) e
 
 func newFileNotFoundError(file string) error {
 	return fmt.Errorf("stat %s: no such file or directory", file)
+}
+
+func fsErrorStatusCode(err error) int {
+	switch {
+	case errors.Is(err, fs.ErrInvalid):
+		return http.StatusBadRequest
+
+	case errors.Is(err, fs.ErrPermission):
+		return http.StatusUnauthorized
+
+	case errors.Is(err, fs.ErrNotExist):
+		return http.StatusNotFound
+
+	default:
+		return http.StatusInternalServerError
+	}
 }
