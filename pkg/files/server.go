@@ -111,15 +111,16 @@ func (s *Server) ContentTypes() []string {
 func (s *Server) Version() string {
 	return s.version
 }
-func (s *Server) IsAllowed(file string) bool {
-	name := path.Base(file)
 
-	if name == RootDir {
+func (s *Server) IsAllowed(file string) bool {
+	if file == RootDir {
 		return true
 	}
 
-	if !s.dotfiles {
-		return !strings.HasPrefix(name, ".")
+	for _, path := range strings.Split(file, "/") {
+		if !s.dotfiles && strings.HasPrefix(path, ".") {
+			return false
+		}
 	}
 
 	return true
