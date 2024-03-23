@@ -64,6 +64,13 @@ func (h *handler) HandleDir(w http.ResponseWriter, file string, entries []fs.Dir
 	return encoder.Encode(fileList)
 }
 
-func (h *handler) HandleError(w http.ResponseWriter, err error, code int) {
-	(*files.Server)(h).HandleError(w, err, code)
+func (h *handler) HandleError(w http.ResponseWriter, err error, code int) error {
+	encoder := json.NewEncoder(w)
+
+	encoder.SetIndent("", "  ")
+
+	return encoder.Encode(map[string]interface{}{
+		"status":  http.StatusText(code),
+		"message": err.Error(),
+	})
 }

@@ -77,15 +77,12 @@ func (h *handler) HandleDir(w http.ResponseWriter, file string, entries []fs.Dir
 	})
 }
 
-func (h *handler) HandleError(w http.ResponseWriter, err error, code int) {
-	err = indexTmpl.Execute(w, indexData{
+func (h *handler) HandleError(w http.ResponseWriter, err error, code int) error {
+	return indexTmpl.Execute(w, indexData{
 		Error: &errorData{
 			Status:  http.StatusText(code),
 			Message: err.Error(),
 		},
 		Version: (*files.Server)(h).Version(),
 	})
-	if err != nil {
-		(*files.Server)(h).HandleError(w, err, http.StatusInternalServerError)
-	}
 }

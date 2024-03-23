@@ -2,6 +2,7 @@ package text
 
 import (
 	"bytes"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"path"
@@ -81,6 +82,7 @@ func (h *handler) HandleDir(w http.ResponseWriter, file string, entries []fs.Dir
 	return tab.Flush()
 }
 
-func (h *handler) HandleError(w http.ResponseWriter, err error, code int) {
-	(*files.Server)(h).HandleError(w, err, code)
+func (h *handler) HandleError(w http.ResponseWriter, err error, code int) error {
+	_, err = fmt.Fprintf(w, "status: %s\nmessage: %s\n", http.StatusText(code), err.Error())
+	return err
 }
