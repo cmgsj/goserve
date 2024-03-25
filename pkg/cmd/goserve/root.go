@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
-	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,7 +14,7 @@ import (
 	"github.com/cmgsj/goserve/pkg/files/handlers/html"
 	"github.com/cmgsj/goserve/pkg/files/handlers/json"
 	"github.com/cmgsj/goserve/pkg/files/handlers/text"
-	"github.com/cmgsj/goserve/pkg/middleware/logger"
+	"github.com/cmgsj/goserve/pkg/middleware/logging"
 )
 
 type Flags struct {
@@ -25,6 +24,8 @@ type Flags struct {
 	JSON       bool
 	JSONIndent bool
 	Text       bool
+	TLSCert    string
+	TLSKey     string
 	Version    bool
 }
 
@@ -42,6 +43,8 @@ func (f *Flags) Parse() {
 	flag.BoolVar(&f.JSON, "json", f.JSON, "enable content-type json")
 	flag.BoolVar(&f.JSONIndent, "json-indent", f.JSONIndent, "indent content-type json")
 	flag.BoolVar(&f.Text, "text", f.Text, "enable content-type text")
+	flag.StringVar(&f.TLSCert, "tls-cert", f.TLSCert, "tls cert file")
+	flag.StringVar(&f.TLSKey, "tls-key", f.TLSKey, "tls key file")
 	flag.BoolVar(&f.Version, "version", f.Version, "print version")
 
 	flag.Parse()
@@ -49,7 +52,6 @@ func (f *Flags) Parse() {
 
 func Run() error {
 	flags := Flags{
-		Port:       80,
 		Exclude:    `^\..+`,
 		HTML:       true,
 		JSON:       true,
@@ -68,27 +70,27 @@ func Run() error {
 		return fmt.Errorf("accepts %d arg(s), received %d", 1, len(flag.Args()))
 	}
 
-	path := flag.Arg(0)
+	root := flag.Arg(0)
 
-	path, err := filepath.Abs(path)
+	root, err := filepath.Abs(root)
 	if err != nil {
 		return err
 	}
 
-	info, err := os.Stat(path)
+	info, err := os.Stat(root)
 	if err != nil {
 		return err
 	}
 
-	var root fs.FS
+	var fsys fs.FS
 	var exclude *regexp.Regexp
 	var handlers []files.Handler
 
 	if info.IsDir() {
-		root = os.DirFS(path)
+		fsys = os.DirFS(root)
 	} else {
-		root = os.DirFS(filepath.Dir(path))
-		root, err = fs.Sub(root, filepath.Base(path))
+		fsys = os.DirFS(filepath.Dir(root))
+		fsys, err = fs.Sub(fsys, filepath.Base(root))
 		if err != nil {
 			return err
 		}
@@ -111,23 +113,58 @@ func Run() error {
 		handlers = append(handlers, text.NewHandler())
 	}
 
-	controller := files.NewController(root, exclude, handlers...)
+	controller := files.NewController(fsys, exclude, handlers...)
+
+	serveTLS := flags.TLSCert != "" && flags.TLSKey != ""
+
+	if flags.Port == 0 {
+		if serveTLS {
+			flags.Port = 443
+		} else {
+			flags.Port = 80
+		}
+	}
+
+	addr := fmt.Sprintf(":%d", flags.Port)
+
+	fmt.Println("Starting file server")
+	fmt.Println()
+
+	fmt.Println("Config:")
+	fmt.Printf("  Root: %s\n", root)
+	fmt.Printf("  Exclude: %s\n", flags.Exclude)
+	fmt.Printf("  Content Types: %v\n", controller.ContentTypes())
+	if serveTLS {
+		fmt.Printf("  TLS Cert: %v\n", flags.TLSCert)
+		fmt.Printf("  TLS Key: %v\n", flags.TLSKey)
+		fmt.Printf("  Address: https://localhost%s\n", addr)
+	} else {
+		fmt.Printf("  Address: http://localhost%s\n", addr)
+	}
+	fmt.Println()
 
 	mux := http.NewServeMux()
 
-	slog.Info("starting http server", "port", flags.Port, "root", path, "exclude", flags.Exclude, "content_types", controller.ContentTypes())
+	fmt.Println("Routes:")
+	if flags.HTML {
+		mux.Handle("GET /", http.RedirectHandler("/html", http.StatusMovedPermanently))
+	}
+	handle := func(pattern string, handler http.Handler) {
+		mux.Handle(pattern, logging.LogRequest(handler))
+		fmt.Println("  ", pattern)
+	}
+	handle("GET /{content_type}", controller.FilesHandler())
+	handle("GET /{content_type}/{file...}", controller.FilesHandler())
+	handle("GET /content_types", controller.ContentTypesHandler())
+	handle("GET /health", controller.HealthHandler())
+	fmt.Println()
 
-	register(mux, "GET /{content_type}", controller.FilesHandler())
-	register(mux, "GET /{content_type}/{file...}", controller.FilesHandler())
-	register(mux, "GET /content_types", controller.ContentTypesHandler())
-	register(mux, "GET /health", controller.HealthHandler())
+	fmt.Println("Ready to accept connections")
+	fmt.Println()
 
-	slog.Info("ready to accept connections")
+	if serveTLS {
+		return http.ListenAndServeTLS(addr, flags.TLSCert, flags.TLSKey, mux)
+	}
 
-	return http.ListenAndServe(fmt.Sprintf(":%d", flags.Port), mux)
-}
-
-func register(mux *http.ServeMux, pattern string, handler http.Handler) {
-	mux.Handle(pattern, logger.Log(handler))
-	slog.Info(pattern)
+	return http.ListenAndServe(addr, mux)
 }

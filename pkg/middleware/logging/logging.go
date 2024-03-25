@@ -1,4 +1,4 @@
-package logger
+package logging
 
 import (
 	"log/slog"
@@ -8,7 +8,7 @@ import (
 	middlewarehttp "github.com/cmgsj/goserve/pkg/middleware/http"
 )
 
-func Log(next http.Handler) http.Handler {
+func LogRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		recorder := middlewarehttp.NewResponseRecorder(w)
 
