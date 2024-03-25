@@ -1,4 +1,5 @@
 BIN := $(CURDIR)/bin
+CMD := goserve
 GOBIN ?= $(shell go env GOPATH)/bin
 VERSION := $(shell git describe --tags --abbrev=0 | sed 's/^v//')
 
@@ -7,16 +8,20 @@ default: build install
 
 .PHONY: build
 build:
-	@go build -trimpath -ldflags "-s -w -extldflags '-static' -X github.com/cmgsj/goserve/internal/version.version=$(VERSION)" -o $(BIN)/goserve ./cmd/goserve
+	@echo "building $(CMD) v$(VERSION)"
+	@go build -trimpath -ldflags "-s -w -extldflags '-static' -X github.com/cmgsj/goserve/internal/version.version=$(VERSION)" -o $(BIN)/$(CMD) ./cmd/$(CMD)
 
 .PHONY: install
 install:
-	@go install -trimpath -ldflags "-s -w -extldflags '-static' -X github.com/cmgsj/goserve/internal/version.version=$(VERSION)" ./cmd/goserve
+	@echo "installing $(CMD) v$(VERSION)"
+	@go install -trimpath -ldflags "-s -w -extldflags '-static' -X github.com/cmgsj/goserve/internal/version.version=$(VERSION)" ./cmd/$(CMD)
 
 .PHONY: uninstall
 uninstall:
-	@rm -f $(GOBIN)/goserve
+	@echo "uninstalling $(GOBIN)/$(CMD)"
+	@rm -f $(GOBIN)/$(CMD)
 
 .PHONY: clean
 clean:
-	@rm -rf $(BIN)
+	@echo "removing $(BIN)/$(CMD)"
+	@rm -rf $(BIN)/$(CMD)
