@@ -12,7 +12,7 @@ func newUnsupportedContentTypeError(contentType string, contentTypes []string) e
 	return fmt.Errorf("unsupported content type %q, supported: [%s]", contentType, strings.Join(contentTypes, ","))
 }
 
-func newFileNotFoundError(file string) error {
+func newStaNotExistError(file string) error {
 	return fmt.Errorf("stat %s: no such file or directory", file)
 }
 

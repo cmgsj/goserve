@@ -56,7 +56,7 @@ func (s *Server) FilesHandler() http.Handler {
 		}
 
 		if !s.IsAllowed(file) {
-			s.handleError(w, handler, newFileNotFoundError(file), http.StatusNotFound)
+			s.handleError(w, handler, newStaNotExistError(file), http.StatusNotFound)
 			return
 		}
 
