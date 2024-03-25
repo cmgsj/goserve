@@ -111,16 +111,16 @@ func Run() error {
 		handlers = append(handlers, text.NewHandler())
 	}
 
-	server := files.NewServer(root, exclude, handlers...)
+	controller := files.NewController(root, exclude, handlers...)
 
 	mux := http.NewServeMux()
 
-	slog.Info("starting http server", "port", flags.Port, "root", path, "exclude", flags.Exclude, "content_types", server.ContentTypes())
+	slog.Info("starting http server", "port", flags.Port, "root", path, "exclude", flags.Exclude, "content_types", controller.ContentTypes())
 
-	register(mux, "GET /{content_type}", server.FilesHandler())
-	register(mux, "GET /{content_type}/{file...}", server.FilesHandler())
-	register(mux, "GET /content_types", server.ContentTypesHandler())
-	register(mux, "GET /health", server.HealthHandler())
+	register(mux, "GET /{content_type}", controller.FilesHandler())
+	register(mux, "GET /{content_type}/{file...}", controller.FilesHandler())
+	register(mux, "GET /content_types", controller.ContentTypesHandler())
+	register(mux, "GET /health", controller.HealthHandler())
 
 	slog.Info("ready to accept connections")
 

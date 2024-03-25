@@ -12,96 +12,96 @@ import (
 	"strings"
 )
 
-type Server struct {
+type Controller struct {
 	fs           fs.FS
 	exclude      *regexp.Regexp
 	handlers     map[string]Handler
 	contentTypes []string
 }
 
-func NewServer(fs fs.FS, exclude *regexp.Regexp, handlers ...Handler) *Server {
-	server := &Server{
+func NewController(fs fs.FS, exclude *regexp.Regexp, handlers ...Handler) *Controller {
+	controller := &Controller{
 		fs:       fs,
 		exclude:  exclude,
 		handlers: make(map[string]Handler),
 	}
 
 	for _, handler := range handlers {
-		server.handlers[handler.ContentType()] = handler
-		server.contentTypes = append(server.contentTypes, handler.ContentType())
+		controller.handlers[handler.ContentType()] = handler
+		controller.contentTypes = append(controller.contentTypes, handler.ContentType())
 	}
 
-	slices.Sort(server.contentTypes)
+	slices.Sort(controller.contentTypes)
 
-	return server
+	return controller
 }
 
-func (s *Server) FilesHandler() http.Handler {
+func (c *Controller) FilesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.PathValue("content_type")
 		file := r.PathValue("file")
 
-		handler, ok := s.handlers[contentType]
+		handler, ok := c.handlers[contentType]
 		if !ok {
-			s.handleError(w, nil, newUnsupportedContentTypeError(contentType, s.contentTypes), http.StatusBadRequest)
+			c.handleError(w, nil, newUnsupportedContentTypeError(contentType, c.contentTypes), http.StatusBadRequest)
 			return
 		}
 
 		file = path.Clean(file)
 
-		info, err := fs.Stat(s.fs, file)
+		info, err := fs.Stat(c.fs, file)
 		if err != nil {
-			s.handleError(w, handler, err, fsErrorStatusCode(err))
+			c.handleError(w, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
-		if !s.IsAllowed(file) {
-			s.handleError(w, handler, newStaNotExistError(file), http.StatusNotFound)
+		if !c.IsAllowed(file) {
+			c.handleError(w, handler, newStaNotExistError(file), http.StatusNotFound)
 			return
 		}
 
 		if !info.IsDir() {
-			err = s.copyFile(w, file)
+			err = c.copyFile(w, file)
 			if err != nil {
-				s.handleError(w, handler, err, fsErrorStatusCode(err))
+				c.handleError(w, handler, err, fsErrorStatusCode(err))
 			}
 			return
 		}
 
-		entries, err := s.readDir(file)
+		entries, err := c.readDir(file)
 		if err != nil {
-			s.handleError(w, handler, err, fsErrorStatusCode(err))
+			c.handleError(w, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
 		err = handler.HandleDir(w, file, entries)
 		if err != nil {
-			s.handleError(w, handler, err, http.StatusInternalServerError)
+			c.handleError(w, handler, err, http.StatusInternalServerError)
 		}
 	})
 }
 
-func (s *Server) ContentTypesHandler() http.Handler {
+func (c *Controller) ContentTypesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, s.contentTypes)
+		fmt.Fprintln(w, c.contentTypes)
 	})
 }
 
-func (s *Server) HealthHandler() http.Handler {
+func (c *Controller) HealthHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 }
 
-func (s *Server) ContentTypes() []string {
-	return s.contentTypes
+func (c *Controller) ContentTypes() []string {
+	return c.contentTypes
 }
 
-func (s *Server) IsAllowed(file string) bool {
-	if file == RootDir || s.exclude == nil {
+func (c *Controller) IsAllowed(file string) bool {
+	if file == RootDir || c.exclude == nil {
 		return true
 	}
 
 	for _, path := range strings.Split(file, "/") {
-		if s.exclude.MatchString(path) {
+		if c.exclude.MatchString(path) {
 			return false
 		}
 	}
@@ -109,8 +109,8 @@ func (s *Server) IsAllowed(file string) bool {
 	return true
 }
 
-func (s *Server) copyFile(w http.ResponseWriter, file string) error {
-	f, err := s.fs.Open(file)
+func (c *Controller) copyFile(w http.ResponseWriter, file string) error {
+	f, err := c.fs.Open(file)
 	if err != nil {
 		return err
 	}
@@ -127,8 +127,8 @@ func (s *Server) copyFile(w http.ResponseWriter, file string) error {
 	return err
 }
 
-func (s *Server) readDir(dir string) ([]File, error) {
-	entries, err := fs.ReadDir(s.fs, dir)
+func (c *Controller) readDir(dir string) ([]File, error) {
+	entries, err := fs.ReadDir(c.fs, dir)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (s *Server) readDir(dir string) ([]File, error) {
 	for _, entry := range entries {
 		file := path.Join(dir, entry.Name())
 
-		if !s.IsAllowed(file) {
+		if !c.IsAllowed(file) {
 			continue
 		}
 
@@ -168,7 +168,7 @@ func (s *Server) readDir(dir string) ([]File, error) {
 	return files, nil
 }
 
-func (s *Server) handleError(w http.ResponseWriter, handler Handler, err error, code int) {
+func (c *Controller) handleError(w http.ResponseWriter, handler Handler, err error, code int) {
 	slog.Error("an error ocurred", "error", err)
 
 	w.WriteHeader(code)
