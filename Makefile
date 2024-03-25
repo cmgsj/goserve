@@ -25,3 +25,7 @@ uninstall:
 clean:
 	@echo "removing $(BIN)/$(CMD)"
 	@rm -rf $(BIN)/$(CMD)
+
+.PHONY: mkcert
+mkcert:
+	@mkcert -cert-file tls/cert.pem -key-file tls/key.pem localhost
