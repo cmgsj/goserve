@@ -17,23 +17,22 @@
     </header>
     <main class="main">
       {{ if .Error }}
-      <code class="error">
-        Error
-        <br />
-        status: {{ .Error.Status }}
-        <br />
-        message: {{ .Error.Message }}
-      </code>
+      <div class="error">
+        <h1 class="error-header">{{ .Error.Status }}</h1>
+        <p class="error-content">{{ .Error.Message }}</p>
+      </div>
       {{ else }}
-      <table class="main-table">
-        <thead class="main-table-thead">
-          <th class="main-table-thead-th main-table-thead-th-left">Name</th>
-          <th class="main-table-thead-th main-table-thead-th-right">Size</th>
+      <table class="file-table">
+        <thead class="file-table-header">
+          <th class="file-table-header-row file-table-header-row-left">Name</th>
+          <th class="file-table-header-row file-table-header-row-right">
+            Size
+          </th>
         </thead>
         <tbody>
           {{ range .Files }}
-          <tr class="main-table-tbody-tr">
-            <td class="main-table-tbody-tr-td main-table-tbody-tr-td-left">
+          <tr class="file-table-body-row">
+            <td class="file-table-body-row-cell file-table-body-row-cell-left">
               {{ if .IsDir }}
               <svg
                 aria-hidden="true"
@@ -75,7 +74,7 @@
               {{ end }}
               <a class="file" href="/html/{{ .Path }}/">{{ .Name }}</a>
             </td>
-            <td class="main-table-tbody-tr-td main-table-tbody-tr-td-right">
+            <td class="file-table-body-row-cell file-table-body-row-cell-right">
               {{ if not .IsDir }}
               <code class="size">{{ .Size }}</code>
               {{ end }}
@@ -137,7 +136,7 @@
       margin-top: 65px;
       min-height: 100vh;
     }
-    .main-table {
+    .file-table {
       border-radius: 6px;
       border-spacing: 0;
       border: 1px solid rgb(53, 57, 63);
@@ -146,38 +145,43 @@
       table-layout: fixed;
       width: 100%;
     }
-    .main-table-thead {
+    .file-table-header {
       background-color: rgb(30, 33, 38);
     }
-    .main-table-thead-th {
+    .file-table-header-row {
       overflow-x: auto;
       padding: 10px;
     }
-    .main-table-thead-th-left {
+    .file-table-header-row-left {
       border-top-left-radius: 6px;
       text-align: left;
     }
-    .main-table-thead-th-right {
+    .file-table-header-row-right {
       border-top-right-radius: 6px;
       text-align: right;
     }
-    .main-table-tbody-tr:hover {
+    .file-table-body-row:hover {
       background-color: rgb(30, 33, 38);
     }
-    .main-table-tbody-tr-td {
+    .file-table-body-row-cell {
       border-top: 1px solid rgb(53, 57, 63);
       overflow-x: auto;
       padding: 10px;
     }
-    .main-table-tbody-tr-td-left {
+    .file-table-body-row-cell-left {
       text-align: left;
     }
-    .main-table-tbody-tr-td-right {
+    .file-table-body-row-cell-right {
       text-align: right;
     }
     .error {
-      font-size: 12px;
-      line-height: 25px;
+      text-align: center;
+    }
+    .error-header {
+      font-size: 20px;
+    }
+    .error-content {
+      font-size: 15px;
     }
     .file {
       color: rgb(231, 237, 242);
