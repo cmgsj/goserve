@@ -44,6 +44,6 @@ func (h *Handler) HandleDir(w http.ResponseWriter, dir string, entries []files.F
 }
 
 func (h *Handler) HandleError(w http.ResponseWriter, err error, code int) error {
-	_, err = fmt.Fprintf(w, "status: %s\nmessage: %s\n", http.StatusText(code), err.Error())
+	_, err = fmt.Fprintf(w, "%s\n\n%s\n", http.StatusText(code), err.Error())
 	return err
 }
