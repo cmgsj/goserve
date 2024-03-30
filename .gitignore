@@ -8,6 +8,9 @@
 .idea
 .vscode
 
+# Config
+.tool-versions
+
 # Binaries
 /bin
 /goserve
