@@ -1,9 +1,9 @@
 package files
 
-import "net/http"
+import "io"
 
 type Handler interface {
 	ContentType() string
-	HandleDir(w http.ResponseWriter, dir string, entries []File) error
-	HandleError(w http.ResponseWriter, err error, code int) error
+	HandleDir(w io.Writer, dir string, entries []File) error
+	HandleError(w io.Writer, err error, code int) error
 }

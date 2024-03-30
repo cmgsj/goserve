@@ -7,9 +7,11 @@
     <header class="header">
       <label class="header-label">
         <a class="breadcrumb" href="/html">Home</a>
-        {{- if not .Error -}} {{- range .Breadcrumbs -}}
-        <span>/</span
-        ><a class="breadcrumb" href="/html/{{ .Path }}">{{ .Name }}</a>
+        {{- if not .Error -}} {{- range .Breadcrumbs -}} /<a
+          class="breadcrumb"
+          href="/html/{{ .Path }}"
+          >{{ .Name }}</a
+        >
         {{- end -}} {{- end -}}
       </label>
     </header>
@@ -109,12 +111,21 @@
       {{ end }}
     </main>
     <footer class="footer">
+      {{ if and (ne .Version "") (ne .Version "dev") }}
       <a
         class="version"
         href="https://github.com/cmgsj/goserve/releases/tag/v{{ .Version }}"
       >
         goserve v{{ .Version }}
       </a>
+      {{ else }}
+      <a
+        class="version"
+        href="https://github.com/cmgsj/goserve/releases/latest"
+      >
+        goserve
+      </a>
+      {{ end }}
     </footer>
   </body>
   <style>

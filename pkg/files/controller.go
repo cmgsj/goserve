@@ -109,7 +109,7 @@ func (c *Controller) IsAllowed(file string) bool {
 	return true
 }
 
-func (c *Controller) copyFile(w http.ResponseWriter, file string) error {
+func (c *Controller) copyFile(w io.Writer, file string) error {
 	f, err := c.fs.Open(file)
 	if err != nil {
 		return err
