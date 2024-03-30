@@ -8,7 +8,6 @@ changelog:
   use: github-native
 builds:
   - id: goserve
-    main: ./cmd/goserve
     binary: goserve
     flags:
       - -trimpath

@@ -9,12 +9,12 @@ default: build install
 .PHONY: build
 build:
 	@echo "building $(CMD) v$(VERSION)"
-	@go build -trimpath -ldflags "-s -w -extldflags '-static' -X github.com/cmgsj/goserve/internal/version.version=$(VERSION)" -o $(BIN)/$(CMD) ./cmd/$(CMD)
+	@go build -trimpath -ldflags "-s -w -extldflags '-static' -X github.com/cmgsj/goserve/internal/version.version=$(VERSION)" -o $(BIN)/$(CMD) .
 
 .PHONY: install
 install:
 	@echo "installing $(CMD) v$(VERSION)"
-	@go install -trimpath -ldflags "-s -w -extldflags '-static' -X github.com/cmgsj/goserve/internal/version.version=$(VERSION)" ./cmd/$(CMD)
+	@go install -trimpath -ldflags "-s -w -extldflags '-static' -X github.com/cmgsj/goserve/internal/version.version=$(VERSION)" .
 
 .PHONY: uninstall
 uninstall:
