@@ -1,4 +1,4 @@
-package text
+package files
 
 import (
 	"bytes"
@@ -6,23 +6,15 @@ import (
 	"io"
 	"net/http"
 	"text/tabwriter"
-
-	"github.com/cmgsj/goserve/pkg/files"
 )
 
-var _ files.Handler = (*Handler)(nil)
+type textHandler struct{}
 
-type Handler struct{}
-
-func NewHandler() *Handler {
-	return &Handler{}
+func newTextHandler() *textHandler {
+	return &textHandler{}
 }
 
-func (h *Handler) ContentType() string {
-	return "text"
-}
-
-func (h *Handler) HandleDir(w io.Writer, dir string, entries []files.File) error {
+func (h *textHandler) handleDir(w io.Writer, dir string, entries []File) error {
 	var buf bytes.Buffer
 
 	for _, entry := range entries {
@@ -46,7 +38,7 @@ func (h *Handler) HandleDir(w io.Writer, dir string, entries []files.File) error
 	return tab.Flush()
 }
 
-func (h *Handler) HandleError(w io.Writer, err error, code int) error {
+func (h *textHandler) handleError(w io.Writer, err error, code int) error {
 	_, err = fmt.Fprintf(w, "%s\n\n%s\n", http.StatusText(code), err.Error())
 	return err
 }

@@ -2,8 +2,7 @@ package files
 
 import "io"
 
-type Handler interface {
-	ContentType() string
-	HandleDir(w io.Writer, dir string, entries []File) error
-	HandleError(w io.Writer, err error, code int) error
+type handler interface {
+	handleDir(w io.Writer, dir string, entries []File) error
+	handleError(w io.Writer, err error, code int) error
 }

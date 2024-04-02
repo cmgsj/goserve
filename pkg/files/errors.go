@@ -5,12 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
-	"strings"
 )
-
-func newUnsupportedContentTypeError(contentType string, contentTypes []string) error {
-	return fmt.Errorf("unsupported content type %q, supported: [%s]", contentType, strings.Join(contentTypes, ","))
-}
 
 func newStaNotExistError(file string) error {
 	return fmt.Errorf("stat %s: no such file or directory", file)

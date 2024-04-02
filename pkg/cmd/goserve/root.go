@@ -11,22 +11,15 @@ import (
 
 	"github.com/cmgsj/goserve/internal/version"
 	"github.com/cmgsj/goserve/pkg/files"
-	"github.com/cmgsj/goserve/pkg/files/handlers/html"
-	"github.com/cmgsj/goserve/pkg/files/handlers/json"
-	"github.com/cmgsj/goserve/pkg/files/handlers/text"
 	"github.com/cmgsj/goserve/pkg/middleware/logging"
 )
 
 type Flags struct {
-	Port       uint
-	Exclude    string
-	HTML       bool
-	JSON       bool
-	JSONIndent bool
-	Text       bool
-	TLSCert    string
-	TLSKey     string
-	Version    bool
+	Port    uint
+	Exclude string
+	TLSCert string
+	TLSKey  string
+	Version bool
 }
 
 func (f *Flags) Parse() {
@@ -38,11 +31,7 @@ func (f *Flags) Parse() {
 	}
 
 	flag.UintVar(&f.Port, "port", f.Port, "http port")
-	flag.StringVar(&f.Exclude, "exclude", f.Exclude, "exclude pattern")
-	flag.BoolVar(&f.HTML, "html", f.HTML, "enable content-type html")
-	flag.BoolVar(&f.JSON, "json", f.JSON, "enable content-type json")
-	flag.BoolVar(&f.JSONIndent, "json-indent", f.JSONIndent, "indent content-type json")
-	flag.BoolVar(&f.Text, "text", f.Text, "enable content-type text")
+	flag.StringVar(&f.Exclude, "exclude", f.Exclude, "exclude regex pattern")
 	flag.StringVar(&f.TLSCert, "tls-cert", f.TLSCert, "tls cert file")
 	flag.StringVar(&f.TLSKey, "tls-key", f.TLSKey, "tls key file")
 	flag.BoolVar(&f.Version, "version", f.Version, "print version")
@@ -52,11 +41,7 @@ func (f *Flags) Parse() {
 
 func Run() error {
 	flags := Flags{
-		Exclude:    `^\..+`,
-		HTML:       true,
-		JSON:       true,
-		JSONIndent: true,
-		Text:       true,
+		Exclude: `^\..+`,
 	}
 
 	flags.Parse()
@@ -84,7 +69,6 @@ func Run() error {
 
 	var fsys fs.FS
 	var exclude *regexp.Regexp
-	var handlers []files.Handler
 
 	if info.IsDir() {
 		fsys = os.DirFS(root)
@@ -103,17 +87,7 @@ func Run() error {
 		}
 	}
 
-	if flags.HTML {
-		handlers = append(handlers, html.NewHandler(version.String()))
-	}
-	if flags.JSON {
-		handlers = append(handlers, json.NewHandler(flags.JSONIndent))
-	}
-	if flags.Text {
-		handlers = append(handlers, text.NewHandler())
-	}
-
-	controller := files.NewController(fsys, exclude, handlers...)
+	controller := files.NewController(fsys, exclude)
 
 	serveTLS := flags.TLSCert != "" && flags.TLSKey != ""
 
@@ -133,7 +107,6 @@ func Run() error {
 	fmt.Println("Config:")
 	fmt.Printf("  Root: %s\n", root)
 	fmt.Printf("  Exclude: %s\n", flags.Exclude)
-	fmt.Printf("  Content Types: %v\n", controller.ContentTypes())
 	if serveTLS {
 		fmt.Printf("  TLS Cert: %v\n", flags.TLSCert)
 		fmt.Printf("  TLS Key: %v\n", flags.TLSKey)
@@ -146,17 +119,15 @@ func Run() error {
 	mux := http.NewServeMux()
 
 	fmt.Println("Routes:")
-	if flags.HTML {
-		mux.Handle("GET /", http.RedirectHandler("/html", http.StatusMovedPermanently))
-	}
 	handle := func(pattern string, handler http.Handler) {
 		mux.Handle(pattern, logging.LogRequest(handler))
 		fmt.Println("  ", pattern)
 	}
-	handle("GET /{content_type}", controller.FilesHandler())
-	handle("GET /{content_type}/{file...}", controller.FilesHandler())
-	handle("GET /content_types", controller.ContentTypesHandler())
-	handle("GET /health", controller.HealthHandler())
+	handle("GET /", http.RedirectHandler("/html", http.StatusMovedPermanently))
+	handle("GET /html/{file...}", controller.FilesHTML())
+	handle("GET /json/{file...}", controller.FilesJSON())
+	handle("GET /text/{file...}", controller.FilesText())
+	handle("GET /health", controller.Health())
 	fmt.Println()
 
 	fmt.Println("Ready to accept connections")

@@ -8,44 +8,40 @@ import (
 	"net/http"
 	"path"
 	"regexp"
-	"slices"
 	"strings"
 )
 
 type Controller struct {
-	fs           fs.FS
-	exclude      *regexp.Regexp
-	handlers     map[string]Handler
-	contentTypes []string
+	fs      fs.FS
+	exclude *regexp.Regexp
 }
 
-func NewController(fs fs.FS, exclude *regexp.Regexp, handlers ...Handler) *Controller {
-	controller := &Controller{
-		fs:       fs,
-		exclude:  exclude,
-		handlers: make(map[string]Handler),
+func NewController(fs fs.FS, exclude *regexp.Regexp) *Controller {
+	return &Controller{
+		fs:      fs,
+		exclude: exclude,
 	}
-
-	for _, handler := range handlers {
-		controller.handlers[handler.ContentType()] = handler
-		controller.contentTypes = append(controller.contentTypes, handler.ContentType())
-	}
-
-	slices.Sort(controller.contentTypes)
-
-	return controller
 }
 
-func (c *Controller) FilesHandler() http.Handler {
+func (c *Controller) Health() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+}
+
+func (c *Controller) FilesHTML() http.Handler {
+	return c.files(newHTMLHandler())
+}
+
+func (c *Controller) FilesJSON() http.Handler {
+	return c.files(newJSONHandler())
+}
+
+func (c *Controller) FilesText() http.Handler {
+	return c.files(newTextHandler())
+}
+
+func (c *Controller) files(handler handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		contentType := r.PathValue("content_type")
 		file := r.PathValue("file")
-
-		handler, ok := c.handlers[contentType]
-		if !ok {
-			c.handleError(w, nil, newUnsupportedContentTypeError(contentType, c.contentTypes), http.StatusBadRequest)
-			return
-		}
 
 		file = path.Clean(file)
 
@@ -74,25 +70,11 @@ func (c *Controller) FilesHandler() http.Handler {
 			return
 		}
 
-		err = handler.HandleDir(w, file, entries)
+		err = handler.handleDir(w, file, entries)
 		if err != nil {
 			c.handleError(w, handler, err, http.StatusInternalServerError)
 		}
 	})
-}
-
-func (c *Controller) ContentTypesHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, c.contentTypes)
-	})
-}
-
-func (c *Controller) HealthHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-}
-
-func (c *Controller) ContentTypes() []string {
-	return c.contentTypes
 }
 
 func (c *Controller) IsAllowed(file string) bool {
@@ -168,13 +150,13 @@ func (c *Controller) readDir(dir string) ([]File, error) {
 	return files, nil
 }
 
-func (c *Controller) handleError(w http.ResponseWriter, handler Handler, err error, code int) {
+func (c *Controller) handleError(w http.ResponseWriter, handler handler, err error, code int) {
 	slog.Error("an error ocurred", "error", err)
 
 	w.WriteHeader(code)
 
 	if handler != nil {
-		handleErr := handler.HandleError(w, err, code)
+		handleErr := handler.handleError(w, err, code)
 		if handleErr == nil {
 			return
 		}
