@@ -1,12 +1,15 @@
 package files
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -37,6 +40,51 @@ func (c *Controller) FilesJSON() http.Handler {
 
 func (c *Controller) FilesText() http.Handler {
 	return c.files(newTextHandler())
+}
+
+func (c *Controller) UploadForm() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("upload")
+		http.Redirect(w, r, "/html", http.StatusMovedPermanently)
+		return
+
+		upload, header, err := r.FormFile("file")
+		if err != nil {
+			c.handleError(w, nil, err, http.StatusBadRequest)
+			return
+		}
+
+		path := filepath.Join("/tmp/goserve/uploads", header.Filename)
+
+		file, err := os.Create(path)
+		if err != nil {
+			if errors.Is(err, fs.ErrExist) {
+				c.handleError(w, nil, err, http.StatusBadRequest)
+				return
+			}
+			c.handleError(w, nil, err, fsErrorStatusCode(err))
+			return
+		}
+
+		defer func() {
+			err = file.Close()
+			if err != nil {
+				slog.Error("failed to close file", "file", path, "error", err)
+			}
+		}()
+
+		fmt.Println(path)
+
+		_, err = io.Copy(file, upload)
+		if err != nil {
+			c.handleError(w, nil, err, http.StatusBadRequest)
+		}
+
+		err = file.Sync()
+		if err != nil {
+			slog.Error("failed to sync file", "file", path, "error", err)
+		}
+	})
 }
 
 func (c *Controller) files(handler handler) http.Handler {

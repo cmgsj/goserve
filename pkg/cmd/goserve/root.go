@@ -97,6 +97,7 @@ func Run() error {
 	}
 	fmt.Println("Routes:")
 	handle(mux, "GET /", http.RedirectHandler("/html", http.StatusMovedPermanently))
+	handle(mux, "POST /html", controller.UploadForm())
 	handle(mux, "GET /html/{file...}", controller.FilesHTML())
 	handle(mux, "GET /json/{file...}", controller.FilesJSON())
 	handle(mux, "GET /text/{file...}", controller.FilesText())
