@@ -14,6 +14,38 @@
         >
         {{- end -}} {{- end -}}
       </label>
+      <button class="header-button" id="upload-form-button" type="button">
+        <svg
+          aria-hidden="true"
+          focusable="false"
+          role="img"
+          viewBox="0 0 16 16"
+          width="16"
+          height="16"
+          fill="currentColor"
+          style="
+            display: inline-block;
+            vertical-align: text-bottom;
+            overflow: visible;
+          "
+        >
+          <path
+            d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"
+          />
+          <path
+            d="M11.78 4.72a.749.749 0 1 1-1.06 1.06L8.75 3.811V9.5a.75.75 0 0 1-1.5 0V3.811L5.28 5.78a.749.749 0 1 1-1.06-1.06l3.25-3.25a.749.749 0 0 1 1.06 0l3.25 3.25Z"
+          />
+        </svg>
+      </button>
+      <form
+        id="upload-form"
+        enctype="multipart/form-data"
+        action="/html"
+        method="post"
+        style="display: none"
+      >
+        <input id="upload-form-input" type="file" />
+      </form>
     </header>
     <main class="main">
       {{ if .Error }}
@@ -82,7 +114,6 @@
                   aria-hidden="true"
                   focusable="false"
                   role="img"
-                  class="octicon octicon-download"
                   viewBox="0 0 16 16"
                   width="16"
                   height="16"
@@ -128,6 +159,19 @@
       {{ end }}
     </footer>
   </body>
+  <script>
+    const uploadForm = document.getElementById("upload-form");
+    const uploadFormInput = document.getElementById("upload-form-input");
+    const uploadFormButton = document.getElementById("upload-form-button");
+
+    uploadFormInput.onchange = function () {
+      uploadForm.submit();
+    };
+
+    uploadFormButton.onclick = function () {
+      uploadFormInput.click();
+    };
+  </script>
   <style>
     .body {
       background-color: rgb(19, 23, 29);
@@ -139,6 +183,7 @@
       background-color: rgb(3, 5, 10);
       display: flex;
       flex-direction: row;
+      justify-content: space-between;
       font-size: 15px;
       padding: 15px;
       position: fixed;
@@ -147,7 +192,6 @@
     }
     .header-label {
       margin-left: 10px;
-      margin-right: 10px;
       overflow-x: auto;
     }
     .breadcrumb {
@@ -157,7 +201,16 @@
       padding: 3px 5px;
       text-decoration: none;
     }
-    .breadcrumb:hover {
+    .header-button {
+      background-color: inherit;
+      border-radius: 6px;
+      border-spacing: 0;
+      border: 1px solid rgb(53, 57, 63);
+      color: rgb(231, 237, 242);
+      margin-right: 42px;
+    }
+    .breadcrumb:hover,
+    .header-button:hover {
       color: rgb(82, 128, 243);
       background-color: rgb(30, 32, 37);
     }
