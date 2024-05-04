@@ -4,6 +4,15 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+fmt() {
+	go fmt ./...
+	goimports -w -local github.com/cmgsj/goserve $(find . -type f -name "*.go" ! -path "./vendor/*")
+}
+
+test() {
+	go test -v ./...
+}
+
 build() {
 	binary build
 }
