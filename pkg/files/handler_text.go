@@ -10,11 +10,11 @@ import (
 
 type textHandler struct{}
 
-func newTextHandler() *textHandler {
-	return &textHandler{}
+func newTextHandler() textHandler {
+	return textHandler{}
 }
 
-func (h *textHandler) handleDir(w io.Writer, dir string, entries []File) error {
+func (h textHandler) handleDir(w io.Writer, dir string, entries []File) error {
 	var buf bytes.Buffer
 
 	for _, entry := range entries {
@@ -38,7 +38,7 @@ func (h *textHandler) handleDir(w io.Writer, dir string, entries []File) error {
 	return tab.Flush()
 }
 
-func (h *textHandler) handleError(w io.Writer, err error, code int) error {
+func (h textHandler) handleError(w io.Writer, err error, code int) error {
 	_, err = fmt.Fprintf(w, "%s\n\n%s\n", http.StatusText(code), err.Error())
 	return err
 }

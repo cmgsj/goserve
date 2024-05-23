@@ -31,11 +31,11 @@ type errorData struct {
 
 type htmlHandler struct{}
 
-func newHTMLHandler() *htmlHandler {
-	return &htmlHandler{}
+func newHTMLHandler() htmlHandler {
+	return htmlHandler{}
 }
 
-func (h *htmlHandler) handleDir(w io.Writer, dir string, entries []File) error {
+func (h htmlHandler) handleDir(w io.Writer, dir string, entries []File) error {
 	var breadcrumbs []File
 
 	if dir != RootDir {
@@ -58,7 +58,7 @@ func (h *htmlHandler) handleDir(w io.Writer, dir string, entries []File) error {
 	})
 }
 
-func (h *htmlHandler) handleError(w io.Writer, err error, code int) error {
+func (h htmlHandler) handleError(w io.Writer, err error, code int) error {
 	return indexTmpl.Execute(w, indexData{
 		Error: &errorData{
 			Status:  http.StatusText(code),
