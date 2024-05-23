@@ -63,40 +63,45 @@ func Run() error {
 		}
 	}
 
-	controller := files.NewController(fsys, exclude)
+	scheme := "http"
+	if flags.ServeTLS() {
+		scheme = "https"
+	}
 
 	listener, err := net.Listen("tcp", net.JoinHostPort(flags.Host, flags.Port))
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Starting file server")
+	fmt.Printf("Starting file server at %s://%s\n", scheme, listener.Addr())
 	fmt.Println()
 
 	fmt.Println("Config:")
-	fmt.Printf("  Root: %s\n", root)
-	fmt.Printf("  Exclude: %s\n", flags.Exclude)
-	if flags.ServeTLS() {
-		fmt.Printf("  TLS Cert: %v\n", flags.TLSCert)
-		fmt.Printf("  TLS Key: %v\n", flags.TLSKey)
-		fmt.Printf("  Address: https://%s\n", listener.Addr())
-	} else {
-		fmt.Printf("  Address: http://%s\n", listener.Addr())
-	}
+	fmt.Printf("  Root: %q\n", root)
+	fmt.Printf("  Host: %q\n", flags.Host)
+	fmt.Printf("  Port: %q\n", flags.Port)
+	fmt.Printf("  Exclude: %q\n", flags.Exclude)
+	fmt.Printf("  LogLevel: %q\n", flags.LogLevel)
+	fmt.Printf("  LogSource: %q\n", flags.LogSource)
+	fmt.Printf("  LogFormat: %q\n", flags.LogFormat)
+	fmt.Printf("  LogOutput: %q\n", flags.LogOutput)
+	fmt.Printf("  TLSCert: %q\n", flags.TLSCert)
+	fmt.Printf("  TLSKey: %q\n", flags.TLSKey)
 	fmt.Println()
 
 	mux := http.NewServeMux()
+	controller := files.NewController(fsys, exclude)
 
-	fmt.Println("Routes:")
-	handle := func(pattern string, handler http.Handler) {
+	handle := func(mux *http.ServeMux, pattern string, handler http.Handler) {
 		mux.Handle(pattern, logging.LogRequest(handler))
-		fmt.Println("  ", pattern)
+		fmt.Printf("  %s\n", pattern)
 	}
-	handle("GET /", http.RedirectHandler("/html", http.StatusMovedPermanently))
-	handle("GET /html/{file...}", controller.FilesHTML())
-	handle("GET /json/{file...}", controller.FilesJSON())
-	handle("GET /text/{file...}", controller.FilesText())
-	handle("GET /health", controller.Health())
+	fmt.Println("Routes:")
+	handle(mux, "GET /", http.RedirectHandler("/html", http.StatusMovedPermanently))
+	handle(mux, "GET /html/{file...}", controller.FilesHTML())
+	handle(mux, "GET /json/{file...}", controller.FilesJSON())
+	handle(mux, "GET /text/{file...}", controller.FilesText())
+	handle(mux, "GET /health", controller.Health())
 	fmt.Println()
 
 	fmt.Println("Ready to accept connections")

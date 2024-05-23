@@ -24,7 +24,7 @@ func NewController(fs fs.FS, exclude *regexp.Regexp) *Controller {
 }
 
 func (c *Controller) Health() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 }
 
 func (c *Controller) FilesHTML() http.Handler {

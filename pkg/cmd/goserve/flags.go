@@ -26,15 +26,15 @@ type Flags struct {
 
 func NewFlags() (Flags, error) {
 	f := Flags{
-		Host:      cmp.Or(os.Getenv("GOSERVE_HOST")),
-		Port:      cmp.Or(os.Getenv("GOSERVE_PORT")),
-		Exclude:   cmp.Or(os.Getenv("GOSERVE_EXCLUDE"), `^\..+`),
-		LogLevel:  cmp.Or(os.Getenv("GOSERVE_LOG_LEVEL"), "info"),
-		LogSource: cmp.Or(os.Getenv("GOSERVE_LOG_SOURCE"), "false"),
-		LogFormat: cmp.Or(os.Getenv("GOSERVE_LOG_FORMAT"), "text"),
-		LogOutput: cmp.Or(os.Getenv("GOSERVE_LOG_OUTPUT"), "stderr"),
-		TLSCert:   cmp.Or(os.Getenv("GOSERVE_TLS_CERT")),
-		TLSKey:    cmp.Or(os.Getenv("GOSERVE_TLS_KEY")),
+		Host:      envFlag("GOSERVE_HOST"),
+		Port:      envFlag("GOSERVE_PORT"),
+		Exclude:   envFlag("GOSERVE_EXCLUDE", `^\..+`),
+		LogLevel:  envFlag("GOSERVE_LOG_LEVEL", "info"),
+		LogSource: envFlag("GOSERVE_LOG_SOURCE", "false"),
+		LogFormat: envFlag("GOSERVE_LOG_FORMAT", "text"),
+		LogOutput: envFlag("GOSERVE_LOG_OUTPUT", "stderr"),
+		TLSCert:   envFlag("GOSERVE_TLS_CERT"),
+		TLSKey:    envFlag("GOSERVE_TLS_KEY"),
 	}
 	f.parse()
 	f.complete()
@@ -80,6 +80,7 @@ func (f *Flags) complete() {
 
 func (f *Flags) loadLogger() error {
 	var level slog.Level
+
 	err := level.UnmarshalText([]byte(f.LogLevel))
 	if err != nil {
 		return err
@@ -91,6 +92,7 @@ func (f *Flags) loadLogger() error {
 	}
 
 	var out io.Writer
+
 	switch strings.ToLower(f.LogOutput) {
 	case "stdout":
 		out = os.Stdout
@@ -122,4 +124,12 @@ func (f *Flags) loadLogger() error {
 	slog.SetDefault(slog.New(handler))
 
 	return nil
+}
+
+func envFlag(key string, defaults ...string) string {
+	value, set := os.LookupEnv(key)
+	if set {
+		return value
+	}
+	return cmp.Or(defaults...)
 }
