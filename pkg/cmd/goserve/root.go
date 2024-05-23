@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,37 +15,11 @@ import (
 	"github.com/cmgsj/goserve/pkg/middleware/logging"
 )
 
-type Flags struct {
-	Port    uint
-	Exclude string
-	TLSCert string
-	TLSKey  string
-	Version bool
-}
-
-func (f *Flags) Parse() {
-	flag.Usage = func() {
-		fmt.Printf("HTTP file server\n\n")
-		fmt.Printf("Usage:\n  goserve [flags] FILE\n\n")
-		fmt.Printf("Flags:\n")
-		flag.CommandLine.PrintDefaults()
-	}
-
-	flag.UintVar(&f.Port, "port", f.Port, "http port")
-	flag.StringVar(&f.Exclude, "exclude", f.Exclude, "exclude regex pattern")
-	flag.StringVar(&f.TLSCert, "tls-cert", f.TLSCert, "tls cert file")
-	flag.StringVar(&f.TLSKey, "tls-key", f.TLSKey, "tls key file")
-	flag.BoolVar(&f.Version, "version", f.Version, "print version")
-
-	flag.Parse()
-}
-
 func Run() error {
-	flags := Flags{
-		Exclude: `^\..+`,
+	flags, err := NewFlags()
+	if err != nil {
+		return err
 	}
-
-	flags.Parse()
 
 	if flags.Version {
 		fmt.Println(version.String())
@@ -57,7 +32,7 @@ func Run() error {
 
 	root := flag.Arg(0)
 
-	root, err := filepath.Abs(root)
+	root, err = filepath.Abs(root)
 	if err != nil {
 		return err
 	}
@@ -68,7 +43,6 @@ func Run() error {
 	}
 
 	var fsys fs.FS
-	var exclude *regexp.Regexp
 
 	if info.IsDir() {
 		fsys = os.DirFS(root)
@@ -80,6 +54,8 @@ func Run() error {
 		}
 	}
 
+	var exclude *regexp.Regexp
+
 	if flags.Exclude != "" {
 		exclude, err = regexp.Compile(flags.Exclude)
 		if err != nil {
@@ -89,17 +65,10 @@ func Run() error {
 
 	controller := files.NewController(fsys, exclude)
 
-	serveTLS := flags.TLSCert != "" && flags.TLSKey != ""
-
-	if flags.Port == 0 {
-		if serveTLS {
-			flags.Port = 443
-		} else {
-			flags.Port = 80
-		}
+	listener, err := net.Listen("tcp", net.JoinHostPort(flags.Host, flags.Port))
+	if err != nil {
+		return err
 	}
-
-	addr := fmt.Sprintf(":%d", flags.Port)
 
 	fmt.Println("Starting file server")
 	fmt.Println()
@@ -107,12 +76,12 @@ func Run() error {
 	fmt.Println("Config:")
 	fmt.Printf("  Root: %s\n", root)
 	fmt.Printf("  Exclude: %s\n", flags.Exclude)
-	if serveTLS {
+	if flags.ServeTLS() {
 		fmt.Printf("  TLS Cert: %v\n", flags.TLSCert)
 		fmt.Printf("  TLS Key: %v\n", flags.TLSKey)
-		fmt.Printf("  Address: https://localhost%s\n", addr)
+		fmt.Printf("  Address: https://%s\n", listener.Addr())
 	} else {
-		fmt.Printf("  Address: http://localhost%s\n", addr)
+		fmt.Printf("  Address: http://%s\n", listener.Addr())
 	}
 	fmt.Println()
 
@@ -133,9 +102,9 @@ func Run() error {
 	fmt.Println("Ready to accept connections")
 	fmt.Println()
 
-	if serveTLS {
-		return http.ListenAndServeTLS(addr, flags.TLSCert, flags.TLSKey, mux)
+	if flags.ServeTLS() {
+		return http.ServeTLS(listener, mux, flags.TLSCert, flags.TLSKey)
 	}
 
-	return http.ListenAndServe(addr, mux)
+	return http.Serve(listener, mux)
 }
