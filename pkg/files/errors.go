@@ -17,7 +17,7 @@ func fsErrorStatusCode(err error) int {
 		return http.StatusBadRequest
 
 	case errors.Is(err, fs.ErrPermission):
-		return http.StatusUnauthorized
+		return http.StatusForbidden
 
 	case errors.Is(err, fs.ErrNotExist):
 		return http.StatusNotFound
