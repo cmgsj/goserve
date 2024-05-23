@@ -99,7 +99,7 @@ func (f *Flags) loadLogger() error {
 	case "stderr":
 		out = os.Stderr
 	default:
-		out, err = os.Open(f.LogOutput)
+		out, err = os.Create(f.LogOutput)
 		if err != nil {
 			return err
 		}
