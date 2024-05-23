@@ -7,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -16,7 +15,6 @@ type Flags struct {
 	Port      string
 	Exclude   string
 	LogLevel  string
-	LogSource string
 	LogFormat string
 	LogOutput string
 	TLSCert   string
@@ -30,7 +28,6 @@ func NewFlags() (Flags, error) {
 		Port:      envFlag("GOSERVE_PORT"),
 		Exclude:   envFlag("GOSERVE_EXCLUDE", `^\..+`),
 		LogLevel:  envFlag("GOSERVE_LOG_LEVEL", "info"),
-		LogSource: envFlag("GOSERVE_LOG_SOURCE", "false"),
 		LogFormat: envFlag("GOSERVE_LOG_FORMAT", "text"),
 		LogOutput: envFlag("GOSERVE_LOG_OUTPUT", "stderr"),
 		TLSCert:   envFlag("GOSERVE_TLS_CERT"),
@@ -54,13 +51,12 @@ func (f *Flags) parse() {
 		flag.CommandLine.PrintDefaults()
 	}
 
-	flag.StringVar(&f.Host, "host", f.Host, "http host")
-	flag.StringVar(&f.Port, "port", f.Port, "http port")
+	flag.StringVar(&f.Host, "host", f.Host, "http server host")
+	flag.StringVar(&f.Port, "port", f.Port, "http server port")
 	flag.StringVar(&f.Exclude, "exclude", f.Exclude, "exclude regex pattern")
-	flag.StringVar(&f.LogLevel, "log-level", f.LogLevel, "log level")
-	flag.StringVar(&f.LogSource, "log-source", f.LogSource, "log source")
-	flag.StringVar(&f.LogFormat, "log-format", f.LogFormat, "log format")
-	flag.StringVar(&f.LogOutput, "log-output", f.LogOutput, "log output")
+	flag.StringVar(&f.LogLevel, "log-level", f.LogLevel, "log level {debug|info|warn|error}")
+	flag.StringVar(&f.LogFormat, "log-format", f.LogFormat, "log format {json|text}")
+	flag.StringVar(&f.LogOutput, "log-output", f.LogOutput, "log output file {stdout|stderr|FILE}")
 	flag.StringVar(&f.TLSCert, "tls-cert", f.TLSCert, "tls cert file")
 	flag.StringVar(&f.TLSKey, "tls-key", f.TLSKey, "tls key file")
 	flag.BoolVar(&f.Version, "version", f.Version, "print version")
@@ -86,11 +82,6 @@ func (f *Flags) loadLogger() error {
 		return err
 	}
 
-	addSource, err := strconv.ParseBool(f.LogSource)
-	if err != nil {
-		return err
-	}
-
 	var out io.Writer
 
 	switch strings.ToLower(f.LogOutput) {
@@ -108,8 +99,7 @@ func (f *Flags) loadLogger() error {
 	var handler slog.Handler
 
 	opts := &slog.HandlerOptions{
-		Level:     level,
-		AddSource: addSource,
+		Level: level,
 	}
 
 	switch strings.ToLower(f.LogFormat) {
@@ -118,7 +108,7 @@ func (f *Flags) loadLogger() error {
 	case "text":
 		handler = slog.NewTextHandler(out, opts)
 	default:
-		return fmt.Errorf("invalid LOG_FORMAT env var %q: must be one of [json, text]", f.LogFormat)
+		return fmt.Errorf("invalid log format %q", f.LogFormat)
 	}
 
 	slog.SetDefault(slog.New(handler))

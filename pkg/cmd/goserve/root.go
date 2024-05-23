@@ -82,7 +82,6 @@ func Run() error {
 	fmt.Printf("  Port: %q\n", flags.Port)
 	fmt.Printf("  Exclude: %q\n", flags.Exclude)
 	fmt.Printf("  LogLevel: %q\n", flags.LogLevel)
-	fmt.Printf("  LogSource: %q\n", flags.LogSource)
 	fmt.Printf("  LogFormat: %q\n", flags.LogFormat)
 	fmt.Printf("  LogOutput: %q\n", flags.LogOutput)
 	fmt.Printf("  TLSCert: %q\n", flags.TLSCert)
