@@ -24,14 +24,14 @@ type Flags struct {
 
 func NewFlags() (Flags, error) {
 	f := Flags{
-		Host:      envFlag("GOSERVE_HOST"),
-		Port:      envFlag("GOSERVE_PORT"),
-		Exclude:   envFlag("GOSERVE_EXCLUDE", `^\..+`),
-		LogLevel:  envFlag("GOSERVE_LOG_LEVEL", "info"),
-		LogFormat: envFlag("GOSERVE_LOG_FORMAT", "text"),
-		LogOutput: envFlag("GOSERVE_LOG_OUTPUT", "stderr"),
-		TLSCert:   envFlag("GOSERVE_TLS_CERT"),
-		TLSKey:    envFlag("GOSERVE_TLS_KEY"),
+		Host:      lookupEnv("GOSERVE_HOST"),
+		Port:      lookupEnv("GOSERVE_PORT"),
+		Exclude:   lookupEnv("GOSERVE_EXCLUDE", `^\..+`),
+		LogLevel:  lookupEnv("GOSERVE_LOG_LEVEL", "info"),
+		LogFormat: lookupEnv("GOSERVE_LOG_FORMAT", "text"),
+		LogOutput: lookupEnv("GOSERVE_LOG_OUTPUT", "stderr"),
+		TLSCert:   lookupEnv("GOSERVE_TLS_CERT"),
+		TLSKey:    lookupEnv("GOSERVE_TLS_KEY"),
 	}
 	f.parse()
 	f.complete()
@@ -116,10 +116,11 @@ func (f *Flags) loadLogger() error {
 	return nil
 }
 
-func envFlag(key string, defaults ...string) string {
+func lookupEnv(key string, defaults ...string) string {
 	value, set := os.LookupEnv(key)
 	if set {
 		return value
 	}
+
 	return cmp.Or(defaults...)
 }
