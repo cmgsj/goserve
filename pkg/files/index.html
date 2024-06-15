@@ -14,7 +14,12 @@
         >
         {{- end -}} {{- end -}}
       </label>
-      <button class="header-button" id="upload-form-button" type="button">
+      {{ if .Upload }}
+      <button
+        class="header-upload-button"
+        id="upload-form-button"
+        type="button"
+      >
         <svg
           aria-hidden="true"
           focusable="false"
@@ -46,6 +51,7 @@
       >
         <input id="upload-form-input" name="file" type="file" />
       </form>
+      {{ end }}
     </header>
     <main class="main">
       {{ if .Error }}
@@ -160,13 +166,15 @@
     </footer>
   </body>
   <script>
-    const uploadForm = document.getElementById("upload-form");
-    const uploadFormInput = document.getElementById("upload-form-input");
-    const uploadFormButton = document.getElementById("upload-form-button");
+    {{ if .Upload }}
+       const uploadForm = document.getElementById("upload-form");
+       const uploadFormInput = document.getElementById("upload-form-input");
+       const uploadFormButton = document.getElementById("upload-form-button");
 
-    uploadFormInput.onchange = () => uploadForm.submit();
+       uploadFormInput.onchange = () => uploadForm.submit();
 
-    uploadFormButton.onclick = () => uploadFormInput.click();
+       uploadFormButton.onclick = () => uploadFormInput.click();
+    {{ end }}
   </script>
   <style>
     .body {
@@ -197,7 +205,7 @@
       padding: 3px 5px;
       text-decoration: none;
     }
-    .header-button {
+    .header-upload-button {
       background-color: inherit;
       border-radius: 6px;
       border-spacing: 0;
@@ -206,7 +214,7 @@
       margin-right: 42px;
     }
     .breadcrumb:hover,
-    .header-button:hover {
+    .header-upload-button:hover {
       color: rgb(82, 128, 243);
       background-color: rgb(30, 32, 37);
     }
