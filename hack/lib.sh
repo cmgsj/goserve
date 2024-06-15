@@ -26,7 +26,7 @@ binary() {
 	local version="$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')"
 	local ldflags="-s -w -extldflags='-static'"
 	if [[ -n "$version" ]]; then
-		ldflags+=" -X 'github.com/cmgsj/goserve/internal/version.version=$version'"
+		ldflags+=" -X 'github.com/cmgsj/goserve/pkg/cmd/goserve.v=$version'"
 	fi
 	local flags=(-trimpath -ldflags="$ldflags")
 	if [[ "$cmd" == "build" ]]; then

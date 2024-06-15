@@ -17,7 +17,7 @@ import (
 
 type Controller struct {
 	filesystem      fs.FS
-	exclude         *regexp.Regexp
+	excludeRegexp   *regexp.Regexp
 	uploadDir       string
 	uploadTimestamp bool
 	htmlHandler     htmlHandler
@@ -27,7 +27,7 @@ type Controller struct {
 
 type ControllerOptions struct {
 	FileSystem      fs.FS
-	Exclude         *regexp.Regexp
+	ExcludeRegexp   *regexp.Regexp
 	Upload          bool
 	UploadDir       string
 	UploadTimestamp bool
@@ -38,7 +38,7 @@ type ControllerOptions struct {
 func NewController(opts ControllerOptions) *Controller {
 	return &Controller{
 		filesystem:      opts.FileSystem,
-		exclude:         opts.Exclude,
+		excludeRegexp:   opts.ExcludeRegexp,
 		uploadDir:       opts.UploadDir,
 		uploadTimestamp: opts.UploadTimestamp,
 		htmlHandler:     newHTMLHandler(opts.Upload, opts.Version),
@@ -170,12 +170,12 @@ func (c *Controller) upload(handler handler, redirectURL string) http.Handler {
 }
 
 func (c *Controller) IsAllowed(file string) bool {
-	if file == RootDir || c.exclude == nil {
+	if file == RootDir || c.excludeRegexp == nil {
 		return true
 	}
 
 	for _, path := range strings.Split(file, "/") {
-		if c.exclude.MatchString(path) {
+		if c.excludeRegexp.MatchString(path) {
 			return false
 		}
 	}

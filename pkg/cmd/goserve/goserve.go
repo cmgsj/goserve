@@ -2,7 +2,6 @@ package goserve
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io/fs"
 	"net"
@@ -10,28 +9,58 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 
-	"github.com/cmgsj/goserve/internal/version"
+	"github.com/cmgsj/goserve/pkg/cli"
 	"github.com/cmgsj/goserve/pkg/files"
 	"github.com/cmgsj/goserve/pkg/middleware/logging"
 )
 
+var (
+	host            = cli.StringFlag("host", "http server host", false)
+	port            = cli.Uint64Flag("port", "http server port", false)
+	exclude         = cli.StringFlag("exclude", "exclude rege pattern", false, `^\..+`)
+	upload          = cli.BoolFlag("upload", "enable uploads", false)
+	uploadDir       = cli.StringFlag("upload-dir", "uploadsdirectory", false, os.TempDir())
+	uploadTimestamp = cli.BoolFlag("upload-timestamp", "add uploa timestamp", false)
+	logLevel        = cli.StringFlag("log-level", "log level {debug | info | warn | error}", false, "info")
+	logFormat       = cli.StringFlag("log-format", "log format {json | text}", false, "text")
+	logOutput       = cli.StringFlag("log-output", "log output file {stdout | stderr | FILE}", false, "stderr")
+	tlsCert         = cli.StringFlag("tls-cert", "tls cert file", false)
+	tlsKey          = cli.StringFlag("tls-key", "tls key file", false)
+	version         = cli.BoolFlag("version", "print version", false)
+)
+
 func Run() error {
-	flags, err := NewFlags()
+	cli.SetEnvPrefix("goserve")
+
+	cli.SetUsage(func(flagSet *cli.FlagSet) {
+		fmt.Printf("HTTP file server\n\n")
+		fmt.Printf("Usage:\n  goserve [flags] PATH\n\n")
+		fmt.Printf("Flags:\n")
+		flagSet.PrintDefaults()
+	})
+
+	err := cli.Parse()
 	if err != nil {
 		return err
 	}
 
-	if flags.Version {
-		fmt.Println(version.Version())
+	if version.Value() {
+		fmt.Println(Version())
 		return nil
 	}
 
-	if len(flag.Args()) != 1 {
-		return fmt.Errorf("accepts %d arg(s), received %d", 1, len(flag.Args()))
+	err = initLogger()
+	if err != nil {
+		return err
 	}
 
-	root := flag.Arg(0)
+	if len(cli.Args()) != 1 {
+		return fmt.Errorf("accepts %d arg(s), received %d", 1, len(cli.Args()))
+	}
+
+	root := cli.Arg(0)
 
 	root, err = filepath.Abs(root)
 	if err != nil {
@@ -43,49 +72,62 @@ func Run() error {
 		return err
 	}
 
-	var filesystem fs.FS
+	var fileSystem fs.FS
 
 	if info.IsDir() {
-		filesystem = os.DirFS(root)
+		fileSystem = os.DirFS(root)
 	} else {
-		filesystem = os.DirFS(filepath.Dir(root))
-		filesystem, err = fs.Sub(filesystem, filepath.Base(root))
+		fileSystem = os.DirFS(filepath.Dir(root))
+		fileSystem, err = fs.Sub(fileSystem, filepath.Base(root))
 		if err != nil {
 			return err
 		}
 	}
 
-	var exclude *regexp.Regexp
+	var excludeRegexp *regexp.Regexp
 
-	if flags.Exclude != "" {
-		exclude, err = regexp.Compile(flags.Exclude)
+	if exclude.Value() != "" {
+		excludeRegexp, err = regexp.Compile(exclude.Value())
 		if err != nil {
 			return err
 		}
 	}
 
-	flags.UploadDir, err = filepath.Abs(flags.UploadDir)
+	uploadDirPath, err := filepath.Abs(uploadDir.Value())
 	if err != nil {
 		return err
 	}
 
-	_, err = os.Stat(flags.UploadDir)
+	_, err = os.Stat(uploadDir.Value())
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
-		err = os.MkdirAll(flags.UploadDir, 0755)
+		err = os.MkdirAll(uploadDir.Value(), 0755)
 		if err != nil {
 			return err
 		}
 	}
 
+	serveTLS := tlsCert.Value() != "" && tlsKey.Value() != ""
+
 	scheme := "http"
-	if flags.ServeTLS() {
+
+	if serveTLS {
 		scheme = "https"
 	}
 
-	listener, err := net.Listen("tcp", net.JoinHostPort(flags.Host, flags.Port))
+	port := port.Value()
+
+	if port == 0 {
+		if serveTLS {
+			port = 443
+		} else {
+			port = 80
+		}
+	}
+
+	listener, err := net.Listen("tcp", net.JoinHostPort(host.Value(), strconv.FormatUint(port, 10)))
 	if err != nil {
 		return err
 	}
@@ -94,17 +136,19 @@ func Run() error {
 	fmt.Println()
 	fmt.Println("Config:")
 	fmt.Printf("  Root: %q\n", root)
-	fmt.Printf("  Host: %q\n", flags.Host)
-	fmt.Printf("  Port: %q\n", flags.Port)
-	fmt.Printf("  Exclude: %q\n", flags.Exclude)
-	if flags.Upload {
-		fmt.Printf("  UploadDir: %q\n", flags.UploadDir)
+	fmt.Printf("  Host: %q\n", host.Value())
+	fmt.Printf("  Port: %d\n", port)
+	fmt.Printf("  Exclude: %q\n", exclude.Value())
+	if upload.Value() {
+		fmt.Printf("  UploadDir: %q\n", uploadDir.Value())
 	}
-	fmt.Printf("  LogLevel: %q\n", flags.LogLevel)
-	fmt.Printf("  LogFormat: %q\n", flags.LogFormat)
-	fmt.Printf("  LogOutput: %q\n", flags.LogOutput)
-	fmt.Printf("  TLSCert: %q\n", flags.TLSCert)
-	fmt.Printf("  TLSKey: %q\n", flags.TLSKey)
+	fmt.Printf("  LogLevel: %q\n", logLevel.Value())
+	fmt.Printf("  LogFormat: %q\n", logFormat.Value())
+	fmt.Printf("  LogOutput: %q\n", logOutput.Value())
+	if serveTLS {
+		fmt.Printf("  TLSCert: %q\n", tlsCert.Value())
+		fmt.Printf("  TLSKey: %q\n", tlsKey.Value())
+	}
 	fmt.Println()
 
 	mux := http.NewServeMux()
@@ -115,12 +159,12 @@ func Run() error {
 	}
 
 	controller := files.NewController(files.ControllerOptions{
-		FileSystem:      filesystem,
-		Exclude:         exclude,
-		Upload:          flags.Upload,
-		UploadDir:       flags.UploadDir,
-		UploadTimestamp: flags.UploadTimestamp,
-		Version:         version.Version(),
+		FileSystem:      fileSystem,
+		ExcludeRegexp:   excludeRegexp,
+		Upload:          upload.Value(),
+		UploadDir:       uploadDirPath,
+		UploadTimestamp: uploadTimestamp.Value(),
+		Version:         Version(),
 	})
 
 	fmt.Println("Routes:")
@@ -129,7 +173,7 @@ func Run() error {
 	handle("GET /html/{file...}", controller.FilesHTML())
 	handle("GET /json/{file...}", controller.FilesJSON())
 	handle("GET /text/{file...}", controller.FilesText())
-	if flags.Upload {
+	if upload.Value() {
 		handle("POST /html", controller.UploadHTML("/html"))
 		handle("POST /json", controller.UploadJSON("/json"))
 		handle("POST /text", controller.UploadText("/text"))
@@ -142,8 +186,8 @@ func Run() error {
 
 	handler := logging.LogRequests(mux)
 
-	if flags.ServeTLS() {
-		return http.ServeTLS(listener, handler, flags.TLSCert, flags.TLSKey)
+	if serveTLS {
+		return http.ServeTLS(listener, handler, tlsCert.Value(), tlsKey.Value())
 	}
 
 	return http.Serve(listener, handler)
