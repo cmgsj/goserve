@@ -12,32 +12,34 @@ import (
 )
 
 type Flags struct {
-	Host      string
-	Port      string
-	Exclude   string
-	Upload    bool
-	UploadDir string
-	LogLevel  string
-	LogFormat string
-	LogOutput string
-	TLSCert   string
-	TLSKey    string
-	Version   bool
+	Host            string
+	Port            string
+	Exclude         string
+	Upload          bool
+	UploadDir       string
+	UploadTimestamp bool
+	LogLevel        string
+	LogFormat       string
+	LogOutput       string
+	TLSCert         string
+	TLSKey          string
+	Version         bool
 }
 
 func NewFlags() (Flags, error) {
 	f := Flags{
-		Host:      lookupEnv("GOSERVE_HOST"),
-		Port:      lookupEnv("GOSERVE_PORT"),
-		Exclude:   lookupEnv("GOSERVE_EXCLUDE", `^\..+`),
-		Upload:    lookupEnvBool("GOSERVE_UPLOAD", "false"),
-		UploadDir: lookupEnv("GOSERVE_UPLOAD_DIR", os.TempDir()),
-		LogLevel:  lookupEnv("GOSERVE_LOG_LEVEL", "info"),
-		LogFormat: lookupEnv("GOSERVE_LOG_FORMAT", "text"),
-		LogOutput: lookupEnv("GOSERVE_LOG_OUTPUT", "stderr"),
-		TLSCert:   lookupEnv("GOSERVE_TLS_CERT"),
-		TLSKey:    lookupEnv("GOSERVE_TLS_KEY"),
-		Version:   false,
+		Host:            lookupEnv("GOSERVE_HOST"),
+		Port:            lookupEnv("GOSERVE_PORT"),
+		Exclude:         lookupEnv("GOSERVE_EXCLUDE", `^\..+`),
+		Upload:          lookupEnvBool("GOSERVE_UPLOAD", "false"),
+		UploadDir:       lookupEnv("GOSERVE_UPLOAD_DIR", os.TempDir()),
+		UploadTimestamp: lookupEnvBool("GOSERVE_UPLOAD_TIMESTAMP", "false"),
+		LogLevel:        lookupEnv("GOSERVE_LOG_LEVEL", "info"),
+		LogFormat:       lookupEnv("GOSERVE_LOG_FORMAT", "text"),
+		LogOutput:       lookupEnv("GOSERVE_LOG_OUTPUT", "stderr"),
+		TLSCert:         lookupEnv("GOSERVE_TLS_CERT"),
+		TLSKey:          lookupEnv("GOSERVE_TLS_KEY"),
+		Version:         false,
 	}
 	f.parse()
 	f.complete()
@@ -62,6 +64,7 @@ func (f *Flags) parse() {
 	flag.StringVar(&f.Exclude, "exclude", f.Exclude, "exclude regex pattern")
 	flag.BoolVar(&f.Upload, "upload", f.Upload, "enable uploads")
 	flag.StringVar(&f.UploadDir, "upload-dir", f.UploadDir, "uploads directory")
+	flag.BoolVar(&f.UploadTimestamp, "upload-timestamp", f.UploadTimestamp, "add upload timestamp")
 	flag.StringVar(&f.LogLevel, "log-level", f.LogLevel, "log level: one of [debug | info | warn | error]")
 	flag.StringVar(&f.LogFormat, "log-format", f.LogFormat, "log format: one of [json | text]")
 	flag.StringVar(&f.LogOutput, "log-output", f.LogOutput, "log output file: one of [stdout | stderr | FILE]")

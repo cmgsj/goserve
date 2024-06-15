@@ -43,13 +43,13 @@ func Run() error {
 		return err
 	}
 
-	var fsys fs.FS
+	var filesystem fs.FS
 
 	if info.IsDir() {
-		fsys = os.DirFS(root)
+		filesystem = os.DirFS(root)
 	} else {
-		fsys = os.DirFS(filepath.Dir(root))
-		fsys, err = fs.Sub(fsys, filepath.Base(root))
+		filesystem = os.DirFS(filepath.Dir(root))
+		filesystem, err = fs.Sub(filesystem, filepath.Base(root))
 		if err != nil {
 			return err
 		}
@@ -92,7 +92,6 @@ func Run() error {
 
 	fmt.Printf("Starting file server at %s://%s\n", scheme, listener.Addr())
 	fmt.Println()
-
 	fmt.Println("Config:")
 	fmt.Printf("  Root: %q\n", root)
 	fmt.Printf("  Host: %q\n", flags.Host)
@@ -109,31 +108,43 @@ func Run() error {
 	fmt.Println()
 
 	mux := http.NewServeMux()
-	controller := files.NewController(fsys, exclude)
 
-	handle := func(mux *http.ServeMux, pattern string, handler http.Handler) {
-		mux.Handle(pattern, logging.LogRequest(handler))
+	handle := func(pattern string, handler http.Handler) {
+		mux.Handle(pattern, handler)
 		fmt.Printf("  %s\n", pattern)
 	}
-	fmt.Println("Routes:")
-	handle(mux, "GET /", http.RedirectHandler("/html", http.StatusMovedPermanently))
-	handle(mux, "GET /html/{file...}", controller.FilesHTML(flags.Upload, version.Version()))
-	handle(mux, "GET /json/{file...}", controller.FilesJSON())
-	handle(mux, "GET /text/{file...}", controller.FilesText())
-	if flags.Upload {
-		handle(mux, "POST /html", controller.UploadHTML(flags.UploadDir, "/html", version.Version()))
-		handle(mux, "POST /json", controller.UploadJSON(flags.UploadDir, "/json"))
-		handle(mux, "POST /text", controller.UploadText(flags.UploadDir, "/text"))
-	}
-	handle(mux, "GET /health", controller.Health())
-	fmt.Println()
 
+	controller := files.NewController(files.ControllerOptions{
+		FileSystem:      filesystem,
+		Exclude:         exclude,
+		Upload:          flags.Upload,
+		UploadDir:       flags.UploadDir,
+		UploadTimestamp: flags.UploadTimestamp,
+		Version:         version.Version(),
+	})
+
+	fmt.Println("Routes:")
+
+	handle("GET /", http.RedirectHandler("/html", http.StatusMovedPermanently))
+	handle("GET /html/{file...}", controller.FilesHTML())
+	handle("GET /json/{file...}", controller.FilesJSON())
+	handle("GET /text/{file...}", controller.FilesText())
+	if flags.Upload {
+		handle("POST /html", controller.UploadHTML("/html"))
+		handle("POST /json", controller.UploadJSON("/json"))
+		handle("POST /text", controller.UploadText("/text"))
+	}
+	handle("GET /health", controller.Health())
+
+	fmt.Println()
 	fmt.Println("Ready to accept connections")
 	fmt.Println()
 
+	handler := logging.LogRequests(mux)
+
 	if flags.ServeTLS() {
-		return http.ServeTLS(listener, mux, flags.TLSCert, flags.TLSKey)
+		return http.ServeTLS(listener, handler, flags.TLSCert, flags.TLSKey)
 	}
 
-	return http.Serve(listener, mux)
+	return http.Serve(listener, handler)
 }

@@ -16,14 +16,34 @@ import (
 )
 
 type Controller struct {
-	fs      fs.FS
-	exclude *regexp.Regexp
+	filesystem      fs.FS
+	exclude         *regexp.Regexp
+	uploadDir       string
+	uploadTimestamp bool
+	htmlHandler     htmlHandler
+	jsonHandler     jsonHandler
+	textHandler     textHandler
 }
 
-func NewController(fs fs.FS, exclude *regexp.Regexp) *Controller {
+type ControllerOptions struct {
+	FileSystem      fs.FS
+	Exclude         *regexp.Regexp
+	Upload          bool
+	UploadDir       string
+	UploadTimestamp bool
+	RawJSON         bool
+	Version         string
+}
+
+func NewController(opts ControllerOptions) *Controller {
 	return &Controller{
-		fs:      fs,
-		exclude: exclude,
+		filesystem:      opts.FileSystem,
+		exclude:         opts.Exclude,
+		uploadDir:       opts.UploadDir,
+		uploadTimestamp: opts.UploadTimestamp,
+		htmlHandler:     newHTMLHandler(opts.Upload, opts.Version),
+		jsonHandler:     newJSONHandler(!opts.RawJSON),
+		textHandler:     newTextHandler(),
 	}
 }
 
@@ -31,28 +51,28 @@ func (c *Controller) Health() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 }
 
-func (c *Controller) FilesHTML(upload bool, version string) http.Handler {
-	return c.files(newHTMLHandler(upload, version))
+func (c *Controller) FilesHTML() http.Handler {
+	return c.files(c.htmlHandler)
 }
 
 func (c *Controller) FilesJSON() http.Handler {
-	return c.files(newJSONHandler())
+	return c.files(c.jsonHandler)
 }
 
 func (c *Controller) FilesText() http.Handler {
-	return c.files(newTextHandler())
+	return c.files(c.textHandler)
 }
 
-func (c *Controller) UploadHTML(uploadDir, redirectURL, version string) http.Handler {
-	return c.upload(newHTMLHandler(true, version), uploadDir, redirectURL)
+func (c *Controller) UploadHTML(redirectURL string) http.Handler {
+	return c.upload(c.htmlHandler, redirectURL)
 }
 
-func (c *Controller) UploadJSON(uploadDir, redirectURL string) http.Handler {
-	return c.upload(newJSONHandler(), uploadDir, redirectURL)
+func (c *Controller) UploadJSON(redirectURL string) http.Handler {
+	return c.upload(c.jsonHandler, redirectURL)
 }
 
-func (c *Controller) UploadText(uploadDir, redirectURL string) http.Handler {
-	return c.upload(newTextHandler(), uploadDir, redirectURL)
+func (c *Controller) UploadText(redirectURL string) http.Handler {
+	return c.upload(c.textHandler, redirectURL)
 }
 
 func (c *Controller) files(handler handler) http.Handler {
@@ -61,7 +81,7 @@ func (c *Controller) files(handler handler) http.Handler {
 
 		file = path.Clean(file)
 
-		info, err := fs.Stat(c.fs, file)
+		info, err := fs.Stat(c.filesystem, file)
 		if err != nil {
 			c.handleError(w, handler, err, fsErrorStatusCode(err))
 			return
@@ -93,7 +113,7 @@ func (c *Controller) files(handler handler) http.Handler {
 	})
 }
 
-func (c *Controller) upload(handler handler, uploadDir, redirectURL string) http.Handler {
+func (c *Controller) upload(handler handler, redirectURL string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		file, header, err := r.FormFile("file")
 		if err != nil {
@@ -101,7 +121,11 @@ func (c *Controller) upload(handler handler, uploadDir, redirectURL string) http
 			return
 		}
 
-		path := filepath.Join(uploadDir, fmt.Sprintf("%d_%s", time.Now().Unix(), header.Filename))
+		if c.uploadTimestamp {
+			header.Filename = fmt.Sprintf("%s-%s", time.Now().UTC().Format(time.DateTime), header.Filename)
+		}
+
+		path := filepath.Join(c.uploadDir, header.Filename)
 
 		_, err = os.Stat(path)
 		if err != nil {
@@ -160,7 +184,7 @@ func (c *Controller) IsAllowed(file string) bool {
 }
 
 func (c *Controller) copyFile(w io.Writer, file string) error {
-	f, err := c.fs.Open(file)
+	f, err := c.filesystem.Open(file)
 	if err != nil {
 		return err
 	}
@@ -178,7 +202,7 @@ func (c *Controller) copyFile(w io.Writer, file string) error {
 }
 
 func (c *Controller) readDir(dir string) ([]File, error) {
-	entries, err := fs.ReadDir(c.fs, dir)
+	entries, err := fs.ReadDir(c.filesystem, dir)
 	if err != nil {
 		return nil, err
 	}

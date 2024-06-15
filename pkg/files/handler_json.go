@@ -6,10 +6,14 @@ import (
 	"net/http"
 )
 
-type jsonHandler struct{}
+type jsonHandler struct {
+	indent bool
+}
 
-func newJSONHandler() jsonHandler {
-	return jsonHandler{}
+func newJSONHandler(indent bool) jsonHandler {
+	return jsonHandler{
+		indent: indent,
+	}
 }
 
 func (h jsonHandler) handleDir(w io.Writer, dir string, entries []File) error {
@@ -26,7 +30,9 @@ func (h jsonHandler) handleError(w io.Writer, err error, code int) error {
 func (h jsonHandler) encode(w io.Writer, v interface{}) error {
 	encoder := json.NewEncoder(w)
 
-	encoder.SetIndent("", "  ")
+	if h.indent {
+		encoder.SetIndent("", "  ")
+	}
 
 	return encoder.Encode(v)
 }
