@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -90,7 +91,7 @@ func (f *Flag[T]) parse() error {
 			key = f.flagSet.envPrefix + "_" + key
 		}
 
-		key = strings.ToUpper(strings.ReplaceAll(key, "-", "_"))
+		key = strings.ToUpper(toSnakeCase(key))
 
 		value, ok := os.LookupEnv(key)
 		if ok {
@@ -145,4 +146,18 @@ func (f *Flag[T]) parse() error {
 	}
 
 	return nil
+}
+
+var (
+	firstUpper       = regexp.MustCompile("([a-z0-9])([A-Z])")
+	consecutiveUpper = regexp.MustCompile("([A-Z])([A-Z][a-z0-9])")
+)
+
+func toSnakeCase(s string) string {
+	s = firstUpper.ReplaceAllString(s, "${1}_${2}")
+	s = consecutiveUpper.ReplaceAllString(s, "${1}_${2}")
+
+	s = strings.ReplaceAll(s, "-", "_")
+
+	return s
 }
