@@ -7,8 +7,6 @@ import (
 	"path"
 	"strings"
 	"text/template"
-
-	"github.com/cmgsj/goserve/internal/version"
 )
 
 var (
@@ -31,12 +29,14 @@ type errorData struct {
 }
 
 type htmlHandler struct {
-	upload bool
+	upload  bool
+	version string
 }
 
-func newHTMLHandler(upload bool) htmlHandler {
+func newHTMLHandler(upload bool, version string) htmlHandler {
 	return htmlHandler{
-		upload: upload,
+		upload:  upload,
+		version: version,
 	}
 }
 
@@ -60,7 +60,7 @@ func (h htmlHandler) handleDir(w io.Writer, dir string, entries []File) error {
 		Breadcrumbs: breadcrumbs,
 		Upload:      h.upload,
 		Files:       entries,
-		Version:     version.String(),
+		Version:     h.version,
 	})
 }
 
@@ -70,6 +70,6 @@ func (h htmlHandler) handleError(w io.Writer, err error, code int) error {
 			Status:  http.StatusText(code),
 			Message: err.Error(),
 		},
-		Version: version.String(),
+		Version: h.version,
 	})
 }

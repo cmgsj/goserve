@@ -31,8 +31,8 @@ func (c *Controller) Health() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 }
 
-func (c *Controller) FilesHTML(upload bool) http.Handler {
-	return c.files(newHTMLHandler(upload))
+func (c *Controller) FilesHTML(upload bool, version string) http.Handler {
+	return c.files(newHTMLHandler(upload, version))
 }
 
 func (c *Controller) FilesJSON() http.Handler {
@@ -43,8 +43,8 @@ func (c *Controller) FilesText() http.Handler {
 	return c.files(newTextHandler())
 }
 
-func (c *Controller) UploadHTML(uploadDir, redirectURL string) http.Handler {
-	return c.upload(newHTMLHandler(true), uploadDir, redirectURL)
+func (c *Controller) UploadHTML(uploadDir, redirectURL, version string) http.Handler {
+	return c.upload(newHTMLHandler(true, version), uploadDir, redirectURL)
 }
 
 func (c *Controller) UploadJSON(uploadDir, redirectURL string) http.Handler {
@@ -227,6 +227,7 @@ func (c *Controller) handleError(w http.ResponseWriter, handler handler, err err
 	if handleErr == nil {
 		return
 	}
+
 	slog.Error("failed to handle error", "error", handleErr)
 
 	fmt.Fprintln(w, err.Error())

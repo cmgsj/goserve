@@ -2,6 +2,6 @@ package version
 
 var version = "dev"
 
-func String() string {
+func Version() string {
 	return version
 }
