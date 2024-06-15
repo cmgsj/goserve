@@ -10,7 +10,7 @@ import (
 func main() {
 	err := goserve.Run()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

@@ -54,7 +54,7 @@ func (f *Flags) ServeTLS() bool {
 func (f *Flags) parse() {
 	flag.Usage = func() {
 		fmt.Printf("HTTP file server\n\n")
-		fmt.Printf("Usage:\n  goserve [flags] FILE\n\n")
+		fmt.Printf("Usage:\n  goserve [flags] PATH\n\n")
 		fmt.Printf("Flags:\n")
 		flag.CommandLine.PrintDefaults()
 	}
