@@ -2,6 +2,7 @@ package files
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,10 @@ type textHandler struct{}
 
 func newTextHandler() textHandler {
 	return textHandler{}
+}
+
+func (h textHandler) parseUploadFile(r *http.Request) (io.Reader, string, error) {
+	return nil, "", errors.ErrUnsupported
 }
 
 func (h textHandler) handleDir(w io.Writer, dir string, entries []File) error {

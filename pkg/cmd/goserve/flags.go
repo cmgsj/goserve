@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -14,6 +15,8 @@ type Flags struct {
 	Host      string
 	Port      string
 	Exclude   string
+	Upload    bool
+	UploadDir string
 	LogLevel  string
 	LogFormat string
 	LogOutput string
@@ -27,11 +30,14 @@ func NewFlags() (Flags, error) {
 		Host:      lookupEnv("GOSERVE_HOST"),
 		Port:      lookupEnv("GOSERVE_PORT"),
 		Exclude:   lookupEnv("GOSERVE_EXCLUDE", `^\..+`),
+		Upload:    lookupEnvBool("GOSERVE_UPLOAD", "false"),
+		UploadDir: lookupEnv("GOSERVE_UPLOAD_DIR", os.TempDir()),
 		LogLevel:  lookupEnv("GOSERVE_LOG_LEVEL", "info"),
 		LogFormat: lookupEnv("GOSERVE_LOG_FORMAT", "text"),
 		LogOutput: lookupEnv("GOSERVE_LOG_OUTPUT", "stderr"),
 		TLSCert:   lookupEnv("GOSERVE_TLS_CERT"),
 		TLSKey:    lookupEnv("GOSERVE_TLS_KEY"),
+		Version:   false,
 	}
 	f.parse()
 	f.complete()
@@ -54,6 +60,8 @@ func (f *Flags) parse() {
 	flag.StringVar(&f.Host, "host", f.Host, "http server host")
 	flag.StringVar(&f.Port, "port", f.Port, "http server port")
 	flag.StringVar(&f.Exclude, "exclude", f.Exclude, "exclude regex pattern")
+	flag.BoolVar(&f.Upload, "upload", f.Upload, "allow uploads")
+	flag.StringVar(&f.UploadDir, "upload-dir", f.UploadDir, "uploads directory")
 	flag.StringVar(&f.LogLevel, "log-level", f.LogLevel, "log level: one of [debug | info | warn | error]")
 	flag.StringVar(&f.LogFormat, "log-format", f.LogFormat, "log format: one of [json | text]")
 	flag.StringVar(&f.LogOutput, "log-output", f.LogOutput, "log output file: one of [stdout | stderr | FILE]")
@@ -123,4 +131,9 @@ func lookupEnv(key string, defaults ...string) string {
 	}
 
 	return cmp.Or(defaults...)
+}
+
+func lookupEnvBool(key string, defaults ...string) bool {
+	b, _ := strconv.ParseBool(lookupEnv(key, defaults...))
+	return b
 }

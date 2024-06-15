@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type Controller struct {
@@ -42,49 +43,16 @@ func (c *Controller) FilesText() http.Handler {
 	return c.files(newTextHandler())
 }
 
-func (c *Controller) UploadForm() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("upload")
-		http.Redirect(w, r, "/html", http.StatusMovedPermanently)
-		return
+func (c *Controller) UploadHTML(uploadDir, redirectURL string) http.Handler {
+	return c.upload(newHTMLHandler(), uploadDir, redirectURL)
+}
 
-		upload, header, err := r.FormFile("file")
-		if err != nil {
-			c.handleError(w, nil, err, http.StatusBadRequest)
-			return
-		}
+func (c *Controller) UploadJSON(uploadDir, redirectURL string) http.Handler {
+	return c.upload(newJSONHandler(), uploadDir, redirectURL)
+}
 
-		path := filepath.Join("/tmp/goserve/uploads", header.Filename)
-
-		file, err := os.Create(path)
-		if err != nil {
-			if errors.Is(err, fs.ErrExist) {
-				c.handleError(w, nil, err, http.StatusBadRequest)
-				return
-			}
-			c.handleError(w, nil, err, fsErrorStatusCode(err))
-			return
-		}
-
-		defer func() {
-			err = file.Close()
-			if err != nil {
-				slog.Error("failed to close file", "file", path, "error", err)
-			}
-		}()
-
-		fmt.Println(path)
-
-		_, err = io.Copy(file, upload)
-		if err != nil {
-			c.handleError(w, nil, err, http.StatusBadRequest)
-		}
-
-		err = file.Sync()
-		if err != nil {
-			slog.Error("failed to sync file", "file", path, "error", err)
-		}
-	})
+func (c *Controller) UploadText(uploadDir, redirectURL string) http.Handler {
+	return c.upload(newTextHandler(), uploadDir, redirectURL)
 }
 
 func (c *Controller) files(handler handler) http.Handler {
@@ -125,6 +93,58 @@ func (c *Controller) files(handler handler) http.Handler {
 	})
 }
 
+func (c *Controller) upload(handler handler, uploadDir, redirectURL string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		file, filename, err := handler.parseUploadFile(r)
+		if err != nil {
+			c.handleError(w, handler, err, http.StatusBadRequest)
+			return
+		}
+
+		path := filepath.Join(uploadDir, fmt.Sprintf("%d_%s", time.Now().Unix(), filename))
+
+		_, err = os.Stat(path)
+		if err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				c.handleError(w, handler, err, fsErrorStatusCode(err))
+				return
+			}
+		} else {
+			c.handleError(w, handler, fs.ErrExist, http.StatusBadRequest)
+			return
+		}
+
+		f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
+		if err != nil {
+			c.handleError(w, handler, err, fsErrorStatusCode(err))
+			return
+		}
+
+		defer func() {
+			err := f.Close()
+			if err != nil {
+				slog.Error("failed to close uploaded file", "path", path, "error", err)
+			}
+		}()
+
+		_, err = io.Copy(f, file)
+		if err != nil {
+			c.handleError(w, handler, err, fsErrorStatusCode(err))
+			return
+		}
+
+		err = f.Sync()
+		if err != nil {
+			c.handleError(w, handler, err, fsErrorStatusCode(err))
+			return
+		}
+
+		if redirectURL != "" {
+			http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
+		}
+	})
+}
+
 func (c *Controller) IsAllowed(file string) bool {
 	if file == RootDir || c.exclude == nil {
 		return true
@@ -146,9 +166,9 @@ func (c *Controller) copyFile(w io.Writer, file string) error {
 	}
 
 	defer func() {
-		err = f.Close()
+		err := f.Close()
 		if err != nil {
-			slog.Error("failed to close file", "file", file, "error", err)
+			slog.Error("failed to close copied file", "path", file, "error", err)
 		}
 	}()
 
@@ -203,13 +223,11 @@ func (c *Controller) handleError(w http.ResponseWriter, handler handler, err err
 
 	w.WriteHeader(code)
 
-	if handler != nil {
-		handleErr := handler.handleError(w, err, code)
-		if handleErr == nil {
-			return
-		}
-		slog.Error("failed to handle error", "error", handleErr)
+	handleErr := handler.handleError(w, err, code)
+	if handleErr == nil {
+		return
 	}
+	slog.Error("failed to handle error", "error", handleErr)
 
 	fmt.Fprintln(w, err.Error())
 }
