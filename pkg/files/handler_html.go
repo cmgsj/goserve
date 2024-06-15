@@ -40,15 +40,6 @@ func newHTMLHandler(upload bool) htmlHandler {
 	}
 }
 
-func (h htmlHandler) parseUploadFile(r *http.Request) (io.Reader, string, error) {
-	file, header, err := r.FormFile("file")
-	if err != nil {
-		return nil, "", err
-	}
-
-	return file, header.Filename, nil
-}
-
 func (h htmlHandler) handleDir(w io.Writer, dir string, entries []File) error {
 	var breadcrumbs []File
 
