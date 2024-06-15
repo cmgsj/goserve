@@ -59,6 +59,10 @@
         <h1 class="error-header">{{ .Error.Status }}</h1>
         <p class="error-content">{{ .Error.Message }}</p>
       </div>
+      {{ else if not .Files }}
+      <div class="error">
+        <p class="error-content">No files found</p>
+      </div>
       {{ else }}
       <table class="file-table">
         <thead class="file-table-header">
