@@ -95,13 +95,13 @@ func (c *Controller) files(handler handler) http.Handler {
 
 func (c *Controller) upload(handler handler, uploadDir, redirectURL string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		file, filename, err := handler.parseUploadFile(r)
+		file, header, err := r.FormFile("file")
 		if err != nil {
 			c.handleError(w, handler, err, http.StatusBadRequest)
 			return
 		}
 
-		path := filepath.Join(uploadDir, fmt.Sprintf("%d_%s", time.Now().Unix(), filename))
+		path := filepath.Join(uploadDir, fmt.Sprintf("%d_%s", time.Now().Unix(), header.Filename))
 
 		_, err = os.Stat(path)
 		if err != nil {
