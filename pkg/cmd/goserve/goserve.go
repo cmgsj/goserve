@@ -149,7 +149,9 @@ func Run() error {
 	fmt.Printf("  Root: %q\n", root)
 	fmt.Printf("  Host: %q\n", host.Value())
 	fmt.Printf("  Port: %d\n", port)
-	fmt.Printf("  Exclude: %q\n", excludeRegexp)
+	if exclude.Value() != "" {
+		fmt.Printf("  ExcludePattern: %q\n", excludeRegexp)
+	}
 	if upload.Value() {
 		fmt.Printf("  UploadDir: %q\n", uploadDirPath)
 	}
