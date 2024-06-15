@@ -2,7 +2,7 @@ SHELL := /bin/bash
 LIB := $(CURDIR)/hack/lib.sh
 
 .PHONY: default
-default: build install
+default: fmt build install
 
 .PHONY: fmt
 fmt:
