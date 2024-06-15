@@ -15,20 +15,21 @@ type FlagType interface {
 }
 
 type Flag[T FlagType] struct {
-	flagSet  *FlagSet
-	name     string
-	usage    string
-	required bool
-	value    T
+	flagSet      *FlagSet
+	name         string
+	usage        string
+	required     bool
+	defaultValue T
+	value        T
 }
 
-func newFlag[T FlagType](flagSet *FlagSet, name, usage string, required bool, values ...T) *Flag[T] {
+func newFlag[T FlagType](flagSet *FlagSet, name, usage string, required bool, defaults ...T) *Flag[T] {
 	f := &Flag[T]{
-		flagSet:  flagSet,
-		name:     name,
-		usage:    usage,
-		required: required,
-		value:    cmp.Or(values...),
+		flagSet:      flagSet,
+		name:         name,
+		usage:        usage,
+		required:     required,
+		defaultValue: cmp.Or(defaults...),
 	}
 
 	f.flagSet.flags = append(f.flagSet.flags, f)
@@ -83,6 +84,7 @@ func (f *Flag[T]) Value() T {
 
 func (f *Flag[T]) parse() error {
 	var zero T
+	var env bool
 
 	if f.value == zero {
 		key := f.name
@@ -95,6 +97,8 @@ func (f *Flag[T]) parse() error {
 
 		value, ok := os.LookupEnv(key)
 		if ok {
+			env = true
+
 			var v any
 			var err error
 
@@ -139,6 +143,10 @@ func (f *Flag[T]) parse() error {
 
 			f.value = v.(T)
 		}
+	}
+
+	if f.value == zero && !env {
+		f.value = f.defaultValue
 	}
 
 	if f.value == zero && f.required {

@@ -48,36 +48,36 @@ func Args() []string {
 	return defaultFlagSet.Args()
 }
 
-func StringFlag(name, usage string, required bool, values ...string) *Flag[string] {
-	return defaultFlagSet.StringFlag(name, usage, required, values...)
+func StringFlag(name, usage string, required bool, defaults ...string) *Flag[string] {
+	return defaultFlagSet.StringFlag(name, usage, required, defaults...)
 }
 
-func BoolFlag(name, usage string, required bool, values ...bool) *Flag[bool] {
-	return defaultFlagSet.BoolFlag(name, usage, required, values...)
+func BoolFlag(name, usage string, required bool, defaults ...bool) *Flag[bool] {
+	return defaultFlagSet.BoolFlag(name, usage, required, defaults...)
 }
 
-func IntFlag(name, usage string, required bool, values ...int) *Flag[int] {
-	return defaultFlagSet.IntFlag(name, usage, required, values...)
+func IntFlag(name, usage string, required bool, defaults ...int) *Flag[int] {
+	return defaultFlagSet.IntFlag(name, usage, required, defaults...)
 }
 
-func Int64Flag(name, usage string, required bool, values ...int64) *Flag[int64] {
-	return defaultFlagSet.Int64Flag(name, usage, required, values...)
+func Int64Flag(name, usage string, required bool, defaults ...int64) *Flag[int64] {
+	return defaultFlagSet.Int64Flag(name, usage, required, defaults...)
 }
 
-func UintFlag(name, usage string, required bool, values ...uint) *Flag[uint] {
-	return defaultFlagSet.UintFlag(name, usage, required, values...)
+func UintFlag(name, usage string, required bool, defaults ...uint) *Flag[uint] {
+	return defaultFlagSet.UintFlag(name, usage, required, defaults...)
 }
 
-func Uint64Flag(name, usage string, required bool, values ...uint64) *Flag[uint64] {
-	return defaultFlagSet.Uint64Flag(name, usage, required, values...)
+func Uint64Flag(name, usage string, required bool, defaults ...uint64) *Flag[uint64] {
+	return defaultFlagSet.Uint64Flag(name, usage, required, defaults...)
 }
 
-func Float64Flag(name, usage string, required bool, values ...float64) *Flag[float64] {
-	return defaultFlagSet.Float64Flag(name, usage, required, values...)
+func Float64Flag(name, usage string, required bool, defaults ...float64) *Flag[float64] {
+	return defaultFlagSet.Float64Flag(name, usage, required, defaults...)
 }
 
-func DurationFlag(name, usage string, required bool, values ...time.Duration) *Flag[time.Duration] {
-	return defaultFlagSet.DurationFlag(name, usage, required, values...)
+func DurationFlag(name, usage string, required bool, defaults ...time.Duration) *Flag[time.Duration] {
+	return defaultFlagSet.DurationFlag(name, usage, required, defaults...)
 }
 
 func Parsed() bool {

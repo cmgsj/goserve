@@ -19,9 +19,9 @@ import (
 var (
 	host            = cli.StringFlag("host", "http server host", false)
 	port            = cli.Uint64Flag("port", "http server port", false)
-	exclude         = cli.StringFlag("exclude", "exclude rege pattern", false, `^\..+`)
+	exclude         = cli.StringFlag("exclude", "exclude rege pattern", false)
 	upload          = cli.BoolFlag("upload", "enable uploads", false)
-	uploadDir       = cli.StringFlag("upload-dir", "uploadsdirectory", false, os.TempDir())
+	uploadDir       = cli.StringFlag("upload-dir", "uploadsdirectory", false)
 	uploadTimestamp = cli.BoolFlag("upload-timestamp", "add uploa timestamp", false)
 	logLevel        = cli.StringFlag("log-level", "log level {debug | info | warn | error}", false, "info")
 	logFormat       = cli.StringFlag("log-format", "log format {json | text}", false, "text")
@@ -93,7 +93,13 @@ func Run() error {
 		}
 	}
 
-	uploadDirPath, err := filepath.Abs(uploadDir.Value())
+	uploadDirPath := uploadDir.Value()
+
+	if uploadDirPath == "" {
+		uploadDirPath = os.TempDir()
+	}
+
+	uploadDirPath, err = filepath.Abs(uploadDirPath)
 	if err != nil {
 		return err
 	}

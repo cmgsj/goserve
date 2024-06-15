@@ -55,36 +55,36 @@ func (f *FlagSet) Args() []string {
 	return f.flagSet.Args()
 }
 
-func (f *FlagSet) StringFlag(name, usage string, required bool, values ...string) *Flag[string] {
-	return newFlag(f, name, usage, required, values...)
+func (f *FlagSet) StringFlag(name, usage string, required bool, defaults ...string) *Flag[string] {
+	return newFlag(f, name, usage, required, defaults...)
 }
 
-func (f *FlagSet) BoolFlag(name, usage string, required bool, values ...bool) *Flag[bool] {
-	return newFlag(f, name, usage, required, values...)
+func (f *FlagSet) BoolFlag(name, usage string, required bool, defaults ...bool) *Flag[bool] {
+	return newFlag(f, name, usage, required, defaults...)
 }
 
-func (f *FlagSet) IntFlag(name, usage string, required bool, values ...int) *Flag[int] {
-	return newFlag(f, name, usage, required, values...)
+func (f *FlagSet) IntFlag(name, usage string, required bool, defaults ...int) *Flag[int] {
+	return newFlag(f, name, usage, required, defaults...)
 }
 
-func (f *FlagSet) Int64Flag(name, usage string, required bool, values ...int64) *Flag[int64] {
-	return newFlag(f, name, usage, required, values...)
+func (f *FlagSet) Int64Flag(name, usage string, required bool, defaults ...int64) *Flag[int64] {
+	return newFlag(f, name, usage, required, defaults...)
 }
 
-func (f *FlagSet) UintFlag(name, usage string, required bool, values ...uint) *Flag[uint] {
-	return newFlag(f, name, usage, required, values...)
+func (f *FlagSet) UintFlag(name, usage string, required bool, defaults ...uint) *Flag[uint] {
+	return newFlag(f, name, usage, required, defaults...)
 }
 
-func (f *FlagSet) Uint64Flag(name, usage string, required bool, values ...uint64) *Flag[uint64] {
-	return newFlag(f, name, usage, required, values...)
+func (f *FlagSet) Uint64Flag(name, usage string, required bool, defaults ...uint64) *Flag[uint64] {
+	return newFlag(f, name, usage, required, defaults...)
 }
 
-func (f *FlagSet) Float64Flag(name, usage string, required bool, values ...float64) *Flag[float64] {
-	return newFlag(f, name, usage, required, values...)
+func (f *FlagSet) Float64Flag(name, usage string, required bool, defaults ...float64) *Flag[float64] {
+	return newFlag(f, name, usage, required, defaults...)
 }
 
-func (f *FlagSet) DurationFlag(name, usage string, required bool, values ...time.Duration) *Flag[time.Duration] {
-	return newFlag(f, name, usage, required, values...)
+func (f *FlagSet) DurationFlag(name, usage string, required bool, defaults ...time.Duration) *Flag[time.Duration] {
+	return newFlag(f, name, usage, required, defaults...)
 }
 
 func (f *FlagSet) Parsed() bool {
