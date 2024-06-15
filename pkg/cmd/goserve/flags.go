@@ -60,7 +60,7 @@ func (f *Flags) parse() {
 	flag.StringVar(&f.Host, "host", f.Host, "http server host")
 	flag.StringVar(&f.Port, "port", f.Port, "http server port")
 	flag.StringVar(&f.Exclude, "exclude", f.Exclude, "exclude regex pattern")
-	flag.BoolVar(&f.Upload, "upload", f.Upload, "allow uploads")
+	flag.BoolVar(&f.Upload, "upload", f.Upload, "enable uploads")
 	flag.StringVar(&f.UploadDir, "upload-dir", f.UploadDir, "uploads directory")
 	flag.StringVar(&f.LogLevel, "log-level", f.LogLevel, "log level: one of [debug | info | warn | error]")
 	flag.StringVar(&f.LogFormat, "log-format", f.LogFormat, "log format: one of [json | text]")

@@ -31,8 +31,8 @@ func (c *Controller) Health() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 }
 
-func (c *Controller) FilesHTML() http.Handler {
-	return c.files(newHTMLHandler())
+func (c *Controller) FilesHTML(upload bool) http.Handler {
+	return c.files(newHTMLHandler(upload))
 }
 
 func (c *Controller) FilesJSON() http.Handler {
@@ -44,7 +44,7 @@ func (c *Controller) FilesText() http.Handler {
 }
 
 func (c *Controller) UploadHTML(uploadDir, redirectURL string) http.Handler {
-	return c.upload(newHTMLHandler(), uploadDir, redirectURL)
+	return c.upload(newHTMLHandler(true), uploadDir, redirectURL)
 }
 
 func (c *Controller) UploadJSON(uploadDir, redirectURL string) http.Handler {

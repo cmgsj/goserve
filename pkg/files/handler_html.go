@@ -20,6 +20,7 @@ var (
 type indexData struct {
 	Error       *errorData
 	Breadcrumbs []File
+	Upload      bool
 	Files       []File
 	Version     string
 }
@@ -29,10 +30,14 @@ type errorData struct {
 	Message string
 }
 
-type htmlHandler struct{}
+type htmlHandler struct {
+	upload bool
+}
 
-func newHTMLHandler() htmlHandler {
-	return htmlHandler{}
+func newHTMLHandler(upload bool) htmlHandler {
+	return htmlHandler{
+		upload: upload,
+	}
 }
 
 func (h htmlHandler) parseUploadFile(r *http.Request) (io.Reader, string, error) {
@@ -62,6 +67,7 @@ func (h htmlHandler) handleDir(w io.Writer, dir string, entries []File) error {
 
 	return indexTmpl.Execute(w, indexData{
 		Breadcrumbs: breadcrumbs,
+		Upload:      h.upload,
 		Files:       entries,
 		Version:     version.String(),
 	})
