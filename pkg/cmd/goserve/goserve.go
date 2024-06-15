@@ -1,6 +1,7 @@
 package goserve
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -63,6 +64,22 @@ func Run() error {
 		}
 	}
 
+	flags.UploadDir, err = filepath.Abs(flags.UploadDir)
+	if err != nil {
+		return err
+	}
+
+	_, err = os.Stat(flags.UploadDir)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		err = os.MkdirAll(flags.UploadDir, 0755)
+		if err != nil {
+			return err
+		}
+	}
+
 	scheme := "http"
 	if flags.ServeTLS() {
 		scheme = "https"
@@ -81,6 +98,9 @@ func Run() error {
 	fmt.Printf("  Host: %q\n", flags.Host)
 	fmt.Printf("  Port: %q\n", flags.Port)
 	fmt.Printf("  Exclude: %q\n", flags.Exclude)
+	if flags.Upload {
+		fmt.Printf("  UploadDir: %q\n", flags.UploadDir)
+	}
 	fmt.Printf("  LogLevel: %q\n", flags.LogLevel)
 	fmt.Printf("  LogFormat: %q\n", flags.LogFormat)
 	fmt.Printf("  LogOutput: %q\n", flags.LogOutput)
@@ -97,10 +117,14 @@ func Run() error {
 	}
 	fmt.Println("Routes:")
 	handle(mux, "GET /", http.RedirectHandler("/html", http.StatusMovedPermanently))
-	handle(mux, "POST /html", controller.UploadForm())
 	handle(mux, "GET /html/{file...}", controller.FilesHTML())
 	handle(mux, "GET /json/{file...}", controller.FilesJSON())
 	handle(mux, "GET /text/{file...}", controller.FilesText())
+	if flags.Upload {
+		handle(mux, "POST /html", controller.UploadHTML(flags.UploadDir, "/html"))
+		handle(mux, "POST /json", controller.UploadHTML(flags.UploadDir, "/json"))
+		handle(mux, "POST /text", controller.UploadHTML(flags.UploadDir, "/text"))
+	}
 	handle(mux, "GET /health", controller.Health())
 	fmt.Println()
 

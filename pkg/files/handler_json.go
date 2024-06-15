@@ -2,6 +2,7 @@ package files
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 )
@@ -10,6 +11,10 @@ type jsonHandler struct{}
 
 func newJSONHandler() jsonHandler {
 	return jsonHandler{}
+}
+
+func (h jsonHandler) parseUploadFile(r *http.Request) (io.Reader, string, error) {
+	return nil, "", errors.ErrUnsupported
 }
 
 func (h jsonHandler) handleDir(w io.Writer, dir string, entries []File) error {

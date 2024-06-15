@@ -44,7 +44,7 @@
         method="post"
         style="display: none"
       >
-        <input id="upload-form-input" type="file" />
+        <input id="upload-form-input" name="file" type="file" />
       </form>
     </header>
     <main class="main">
@@ -164,13 +164,9 @@
     const uploadFormInput = document.getElementById("upload-form-input");
     const uploadFormButton = document.getElementById("upload-form-button");
 
-    uploadFormInput.onchange = function () {
-      uploadForm.submit();
-    };
+    uploadFormInput.onchange = () => uploadForm.submit();
 
-    uploadFormButton.onclick = function () {
-      uploadFormInput.click();
-    };
+    uploadFormButton.onclick = () => uploadFormInput.click();
   </script>
   <style>
     .body {
