@@ -23,7 +23,7 @@ func Run() error {
 	}
 
 	if flags.Version {
-		fmt.Println(version.String())
+		fmt.Println(version.Version())
 		return nil
 	}
 
@@ -117,13 +117,13 @@ func Run() error {
 	}
 	fmt.Println("Routes:")
 	handle(mux, "GET /", http.RedirectHandler("/html", http.StatusMovedPermanently))
-	handle(mux, "GET /html/{file...}", controller.FilesHTML(flags.Upload))
+	handle(mux, "GET /html/{file...}", controller.FilesHTML(flags.Upload, version.Version()))
 	handle(mux, "GET /json/{file...}", controller.FilesJSON())
 	handle(mux, "GET /text/{file...}", controller.FilesText())
 	if flags.Upload {
-		handle(mux, "POST /html", controller.UploadHTML(flags.UploadDir, "/html"))
-		handle(mux, "POST /json", controller.UploadHTML(flags.UploadDir, "/json"))
-		handle(mux, "POST /text", controller.UploadHTML(flags.UploadDir, "/text"))
+		handle(mux, "POST /html", controller.UploadHTML(flags.UploadDir, "/html", version.Version()))
+		handle(mux, "POST /json", controller.UploadJSON(flags.UploadDir, "/json"))
+		handle(mux, "POST /text", controller.UploadText(flags.UploadDir, "/text"))
 	}
 	handle(mux, "GET /health", controller.Health())
 	fmt.Println()
