@@ -122,7 +122,7 @@ func (c *Controller) upload(handler handler, redirectURL string) http.Handler {
 		}
 
 		if c.uploadTimestamp {
-			header.Filename = fmt.Sprintf("%s-%s", time.Now().UTC().Format(time.DateTime), header.Filename)
+			header.Filename = time.Now().UTC().Format(time.DateTime) + " " + header.Filename
 		}
 
 		path := filepath.Join(c.uploadDir, header.Filename)
