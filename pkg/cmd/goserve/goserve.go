@@ -93,25 +93,30 @@ func Run() error {
 		}
 	}
 
-	uploadDirPath := uploadDir.Value()
+	var uploadDirPath string
 
-	if uploadDirPath == "" {
-		uploadDirPath = os.TempDir()
-	}
+	if upload.Value() {
+		uploadDirPath = uploadDir.Value()
 
-	uploadDirPath, err = filepath.Abs(uploadDirPath)
-	if err != nil {
-		return err
-	}
-
-	_, err = os.Stat(uploadDir.Value())
-	if err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return err
+		if uploadDirPath == "" {
+			uploadDirPath = os.TempDir()
 		}
-		err = os.MkdirAll(uploadDir.Value(), 0755)
+
+		uploadDirPath, err = filepath.Abs(uploadDirPath)
 		if err != nil {
 			return err
+		}
+
+		_, err = os.Stat(uploadDirPath)
+		if err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+
+			err = os.MkdirAll(uploadDirPath, 0755)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -144,9 +149,9 @@ func Run() error {
 	fmt.Printf("  Root: %q\n", root)
 	fmt.Printf("  Host: %q\n", host.Value())
 	fmt.Printf("  Port: %d\n", port)
-	fmt.Printf("  Exclude: %q\n", exclude.Value())
+	fmt.Printf("  Exclude: %q\n", excludeRegexp)
 	if upload.Value() {
-		fmt.Printf("  UploadDir: %q\n", uploadDir.Value())
+		fmt.Printf("  UploadDir: %q\n", uploadDirPath)
 	}
 	fmt.Printf("  LogLevel: %q\n", logLevel.Value())
 	fmt.Printf("  LogFormat: %q\n", logFormat.Value())
