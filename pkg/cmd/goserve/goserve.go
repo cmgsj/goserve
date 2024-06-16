@@ -17,18 +17,18 @@ import (
 )
 
 var (
-	host            = cli.StringFlag("host", "http server host", false)
-	port            = cli.Uint64Flag("port", "http server port", false)
-	exclude         = cli.StringFlag("exclude", "exclude file pattern", false)
-	upload          = cli.BoolFlag("upload", "enable uploads", false)
-	uploadDir       = cli.StringFlag("upload-dir", "uploads directory", false)
-	uploadTimestamp = cli.BoolFlag("upload-timestamp", "add upload timestamp", false)
-	logLevel        = cli.StringFlag("log-level", "log level { debug | info | warn | error }", false, "info")
-	logFormat       = cli.StringFlag("log-format", "log format { json | text }", false, "text")
-	logOutput       = cli.StringFlag("log-output", "log output { stdout | stderr | FILE }", false, "stderr")
-	tlsCert         = cli.StringFlag("tls-cert", "tls cert file", false)
-	tlsKey          = cli.StringFlag("tls-key", "tls key file", false)
-	version         = cli.BoolFlag("version", "print version", false)
+	host             = cli.StringFlag("host", "http server host", false)
+	port             = cli.Uint64Flag("port", "http server port", false)
+	exclude          = cli.StringFlag("exclude", "exclude file pattern", false)
+	uploads          = cli.BoolFlag("uploads", "enable uploads", false)
+	uploadsDir       = cli.StringFlag("uploads-dir", "uploads directory", false)
+	uploadsTimestamp = cli.BoolFlag("uploads-timestamp", "add upload timestamp", false)
+	logLevel         = cli.StringFlag("log-level", "log level { debug | info | warn | error }", false, "info")
+	logFormat        = cli.StringFlag("log-format", "log format { json | text }", false, "text")
+	logOutput        = cli.StringFlag("log-output", "log output { stdout | stderr | FILE }", false, "stderr")
+	tlsCert          = cli.StringFlag("tls-cert", "tls cert file", false)
+	tlsKey           = cli.StringFlag("tls-key", "tls key file", false)
+	version          = cli.BoolFlag("version", "print version", false)
 )
 
 func Run() error {
@@ -84,36 +84,36 @@ func Run() error {
 		}
 	}
 
-	var excludeRegexp *regexp.Regexp
+	var excludePattern *regexp.Regexp
 
 	if exclude.Value() != "" {
-		excludeRegexp, err = regexp.Compile(exclude.Value())
+		excludePattern, err = regexp.Compile(exclude.Value())
 		if err != nil {
 			return err
 		}
 	}
 
-	var uploadDirPath string
+	var uploadsDirPath string
 
-	if upload.Value() {
-		uploadDirPath = uploadDir.Value()
+	if uploads.Value() {
+		uploadsDirPath = uploadsDir.Value()
 
-		if uploadDirPath == "" {
-			uploadDirPath = os.TempDir()
+		if uploadsDirPath == "" {
+			uploadsDirPath = os.TempDir()
 		}
 
-		uploadDirPath, err = filepath.Abs(uploadDirPath)
+		uploadsDirPath, err = filepath.Abs(uploadsDirPath)
 		if err != nil {
 			return err
 		}
 
-		_, err = os.Stat(uploadDirPath)
+		_, err = os.Stat(uploadsDirPath)
 		if err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}
 
-			err = os.MkdirAll(uploadDirPath, 0755)
+			err = os.MkdirAll(uploadsDirPath, 0755)
 			if err != nil {
 				return err
 			}
@@ -150,10 +150,10 @@ func Run() error {
 	fmt.Printf("  Host: %q\n", host.Value())
 	fmt.Printf("  Port: %d\n", port)
 	if exclude.Value() != "" {
-		fmt.Printf("  ExcludePattern: %q\n", excludeRegexp)
+		fmt.Printf("  ExcludePattern: %q\n", excludePattern)
 	}
-	if upload.Value() {
-		fmt.Printf("  UploadDir: %q\n", uploadDirPath)
+	if uploads.Value() {
+		fmt.Printf("  UploadsDir: %q\n", uploadsDirPath)
 	}
 	fmt.Printf("  LogLevel: %q\n", logLevel.Value())
 	fmt.Printf("  LogFormat: %q\n", logFormat.Value())
@@ -171,13 +171,13 @@ func Run() error {
 		fmt.Printf("  %s\n", pattern)
 	}
 
-	controller := files.NewController(files.ControllerOptions{
-		FileSystem:      fileSystem,
-		ExcludeRegexp:   excludeRegexp,
-		Upload:          upload.Value(),
-		UploadDir:       uploadDirPath,
-		UploadTimestamp: uploadTimestamp.Value(),
-		Version:         Version(),
+	controller := files.NewController(files.ControllerConfig{
+		FileSystem:       fileSystem,
+		ExcludePattern:   excludePattern,
+		Uploads:          uploads.Value(),
+		UploadsDir:       uploadsDirPath,
+		UploadsTimestamp: uploadsTimestamp.Value(),
+		Version:          Version(),
 	})
 
 	fmt.Println("Routes:")
@@ -186,7 +186,7 @@ func Run() error {
 	handle("GET /html/{file...}", controller.FilesHTML())
 	handle("GET /json/{file...}", controller.FilesJSON())
 	handle("GET /text/{file...}", controller.FilesText())
-	if upload.Value() {
+	if uploads.Value() {
 		handle("POST /html", controller.UploadHTML("/html"))
 		handle("POST /json", controller.UploadJSON("/json"))
 		handle("POST /text", controller.UploadText("/text"))

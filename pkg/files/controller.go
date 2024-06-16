@@ -16,34 +16,28 @@ import (
 )
 
 type Controller struct {
-	filesystem      fs.FS
-	excludeRegexp   *regexp.Regexp
-	uploadDir       string
-	uploadTimestamp bool
-	htmlHandler     htmlHandler
-	jsonHandler     jsonHandler
-	textHandler     textHandler
+	config      ControllerConfig
+	htmlHandler htmlHandler
+	jsonHandler jsonHandler
+	textHandler textHandler
 }
 
-type ControllerOptions struct {
-	FileSystem      fs.FS
-	ExcludeRegexp   *regexp.Regexp
-	Upload          bool
-	UploadDir       string
-	UploadTimestamp bool
-	RawJSON         bool
-	Version         string
+type ControllerConfig struct {
+	FileSystem       fs.FS
+	ExcludePattern   *regexp.Regexp
+	Uploads          bool
+	UploadsDir       string
+	UploadsTimestamp bool
+	RawJSON          bool
+	Version          string
 }
 
-func NewController(opts ControllerOptions) *Controller {
+func NewController(config ControllerConfig) *Controller {
 	return &Controller{
-		filesystem:      opts.FileSystem,
-		excludeRegexp:   opts.ExcludeRegexp,
-		uploadDir:       opts.UploadDir,
-		uploadTimestamp: opts.UploadTimestamp,
-		htmlHandler:     newHTMLHandler(opts.Upload, opts.Version),
-		jsonHandler:     newJSONHandler(!opts.RawJSON),
-		textHandler:     newTextHandler(),
+		config:      config,
+		htmlHandler: newHTMLHandler(config.Uploads, config.Version),
+		jsonHandler: newJSONHandler(!config.RawJSON),
+		textHandler: newTextHandler(),
 	}
 }
 
@@ -81,7 +75,7 @@ func (c *Controller) files(handler handler) http.Handler {
 
 		file = path.Clean(file)
 
-		info, err := fs.Stat(c.filesystem, file)
+		info, err := fs.Stat(c.config.FileSystem, file)
 		if err != nil {
 			c.handleError(w, handler, err, fsErrorStatusCode(err))
 			return
@@ -121,11 +115,11 @@ func (c *Controller) upload(handler handler, redirectURL string) http.Handler {
 			return
 		}
 
-		if c.uploadTimestamp {
+		if c.config.UploadsTimestamp {
 			header.Filename = time.Now().UTC().Format(time.DateTime) + " " + header.Filename
 		}
 
-		path := filepath.Join(c.uploadDir, header.Filename)
+		path := filepath.Join(c.config.UploadsDir, header.Filename)
 
 		_, err = os.Stat(path)
 		if err != nil {
@@ -170,12 +164,12 @@ func (c *Controller) upload(handler handler, redirectURL string) http.Handler {
 }
 
 func (c *Controller) IsAllowed(file string) bool {
-	if file == RootDir || c.excludeRegexp == nil {
+	if file == RootDir || c.config.ExcludePattern == nil {
 		return true
 	}
 
 	for _, path := range strings.Split(file, "/") {
-		if c.excludeRegexp.MatchString(path) {
+		if c.config.ExcludePattern.MatchString(path) {
 			return false
 		}
 	}
@@ -184,7 +178,7 @@ func (c *Controller) IsAllowed(file string) bool {
 }
 
 func (c *Controller) copyFile(w io.Writer, file string) error {
-	f, err := c.filesystem.Open(file)
+	f, err := c.config.FileSystem.Open(file)
 	if err != nil {
 		return err
 	}
@@ -202,7 +196,7 @@ func (c *Controller) copyFile(w io.Writer, file string) error {
 }
 
 func (c *Controller) readDir(dir string) ([]File, error) {
-	entries, err := fs.ReadDir(c.filesystem, dir)
+	entries, err := fs.ReadDir(c.config.FileSystem, dir)
 	if err != nil {
 		return nil, err
 	}
