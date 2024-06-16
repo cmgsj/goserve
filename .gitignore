@@ -11,6 +11,9 @@
 # Config
 .tool-versions
 
+# Taskfile
+.task
+
 # Binaries
 /bin
 /goserve

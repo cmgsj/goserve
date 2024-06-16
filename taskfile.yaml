@@ -1,0 +1,86 @@
+version: "3"
+
+vars:
+  GO_MODULE: github.com/cmgsj/goserve
+
+tasks:
+  default:
+    cmds:
+      - task: fmt
+      - task: build
+      - task: install
+
+  fmt:
+    sources:
+      - "{{.GO_FILES}}"
+    cmds:
+      - go fmt ./...
+      - goimports -w -local {{.GO_MODULE}} {{.GO_FILES}}
+    vars:
+      GO_FILES:
+        sh: find . -type f -name "*.go" ! -path "./vendor/*" | xargs
+
+  test:
+    sources:
+      - "{{.GO_TEST_FILES}}"
+    cmds:
+      - go test -v ./...
+    vars:
+      GO_TEST_FILES:
+        sh: find . -type f -name "*_test.go" ! -path "./vendor/*" | xargs
+
+  build:
+    sources:
+      - "pkg/**"
+      - "*.go"
+    generates:
+      - "bin/goserve{{exeExt}}"
+    cmds:
+      - task: binary
+        vars:
+          CMD: build
+
+  install:
+    sources:
+      - "pkg/**"
+      - "*.go"
+    generates:
+      - "{{.GOBIN}}/goserve{{exeExt}}"
+    cmds:
+      - task: binary
+        vars:
+          CMD: install
+    vars:
+      GOBIN:
+        sh: |
+          gobin="$(go env GOBIN)"
+          if [[ -z "$gobin" ]]; then
+            gobin="$HOME/go/bin"
+          fi
+          echo $gobin
+
+  binary:
+    internal: true
+    required:
+      vars: [CMD]
+    cmds:
+      - |
+        ldflags="-s -w -extldflags='-static'"
+        if [[ -n "{{.VERSION}}" ]]; then
+          ldflags+=" -X '{{.GO_MODULE}}/pkg/cmd/goserve.v={{.VERSION}}'"
+        fi
+        flags=(-trimpath -ldflags="$ldflags")
+        if [[ "{{.CMD}}" == "build" ]]; then
+          flags+=(-o "bin/goserve")
+        fi
+        echo "{{.CMD}}ing goserve v{{.VERSION}} {{.GOOS}}/{{.GOARCH}} cgo={{.CGO_ENABLED}}"
+        go {{.CMD}} "${flags[@]}" .
+    vars:
+      GOOS:
+        sh: go env GOOS
+      GOARCH:
+        sh: go env GOARCH
+      CGO_ENABLED:
+        sh: go env CGO_ENABLED
+      VERSION:
+        sh: git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//'
