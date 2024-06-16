@@ -58,8 +58,24 @@ func (f *FlagSet) NArg() int {
 	return f.flagSet.NArg()
 }
 
+func (f *FlagSet) Set(name, value string) error {
+	return f.flagSet.Set(name, value)
+}
+
+func (f *FlagSet) Lookup(name string) *flag.Flag {
+	return f.flagSet.Lookup(name)
+}
+
 func (f *FlagSet) NFlag() int {
 	return f.flagSet.NFlag()
+}
+
+func (f *FlagSet) Visit(fn func(*flag.Flag)) {
+	f.flagSet.Visit(fn)
+}
+
+func (f *FlagSet) VisitAll(fn func(*flag.Flag)) {
+	f.flagSet.VisitAll(fn)
 }
 
 func (f *FlagSet) StringFlag(name, usage string, required bool, defaults ...string) *Flag[string] {

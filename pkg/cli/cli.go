@@ -48,8 +48,24 @@ func NArg() int {
 	return DefaultFlagSet.NArg()
 }
 
+func Set(name, value string) error {
+	return DefaultFlagSet.Set(name, value)
+}
+
+func Lookup(name string) *flag.Flag {
+	return DefaultFlagSet.Lookup(name)
+}
+
 func NFlag() int {
 	return DefaultFlagSet.NFlag()
+}
+
+func Visit(fn func(*flag.Flag)) {
+	DefaultFlagSet.Visit(fn)
+}
+
+func VisitAll(fn func(*flag.Flag)) {
+	DefaultFlagSet.VisitAll(fn)
 }
 
 func StringFlag(name, usage string, required bool, defaults ...string) *Flag[string] {
