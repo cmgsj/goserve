@@ -84,7 +84,7 @@ func (f *Flag[T]) Value() T {
 
 func (f *Flag[T]) parse() error {
 	var zero T
-	var env bool
+	var parsedEnv bool
 
 	if f.value == zero {
 		key := f.name
@@ -97,8 +97,6 @@ func (f *Flag[T]) parse() error {
 
 		value, ok := os.LookupEnv(key)
 		if ok {
-			env = true
-
 			var v any
 			var err error
 
@@ -142,10 +140,12 @@ func (f *Flag[T]) parse() error {
 			}
 
 			f.value = v.(T)
+
+			parsedEnv = true
 		}
 	}
 
-	if f.value == zero && !env {
+	if f.value == zero && !parsedEnv {
 		f.value = f.defaultValue
 	}
 
@@ -157,15 +157,13 @@ func (f *Flag[T]) parse() error {
 }
 
 var (
-	firstUpper       = regexp.MustCompile("([a-z0-9])([A-Z])")
-	consecutiveUpper = regexp.MustCompile("([A-Z])([A-Z][a-z0-9])")
+	camelLowerToUpper = regexp.MustCompile("([a-z0-9])([A-Z])")
+	camelUpperToLower = regexp.MustCompile("([A-Z])([A-Z][a-z0-9])")
 )
 
 func toSnakeCase(s string) string {
-	s = firstUpper.ReplaceAllString(s, "${1}_${2}")
-	s = consecutiveUpper.ReplaceAllString(s, "${1}_${2}")
-
+	s = camelLowerToUpper.ReplaceAllString(s, "${1}_${2}")
+	s = camelUpperToLower.ReplaceAllString(s, "${1}_${2}")
 	s = strings.ReplaceAll(s, "-", "_")
-
 	return s
 }

@@ -28,12 +28,12 @@ func PrintDefaults() {
 	DefaultFlagSet.PrintDefaults()
 }
 
-func NFlag() int {
-	return DefaultFlagSet.NFlag()
+func Parse() error {
+	return DefaultFlagSet.Parse(os.Args[1:])
 }
 
-func NArg() int {
-	return DefaultFlagSet.NArg()
+func Parsed() bool {
+	return DefaultFlagSet.Parsed()
 }
 
 func Arg(i int) string {
@@ -42,6 +42,14 @@ func Arg(i int) string {
 
 func Args() []string {
 	return DefaultFlagSet.Args()
+}
+
+func NArg() int {
+	return DefaultFlagSet.NArg()
+}
+
+func NFlag() int {
+	return DefaultFlagSet.NFlag()
 }
 
 func StringFlag(name, usage string, required bool, defaults ...string) *Flag[string] {
@@ -74,12 +82,4 @@ func Float64Flag(name, usage string, required bool, defaults ...float64) *Flag[f
 
 func DurationFlag(name, usage string, required bool, defaults ...time.Duration) *Flag[time.Duration] {
 	return DefaultFlagSet.DurationFlag(name, usage, required, defaults...)
-}
-
-func Parsed() bool {
-	return DefaultFlagSet.Parsed()
-}
-
-func Parse() error {
-	return DefaultFlagSet.Parse()
 }

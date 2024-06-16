@@ -3,7 +3,6 @@ package cli
 import (
 	"errors"
 	"flag"
-	"os"
 	"time"
 )
 
@@ -39,12 +38,12 @@ func (f *FlagSet) PrintDefaults() {
 	f.flagSet.PrintDefaults()
 }
 
-func (f *FlagSet) NFlag() int {
-	return f.flagSet.NFlag()
+func (f *FlagSet) Parse(args []string) error {
+	return f.parse(args)
 }
 
-func (f *FlagSet) NArg() int {
-	return f.flagSet.NArg()
+func (f *FlagSet) Parsed() bool {
+	return f.flagSet.Parsed()
 }
 
 func (f *FlagSet) Arg(i int) string {
@@ -53,6 +52,14 @@ func (f *FlagSet) Arg(i int) string {
 
 func (f *FlagSet) Args() []string {
 	return f.flagSet.Args()
+}
+
+func (f *FlagSet) NArg() int {
+	return f.flagSet.NArg()
+}
+
+func (f *FlagSet) NFlag() int {
+	return f.flagSet.NFlag()
 }
 
 func (f *FlagSet) StringFlag(name, usage string, required bool, defaults ...string) *Flag[string] {
@@ -87,12 +94,8 @@ func (f *FlagSet) DurationFlag(name, usage string, required bool, defaults ...ti
 	return newFlag(f, name, usage, required, defaults...)
 }
 
-func (f *FlagSet) Parsed() bool {
-	return f.flagSet.Parsed()
-}
-
-func (f *FlagSet) Parse() error {
-	err := f.flagSet.Parse(os.Args[1:])
+func (f *FlagSet) parse(args []string) error {
+	err := f.flagSet.Parse(args)
 	if err != nil {
 		return err
 	}
