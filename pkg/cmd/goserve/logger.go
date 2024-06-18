@@ -21,8 +21,10 @@ func initLogger() error {
 	switch strings.ToLower(logOutput.Value()) {
 	case "stdout":
 		out = os.Stdout
+
 	case "stderr":
 		out = os.Stderr
+
 	default:
 		out, err = os.Create(logOutput.Value())
 		if err != nil {
@@ -39,8 +41,10 @@ func initLogger() error {
 	switch strings.ToLower(logFormat.Value()) {
 	case "json":
 		handler = slog.NewJSONHandler(out, opts)
+
 	case "text":
 		handler = slog.NewTextHandler(out, opts)
+
 	default:
 		return fmt.Errorf("invalid log format %q", logFormat.Value())
 	}

@@ -14,16 +14,16 @@ func newTextHandler() textHandler {
 	return textHandler{}
 }
 
-func (h textHandler) handleDir(w io.Writer, dir string, entries []File) error {
+func (h textHandler) handleDir(w io.Writer, dir string, files []File) error {
 	var buf bytes.Buffer
 
-	for _, entry := range entries {
-		buf.WriteString(entry.Name)
-		if entry.IsDir {
+	for _, file := range files {
+		buf.WriteString(file.Name)
+		if file.IsDir {
 			buf.WriteByte('/')
 		} else {
 			buf.WriteByte('\t')
-			buf.WriteString(entry.Size)
+			buf.WriteString(file.Size)
 		}
 		buf.WriteByte('\n')
 	}

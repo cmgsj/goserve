@@ -11,8 +11,8 @@ const (
 )
 
 type File struct {
-	Path  string `json:"path,omitempty"`
-	Name  string `json:"name,omitempty"`
+	Path  string `json:"path"`
+	Name  string `json:"name"`
 	Size  string `json:"size,omitempty"`
 	IsDir bool   `json:"is_dir"`
 }

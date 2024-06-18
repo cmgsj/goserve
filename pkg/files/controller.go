@@ -36,13 +36,15 @@ func NewController(config ControllerConfig) *Controller {
 	return &Controller{
 		config:      config,
 		htmlHandler: newHTMLHandler(config.Uploads, config.Version),
-		jsonHandler: newJSONHandler(!config.RawJSON),
+		jsonHandler: newJSONHandler(config.RawJSON),
 		textHandler: newTextHandler(),
 	}
 }
 
 func (c *Controller) Health() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 }
 
 func (c *Controller) FilesHTML() http.Handler {
@@ -81,8 +83,8 @@ func (c *Controller) files(handler handler) http.Handler {
 			return
 		}
 
-		if !c.IsAllowed(file) {
-			c.handleError(w, handler, newStaNotExistError(file), http.StatusNotFound)
+		if c.IsForbidden(file) {
+			c.handleError(w, handler, fsNotExistError(file), http.StatusNotFound)
 			return
 		}
 
@@ -94,13 +96,13 @@ func (c *Controller) files(handler handler) http.Handler {
 			return
 		}
 
-		entries, err := c.readDir(file)
+		files, err := c.readDir(file)
 		if err != nil {
 			c.handleError(w, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
-		err = handler.handleDir(w, file, entries)
+		err = handler.handleDir(w, file, files)
 		if err != nil {
 			c.handleError(w, handler, err, http.StatusInternalServerError)
 		}
@@ -163,18 +165,18 @@ func (c *Controller) upload(handler handler, redirectURL string) http.Handler {
 	})
 }
 
-func (c *Controller) IsAllowed(file string) bool {
+func (c *Controller) IsForbidden(file string) bool {
 	if file == RootDir || c.config.ExcludePattern == nil {
-		return true
+		return false
 	}
 
 	for _, path := range strings.Split(file, "/") {
 		if c.config.ExcludePattern.MatchString(path) {
-			return false
+			return true
 		}
 	}
 
-	return true
+	return false
 }
 
 func (c *Controller) copyFile(w io.Writer, file string) error {
@@ -214,7 +216,7 @@ func (c *Controller) readDir(dir string) ([]File, error) {
 	for _, entry := range entries {
 		file := path.Join(dir, entry.Name())
 
-		if !c.IsAllowed(file) {
+		if c.IsForbidden(file) {
 			continue
 		}
 

@@ -1,12 +1,11 @@
 package cli
 
 import (
-	"flag"
 	"os"
 	"time"
 )
 
-var DefaultFlagSet = NewFlagSet(os.Args[0], flag.ExitOnError)
+var DefaultFlagSet = NewFlagSet(os.Args[0], ExitOnError)
 
 func EnvPrefix() string {
 	return DefaultFlagSet.EnvPrefix()
@@ -52,7 +51,7 @@ func Set(name, value string) error {
 	return DefaultFlagSet.Set(name, value)
 }
 
-func Lookup(name string) *flag.Flag {
+func Lookup(name string) *FlagInfo {
 	return DefaultFlagSet.Lookup(name)
 }
 
@@ -60,11 +59,11 @@ func NFlag() int {
 	return DefaultFlagSet.NFlag()
 }
 
-func Visit(fn func(*flag.Flag)) {
+func Visit(fn func(*FlagInfo)) {
 	DefaultFlagSet.Visit(fn)
 }
 
-func VisitAll(fn func(*flag.Flag)) {
+func VisitAll(fn func(*FlagInfo)) {
 	DefaultFlagSet.VisitAll(fn)
 }
 

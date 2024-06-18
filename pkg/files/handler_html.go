@@ -15,32 +15,32 @@ var (
 	indexTmpl = template.Must(template.New("index").Parse(indexHTML))
 )
 
-type indexData struct {
-	Error       *errorData
+type indexParams struct {
+	Error       *errorParams
 	Breadcrumbs []File
-	Upload      bool
 	Files       []File
+	Uploads     bool
 	Version     string
 }
 
-type errorData struct {
+type errorParams struct {
 	Status  string
 	Message string
 }
 
 type htmlHandler struct {
-	upload  bool
+	uploads bool
 	version string
 }
 
-func newHTMLHandler(upload bool, version string) htmlHandler {
+func newHTMLHandler(uploads bool, version string) htmlHandler {
 	return htmlHandler{
-		upload:  upload,
+		uploads: uploads,
 		version: version,
 	}
 }
 
-func (h htmlHandler) handleDir(w io.Writer, dir string, entries []File) error {
+func (h htmlHandler) handleDir(w io.Writer, dir string, files []File) error {
 	var breadcrumbs []File
 
 	if dir != RootDir {
@@ -56,17 +56,17 @@ func (h htmlHandler) handleDir(w io.Writer, dir string, entries []File) error {
 		}
 	}
 
-	return indexTmpl.Execute(w, indexData{
+	return indexTmpl.Execute(w, indexParams{
 		Breadcrumbs: breadcrumbs,
-		Upload:      h.upload,
-		Files:       entries,
+		Files:       files,
+		Uploads:     h.uploads,
 		Version:     h.version,
 	})
 }
 
 func (h htmlHandler) handleError(w io.Writer, err error, code int) error {
-	return indexTmpl.Execute(w, indexData{
-		Error: &errorData{
+	return indexTmpl.Execute(w, indexParams{
+		Error: &errorParams{
 			Status:  http.StatusText(code),
 			Message: err.Error(),
 		},

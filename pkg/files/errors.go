@@ -7,12 +7,15 @@ import (
 	"net/http"
 )
 
-func newStaNotExistError(file string) error {
+func fsNotExistError(file string) error {
 	return fmt.Errorf("stat %s: no such file or directory", file)
 }
 
 func fsErrorStatusCode(err error) int {
 	switch {
+	case err == nil:
+		return http.StatusOK
+
 	case errors.Is(err, fs.ErrInvalid):
 		return http.StatusBadRequest
 

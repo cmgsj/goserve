@@ -12,7 +12,7 @@ type FlagSet struct {
 	envPrefix string
 }
 
-func NewFlagSet(name string, errorHandling flag.ErrorHandling) *FlagSet {
+func NewFlagSet(name string, errorHandling ErrorHandling) *FlagSet {
 	return &FlagSet{
 		flagSet: flag.NewFlagSet(name, errorHandling),
 	}
@@ -62,7 +62,7 @@ func (f *FlagSet) Set(name, value string) error {
 	return f.flagSet.Set(name, value)
 }
 
-func (f *FlagSet) Lookup(name string) *flag.Flag {
+func (f *FlagSet) Lookup(name string) *FlagInfo {
 	return f.flagSet.Lookup(name)
 }
 
@@ -70,11 +70,11 @@ func (f *FlagSet) NFlag() int {
 	return f.flagSet.NFlag()
 }
 
-func (f *FlagSet) Visit(fn func(*flag.Flag)) {
+func (f *FlagSet) Visit(fn func(*FlagInfo)) {
 	f.flagSet.Visit(fn)
 }
 
-func (f *FlagSet) VisitAll(fn func(*flag.Flag)) {
+func (f *FlagSet) VisitAll(fn func(*FlagInfo)) {
 	f.flagSet.VisitAll(fn)
 }
 
