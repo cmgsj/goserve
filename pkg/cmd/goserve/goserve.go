@@ -166,9 +166,11 @@ func Run() error {
 
 	mux := http.NewServeMux()
 
-	handle := func(pattern string, handler http.Handler) {
-		mux.Handle(pattern, handler)
-		fmt.Printf("  %s\n", pattern)
+	handle := func(handler http.Handler, patterns ...string) {
+		for _, pattern := range patterns {
+			mux.Handle(pattern, handler)
+			fmt.Printf("  %s\n", pattern)
+		}
 	}
 
 	controller := files.NewController(files.ControllerConfig{
@@ -182,16 +184,16 @@ func Run() error {
 
 	fmt.Println("Routes:")
 
-	handle("GET /", http.RedirectHandler("/html", http.StatusMovedPermanently))
-	handle("GET /html/{file...}", controller.FilesHTML())
-	handle("GET /json/{file...}", controller.FilesJSON())
-	handle("GET /text/{file...}", controller.FilesText())
+	handle(http.RedirectHandler("/html", http.StatusMovedPermanently), "GET /")
+	handle(controller.FilesHTML(), "GET /html", "GET /html/{file...}")
+	handle(controller.FilesJSON(), "GET /json", "GET /json/{file...}")
+	handle(controller.FilesText(), "GET /text", "GET /text/{file...}")
 	if uploads.Value() {
-		handle("POST /html", controller.UploadHTML("/html"))
-		handle("POST /json", controller.UploadJSON("/json"))
-		handle("POST /text", controller.UploadText("/text"))
+		handle(controller.UploadHTML("/html"), "POST /html")
+		handle(controller.UploadJSON("/json"), "POST /json")
+		handle(controller.UploadText("/text"), "POST /text")
 	}
-	handle("GET /health", controller.Health())
+	handle(controller.Health(), "GET /health")
 
 	fmt.Println()
 	fmt.Println("Ready to accept connections")
