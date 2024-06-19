@@ -72,14 +72,14 @@ func (c *Controller) listFiles(handler handler) http.Handler {
 
 		filePath = path.Clean(filePath)
 
-		fileInfo, err := fs.Stat(c.fileSystem, filePath)
-		if err != nil {
-			c.handleError(w, handler, err, fsErrorStatusCode(err))
+		if c.isForbidden(filePath) {
+			c.handleError(w, handler, fsNotExistError(filePath), http.StatusNotFound)
 			return
 		}
 
-		if c.isForbidden(filePath) {
-			c.handleError(w, handler, fsNotExistError(filePath), http.StatusNotFound)
+		fileInfo, err := fs.Stat(c.fileSystem, filePath)
+		if err != nil {
+			c.handleError(w, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
@@ -106,6 +106,11 @@ func (c *Controller) listFiles(handler handler) http.Handler {
 
 func (c *Controller) uploadFile(handler handler, redirectURL string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !c.config.Uploads {
+			c.handleError(w, handler, fs.ErrPermission, http.StatusForbidden)
+			return
+		}
+
 		formFile, header, err := r.FormFile("file")
 		if err != nil {
 			c.handleError(w, handler, err, http.StatusBadRequest)

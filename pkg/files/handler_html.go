@@ -44,13 +44,13 @@ func (h htmlHandler) handleDir(w io.Writer, dir string, files []File) error {
 	var breadcrumbs []File
 
 	if dir != RootDir {
-		var prefix string
+		var pathPrefix string
 
 		for _, name := range strings.Split(dir, "/") {
-			prefix = path.Join(prefix, name)
+			pathPrefix = path.Join(pathPrefix, name)
 
 			breadcrumbs = append(breadcrumbs, File{
-				Path: prefix,
+				Path: pathPrefix,
 				Name: name,
 			})
 		}
