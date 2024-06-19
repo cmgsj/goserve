@@ -11,7 +11,8 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/cmgsj/goserve/pkg/cli"
+	"github.com/cmgsj/go-lib/cli"
+
 	"github.com/cmgsj/goserve/pkg/files"
 	"github.com/cmgsj/goserve/pkg/middleware/logging"
 )
