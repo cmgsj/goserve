@@ -140,7 +140,7 @@ func (c *Controller) UploadFile(redirectURL string) http.Handler {
 		}
 
 		if redirectURL != "" {
-			http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
+			http.Redirect(w, r, redirectURL, http.StatusFound)
 		}
 	})
 }
