@@ -2,11 +2,11 @@ package files
 
 import (
 	_ "embed"
+	"html/template"
 	"io"
 	"net/http"
 	"path"
 	"strings"
-	"text/template"
 )
 
 var (
