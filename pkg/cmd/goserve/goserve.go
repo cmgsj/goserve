@@ -1,6 +1,7 @@
 package goserve
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -123,12 +124,6 @@ func Run() error {
 
 	serveTLS := tlsCert.Value() != "" && tlsKey.Value() != ""
 
-	scheme := "http"
-
-	if serveTLS {
-		scheme = "https"
-	}
-
 	port := port.Value()
 
 	if port == 0 {
@@ -142,6 +137,21 @@ func Run() error {
 	listener, err := net.Listen("tcp", net.JoinHostPort(host.Value(), strconv.FormatUint(port, 10)))
 	if err != nil {
 		return err
+	}
+
+	scheme := "http"
+
+	if serveTLS {
+		scheme = "https"
+
+		certificate, err := tls.LoadX509KeyPair(tlsCert.Value(), tlsKey.Value())
+		if err != nil {
+			return err
+		}
+
+		listener = tls.NewListener(listener, &tls.Config{
+			Certificates: []tls.Certificate{certificate},
+		})
 	}
 
 	controller := files.NewController(fileSystem, files.ControllerConfig{
@@ -233,10 +243,6 @@ func Run() error {
 	fmt.Println()
 	fmt.Println("Ready to accept connections")
 	fmt.Println()
-
-	if serveTLS {
-		return http.ServeTLS(listener, handler, tlsCert.Value(), tlsKey.Value())
-	}
 
 	return http.Serve(listener, handler)
 }
