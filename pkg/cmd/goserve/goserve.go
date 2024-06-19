@@ -143,36 +143,6 @@ func Run() error {
 		return err
 	}
 
-	fmt.Printf("Starting file server at %s://%s\n", scheme, listener.Addr())
-	fmt.Println()
-	fmt.Println("Config:")
-	fmt.Printf("  Root: %q\n", root)
-	fmt.Printf("  Host: %q\n", host.Value())
-	fmt.Printf("  Port: %d\n", port)
-	if exclude.Value() != "" {
-		fmt.Printf("  ExcludePattern: %q\n", excludePattern)
-	}
-	if uploads.Value() {
-		fmt.Printf("  UploadsDir: %q\n", uploadsDirPath)
-	}
-	fmt.Printf("  LogLevel: %q\n", logLevel.Value())
-	fmt.Printf("  LogFormat: %q\n", logFormat.Value())
-	fmt.Printf("  LogOutput: %q\n", logOutput.Value())
-	if serveTLS {
-		fmt.Printf("  TLSCert: %q\n", tlsCert.Value())
-		fmt.Printf("  TLSKey: %q\n", tlsKey.Value())
-	}
-	fmt.Println()
-
-	mux := http.NewServeMux()
-
-	handle := func(handler http.Handler, patterns ...string) {
-		for _, pattern := range patterns {
-			mux.Handle(pattern, handler)
-			fmt.Printf("  %s\n", pattern)
-		}
-	}
-
 	controller := files.NewController(fileSystem, files.ControllerConfig{
 		ExcludePattern:   excludePattern,
 		Uploads:          uploads.Value(),
@@ -181,34 +151,91 @@ func Run() error {
 		Version:          Version(),
 	})
 
+	mux := http.NewServeMux()
+
+	handler := logging.LogRequests(mux)
+
+	fmt.Println("Starting file server")
+	fmt.Println()
+	fmt.Println("Config:")
+	fmt.Printf("  Root: %q\n", root)
+	fmt.Printf("  Host: %q\n", host.Value())
+	fmt.Printf("  Port: %d\n", port)
+	if exclude.Value() != "" {
+		fmt.Printf("  Exclude Pattern: %q\n", excludePattern)
+	}
+	if uploads.Value() {
+		fmt.Printf("  Uploads Dir: %q\n", uploadsDirPath)
+	}
+	fmt.Printf("  Log Level: %q\n", logLevel.Value())
+	fmt.Printf("  Log Format: %q\n", logFormat.Value())
+	fmt.Printf("  Log Output: %q\n", logOutput.Value())
+	if serveTLS {
+		fmt.Printf("  TLS Cert: %q\n", tlsCert.Value())
+		fmt.Printf("  TLS Key: %q\n", tlsKey.Value())
+	}
+	fmt.Println()
+
 	fmt.Println("Routes:")
 
-	handle(http.RedirectHandler("/html", http.StatusMovedPermanently), "GET /")
-	handle(controller.ListFilesHTML(), "GET /html", "GET /html/{file...}")
-	handle(controller.ListFilesJSON(), "GET /json", "GET /json/{file...}")
-	handle(controller.ListFilesText(), "GET /text", "GET /text/{file...}")
-	if uploads.Value() {
-		handle(controller.UploadFileHTML("/html"), "POST /html")
-		handle(controller.UploadFileJSON("/json"), "POST /json")
-		handle(controller.UploadFileText("/text"), "POST /text")
+	err = registerRoutes(mux, []route{
+		{
+			patterns:    []string{"GET /"},
+			description: "Redirect (/html)",
+			handler:     http.RedirectHandler("/html", http.StatusMovedPermanently),
+		},
+		{
+			patterns:    []string{"GET /html", "GET /html/{file...}"},
+			description: "List Files HTML",
+			handler:     controller.ListFilesHTML(),
+		},
+		{
+			patterns:    []string{"GET /json", "GET /json/{file...}"},
+			description: "List Files JSON",
+			handler:     controller.ListFilesJSON(),
+		},
+		{
+			patterns:    []string{"GET /text", "GET /text/{file...}"},
+			description: "List Files Text",
+			handler:     controller.ListFilesText(),
+		},
+		{
+			patterns:    []string{"POST /html"},
+			description: "Upload File HTML",
+			handler:     controller.UploadFileHTML("/html"),
+			disabled:    !uploads.Value(),
+		},
+		{
+			patterns:    []string{"POST /json"},
+			description: "Upload File JSON",
+			handler:     controller.UploadFileJSON("/json"),
+			disabled:    !uploads.Value(),
+		},
+		{
+			patterns:    []string{"POST /text"},
+			description: "Upload File Text",
+			handler:     controller.UploadFileText("/text"),
+			disabled:    !uploads.Value(),
+		},
+		{
+			patterns:    []string{"GET /health"},
+			description: "Health Check",
+			handler:     health(),
+		},
+	})
+	if err != nil {
+		return err
 	}
-	handle(health(), "GET /health")
 
+	fmt.Println()
+	fmt.Printf("Listening at %s://%s\n", scheme, listener.Addr())
 	fmt.Println()
 	fmt.Println("Ready to accept connections")
 	fmt.Println()
-
-	handler := logging.LogRequests(mux)
 
 	if serveTLS {
 		return http.ServeTLS(listener, handler, tlsCert.Value(), tlsKey.Value())
 	}
 
 	return http.Serve(listener, handler)
-}
-
-func health() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
 }
