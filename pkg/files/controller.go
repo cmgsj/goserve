@@ -24,6 +24,7 @@ type Controller struct {
 }
 
 type ControllerConfig struct {
+	FilesURL         string
 	ExcludePattern   *regexp.Regexp
 	Uploads          bool
 	UploadsDir       string
@@ -33,9 +34,13 @@ type ControllerConfig struct {
 }
 
 func NewController(fileSystem fs.FS, config ControllerConfig) *Controller {
+	if config.FilesURL == "" {
+		config.FilesURL = "/"
+	}
+
 	return &Controller{
 		fileSystem:  fileSystem,
-		htmlHandler: newHTMLHandler(config.Uploads, config.Version),
+		htmlHandler: newHTMLHandler(config.FilesURL, config.Uploads, config.Version),
 		jsonHandler: newJSONHandler(config.RawJSON),
 		textHandler: newTextHandler(),
 		config:      config,
@@ -82,7 +87,7 @@ func (c *Controller) ListFiles() http.Handler {
 	})
 }
 
-func (c *Controller) UploadFile(redirectURL string) http.Handler {
+func (c *Controller) UploadFile() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler := c.requestHandler(r)
 
@@ -139,9 +144,7 @@ func (c *Controller) UploadFile(redirectURL string) http.Handler {
 			return
 		}
 
-		if redirectURL != "" {
-			http.Redirect(w, r, redirectURL, http.StatusFound)
-		}
+		http.Redirect(w, r, c.config.FilesURL, http.StatusFound)
 	})
 }
 

@@ -1,3 +1,4 @@
+{{ $params := . }}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -6,15 +7,16 @@
   <body class="body">
     <header class="header">
       <label class="header-label">
-        <a class="breadcrumb" href="/html">Home</a>
-        {{- if not .Error -}} {{- range .Breadcrumbs -}} /<a
+        <a class="breadcrumb" href="{{ $params.FilesURL }}">Home</a>
+        {{- if not $params.Error -}} {{- range $file := $params.Data.Breadcrumbs
+        -}} /<a
           class="breadcrumb"
-          href="/html/{{ .Path }}"
-          >{{ .Name }}</a
+          href="{{ $params.FilesURL }}/{{ $file.Path }}"
+          >{{ $file.Name }}</a
         >
         {{- end -}} {{- end -}}
       </label>
-      {{ if .Uploads }}
+      {{ if $params.Uploads }}
       <button
         class="header-upload-button"
         id="upload-form-button"
@@ -45,7 +47,7 @@
       <form
         id="upload-form"
         enctype="multipart/form-data"
-        action="/html"
+        action="{{ $params.FilesURL }}"
         method="post"
         style="display: none"
       >
@@ -54,12 +56,12 @@
       {{ end }}
     </header>
     <main class="main">
-      {{ if .Error }}
+      {{ if $params.Error }}
       <div class="error">
-        <h1 class="error-header">{{ .Error.Status }}</h1>
-        <p class="error-content">{{ .Error.Message }}</p>
+        <h1 class="error-header">{{ $params.Error.Status }}</h1>
+        <p class="error-content">{{ $params.Error.Message }}</p>
       </div>
-      {{ else if not .Files }}
+      {{ else if not $params.Data.Files }}
       <div class="error">
         <p class="error-content">No files found</p>
       </div>
@@ -72,10 +74,10 @@
           </th>
         </thead>
         <tbody>
-          {{ range .Files }}
+          {{ range $file := $params.Data.Files }}
           <tr class="file-table-body-row">
             <td class="file-table-body-row-cell file-table-body-row-cell-left">
-              {{ if .IsDir }}
+              {{ if $file.IsDir }}
               <svg
                 aria-hidden="true"
                 focusable="false"
@@ -114,12 +116,18 @@
                 />
               </svg>
               {{ end }}
-              <a class="file" href="/html/{{ .Path }}">{{ .Name }}</a>
+              <a class="file" href="{{ $params.FilesURL }}/{{ $file.Path }}"
+                >{{ $file.Name }}</a
+              >
             </td>
             <td class="file-table-body-row-cell file-table-body-row-cell-right">
-              {{ if not .IsDir }}
-              <code class="size">{{ .Size }}</code>
-              <a class="file" href="/html/{{ .Path }}" download="{{ .Name }}">
+              {{ if not $file.IsDir }}
+              <code class="size">{{ $file.Size }}</code>
+              <a
+                class="file"
+                href="{{ $params.FilesURL }}/{{ $file.Path }}"
+                download="{{ $file.Name }}"
+              >
                 <svg
                   aria-hidden="true"
                   focusable="false"
@@ -152,12 +160,12 @@
       {{ end }}
     </main>
     <footer class="footer">
-      {{ if and (ne .Version "") (ne .Version "dev") }}
+      {{ if and (ne $params.Version "") (ne $params.Version "dev") }}
       <a
         class="version"
-        href="https://github.com/cmgsj/goserve/releases/tag/v{{ .Version }}"
+        href="https://github.com/cmgsj/goserve/releases/tag/v{{ $params.Version }}"
       >
-        goserve v{{ .Version }}
+        goserve v{{ $params.Version }}
       </a>
       {{ else }}
       <a
@@ -170,7 +178,7 @@
     </footer>
   </body>
   <script>
-    {{ if .Uploads }}
+    {{ if $params.Uploads }}
        const uploadForm = document.getElementById("upload-form");
        const uploadFormInput = document.getElementById("upload-form-input");
        const uploadFormButton = document.getElementById("upload-form-button");

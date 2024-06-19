@@ -16,27 +16,34 @@ var (
 )
 
 type indexParams struct {
-	Error       *errorParams
-	Breadcrumbs []File
-	Files       []File
-	Uploads     bool
-	Version     string
+	FilesURL string
+	Uploads  bool
+	Version  string
+	Error    *indexErrorParams
+	Data     *indexDataParams
 }
 
-type errorParams struct {
+type indexErrorParams struct {
 	Status  string
 	Message string
 }
 
-type htmlHandler struct {
-	uploads bool
-	version string
+type indexDataParams struct {
+	Breadcrumbs []File
+	Files       []File
 }
 
-func newHTMLHandler(uploads bool, version string) htmlHandler {
+type htmlHandler struct {
+	filesURL string
+	uploads  bool
+	version  string
+}
+
+func newHTMLHandler(filesURL string, uploads bool, version string) htmlHandler {
 	return htmlHandler{
-		uploads: uploads,
-		version: version,
+		filesURL: filesURL,
+		uploads:  uploads,
+		version:  version,
 	}
 }
 
@@ -57,19 +64,24 @@ func (h htmlHandler) handleDir(w io.Writer, dir string, files []File) error {
 	}
 
 	return indexTmpl.Execute(w, indexParams{
-		Breadcrumbs: breadcrumbs,
-		Files:       files,
-		Uploads:     h.uploads,
-		Version:     h.version,
+		FilesURL: h.filesURL,
+		Uploads:  h.uploads,
+		Version:  h.version,
+		Data: &indexDataParams{
+			Breadcrumbs: breadcrumbs,
+			Files:       files,
+		},
 	})
 }
 
 func (h htmlHandler) handleError(w io.Writer, err error, code int) error {
 	return indexTmpl.Execute(w, indexParams{
-		Error: &errorParams{
+		FilesURL: h.filesURL,
+		Uploads:  h.uploads,
+		Version:  h.version,
+		Error: &indexErrorParams{
 			Status:  http.StatusText(code),
 			Message: err.Error(),
 		},
-		Version: h.version,
 	})
 }

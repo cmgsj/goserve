@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cmgsj/goserve/pkg/files"
 	middlewarehttp "github.com/cmgsj/goserve/pkg/middleware/http"
 )
 
@@ -19,6 +20,7 @@ func LogRequests(next http.Handler) http.Handler {
 				r.Method+" "+r.URL.Path,
 				"address", r.RemoteAddr,
 				"status", http.StatusText(recorder.StatusCode()),
+				"size", files.FormatSize(recorder.BytesWritten()),
 				"duration", time.Since(start),
 			)
 		}()

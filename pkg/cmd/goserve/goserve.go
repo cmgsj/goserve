@@ -168,6 +168,7 @@ func Run() error {
 	}
 
 	controller := files.NewController(fileSystem, files.ControllerConfig{
+		FilesURL:         "/files",
 		ExcludePattern:   excludePattern,
 		Uploads:          uploads.Value(),
 		UploadsDir:       uploadsDirPath,
@@ -216,7 +217,7 @@ func Run() error {
 		{
 			patterns:    []string{"POST /files"},
 			description: "Upload File",
-			handler:     controller.UploadFile("/files"),
+			handler:     controller.UploadFile(),
 			disabled:    !uploads.Value(),
 		},
 		{
