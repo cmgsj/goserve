@@ -7,8 +7,8 @@ import (
 	"net/http"
 )
 
-func fsNotExistError(file string) error {
-	return fmt.Errorf("stat %s: no such file or directory", file)
+func fsNotExistError(filePath string) error {
+	return fmt.Errorf("stat %s: no such file or directory", filePath)
 }
 
 func fsErrorStatusCode(err error) int {

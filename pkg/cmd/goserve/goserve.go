@@ -173,8 +173,7 @@ func Run() error {
 		}
 	}
 
-	controller := files.NewController(files.ControllerConfig{
-		FileSystem:       fileSystem,
+	controller := files.NewController(fileSystem, files.ControllerConfig{
 		ExcludePattern:   excludePattern,
 		Uploads:          uploads.Value(),
 		UploadsDir:       uploadsDirPath,
@@ -185,15 +184,15 @@ func Run() error {
 	fmt.Println("Routes:")
 
 	handle(http.RedirectHandler("/html", http.StatusMovedPermanently), "GET /")
-	handle(controller.FilesHTML(), "GET /html", "GET /html/{file...}")
-	handle(controller.FilesJSON(), "GET /json", "GET /json/{file...}")
-	handle(controller.FilesText(), "GET /text", "GET /text/{file...}")
+	handle(controller.ListFilesHTML(), "GET /html", "GET /html/{file...}")
+	handle(controller.ListFilesJSON(), "GET /json", "GET /json/{file...}")
+	handle(controller.ListFilesText(), "GET /text", "GET /text/{file...}")
 	if uploads.Value() {
-		handle(controller.UploadHTML("/html"), "POST /html")
-		handle(controller.UploadJSON("/json"), "POST /json")
-		handle(controller.UploadText("/text"), "POST /text")
+		handle(controller.UploadFileHTML("/html"), "POST /html")
+		handle(controller.UploadFileJSON("/json"), "POST /json")
+		handle(controller.UploadFileText("/text"), "POST /text")
 	}
-	handle(controller.Health(), "GET /health")
+	handle(health(), "GET /health")
 
 	fmt.Println()
 	fmt.Println("Ready to accept connections")
@@ -206,4 +205,10 @@ func Run() error {
 	}
 
 	return http.Serve(listener, handler)
+}
+
+func health() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 }

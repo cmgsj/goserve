@@ -16,14 +16,14 @@ import (
 )
 
 type Controller struct {
+	fileSystem  fs.FS
+	htmlHandler handler
+	jsonHandler handler
+	textHandler handler
 	config      ControllerConfig
-	htmlHandler htmlHandler
-	jsonHandler jsonHandler
-	textHandler textHandler
 }
 
 type ControllerConfig struct {
-	FileSystem       fs.FS
 	ExcludePattern   *regexp.Regexp
 	Uploads          bool
 	UploadsDir       string
@@ -32,86 +32,81 @@ type ControllerConfig struct {
 	Version          string
 }
 
-func NewController(config ControllerConfig) *Controller {
+func NewController(fileSystem fs.FS, config ControllerConfig) *Controller {
 	return &Controller{
-		config:      config,
+		fileSystem:  fileSystem,
 		htmlHandler: newHTMLHandler(config.Uploads, config.Version),
 		jsonHandler: newJSONHandler(config.RawJSON),
 		textHandler: newTextHandler(),
+		config:      config,
 	}
 }
 
-func (c *Controller) Health() http.Handler {
+func (c *Controller) ListFilesHTML() http.Handler {
+	return c.listFiles(c.htmlHandler)
+}
+
+func (c *Controller) ListFilesJSON() http.Handler {
+	return c.listFiles(c.jsonHandler)
+}
+
+func (c *Controller) ListFilesText() http.Handler {
+	return c.listFiles(c.textHandler)
+}
+
+func (c *Controller) UploadFileHTML(redirectURL string) http.Handler {
+	return c.uploadFile(c.htmlHandler, redirectURL)
+}
+
+func (c *Controller) UploadFileJSON(redirectURL string) http.Handler {
+	return c.uploadFile(c.jsonHandler, redirectURL)
+}
+
+func (c *Controller) UploadFileText(redirectURL string) http.Handler {
+	return c.uploadFile(c.textHandler, redirectURL)
+}
+
+func (c *Controller) listFiles(handler handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-}
+		filePath := r.PathValue("file")
 
-func (c *Controller) FilesHTML() http.Handler {
-	return c.files(c.htmlHandler)
-}
+		filePath = path.Clean(filePath)
 
-func (c *Controller) FilesJSON() http.Handler {
-	return c.files(c.jsonHandler)
-}
-
-func (c *Controller) FilesText() http.Handler {
-	return c.files(c.textHandler)
-}
-
-func (c *Controller) UploadHTML(redirectURL string) http.Handler {
-	return c.upload(c.htmlHandler, redirectURL)
-}
-
-func (c *Controller) UploadJSON(redirectURL string) http.Handler {
-	return c.upload(c.jsonHandler, redirectURL)
-}
-
-func (c *Controller) UploadText(redirectURL string) http.Handler {
-	return c.upload(c.textHandler, redirectURL)
-}
-
-func (c *Controller) files(handler handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		file := r.PathValue("file")
-
-		file = path.Clean(file)
-
-		info, err := fs.Stat(c.config.FileSystem, file)
+		fileInfo, err := fs.Stat(c.fileSystem, filePath)
 		if err != nil {
 			c.handleError(w, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
-		if c.IsForbidden(file) {
-			c.handleError(w, handler, fsNotExistError(file), http.StatusNotFound)
+		if c.isForbidden(filePath) {
+			c.handleError(w, handler, fsNotExistError(filePath), http.StatusNotFound)
 			return
 		}
 
-		if !info.IsDir() {
-			err = c.copyFile(w, file)
+		if !fileInfo.IsDir() {
+			err = c.copyFile(w, filePath)
 			if err != nil {
 				c.handleError(w, handler, err, fsErrorStatusCode(err))
 			}
 			return
 		}
 
-		files, err := c.readDir(file)
+		files, err := c.readDir(filePath)
 		if err != nil {
 			c.handleError(w, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
-		err = handler.handleDir(w, file, files)
+		err = handler.handleDir(w, filePath, files)
 		if err != nil {
 			c.handleError(w, handler, err, http.StatusInternalServerError)
 		}
 	})
 }
 
-func (c *Controller) upload(handler handler, redirectURL string) http.Handler {
+func (c *Controller) uploadFile(handler handler, redirectURL string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		file, header, err := r.FormFile("file")
+		formFile, header, err := r.FormFile("file")
 		if err != nil {
 			c.handleError(w, handler, err, http.StatusBadRequest)
 			return
@@ -121,9 +116,9 @@ func (c *Controller) upload(handler handler, redirectURL string) http.Handler {
 			header.Filename = time.Now().UTC().Format(time.DateTime) + " " + header.Filename
 		}
 
-		path := filepath.Join(c.config.UploadsDir, header.Filename)
+		filePath := filepath.Join(c.config.UploadsDir, header.Filename)
 
-		_, err = os.Stat(path)
+		_, err = os.Stat(filePath)
 		if err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				c.handleError(w, handler, err, fsErrorStatusCode(err))
@@ -134,26 +129,26 @@ func (c *Controller) upload(handler handler, redirectURL string) http.Handler {
 			return
 		}
 
-		f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
+		osFile, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
 		if err != nil {
 			c.handleError(w, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
 		defer func() {
-			err := f.Close()
+			err := osFile.Close()
 			if err != nil {
-				slog.Error("failed to close uploaded file", "path", path, "error", err)
+				slog.Error("failed to close uploaded file", "path", filePath, "error", err)
 			}
 		}()
 
-		_, err = io.Copy(f, file)
+		_, err = io.Copy(osFile, formFile)
 		if err != nil {
 			c.handleError(w, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
-		err = f.Sync()
+		err = osFile.Sync()
 		if err != nil {
 			c.handleError(w, handler, err, fsErrorStatusCode(err))
 			return
@@ -165,58 +160,59 @@ func (c *Controller) upload(handler handler, redirectURL string) http.Handler {
 	})
 }
 
-func (c *Controller) IsForbidden(file string) bool {
-	if file == RootDir || c.config.ExcludePattern == nil {
+func (c *Controller) isForbidden(filePath string) bool {
+	if filePath == RootDir {
 		return false
 	}
 
-	for _, path := range strings.Split(file, "/") {
-		if c.config.ExcludePattern.MatchString(path) {
-			return true
+	if c.config.ExcludePattern != nil {
+		for _, part := range strings.Split(filePath, "/") {
+			if c.config.ExcludePattern.MatchString(part) {
+				return true
+			}
 		}
 	}
 
 	return false
 }
 
-func (c *Controller) copyFile(w io.Writer, file string) error {
-	f, err := c.config.FileSystem.Open(file)
+func (c *Controller) copyFile(dst io.Writer, filePath string) error {
+	fsFile, err := c.fileSystem.Open(filePath)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		err := f.Close()
+		err := fsFile.Close()
 		if err != nil {
-			slog.Error("failed to close copied file", "path", file, "error", err)
+			slog.Error("failed to close copied file", "path", filePath, "error", err)
 		}
 	}()
 
-	_, err = io.Copy(w, f)
-
+	_, err = io.Copy(dst, fsFile)
 	return err
 }
 
-func (c *Controller) readDir(dir string) ([]File, error) {
-	entries, err := fs.ReadDir(c.config.FileSystem, dir)
+func (c *Controller) readDir(filePath string) ([]File, error) {
+	entries, err := fs.ReadDir(c.fileSystem, filePath)
 	if err != nil {
 		return nil, err
 	}
 
 	var files []File
 
-	if dir != RootDir {
+	if filePath != RootDir {
 		files = append(files, File{
-			Path:  path.Dir(dir),
+			Path:  path.Dir(filePath),
 			Name:  ParentDir,
 			IsDir: true,
 		})
 	}
 
 	for _, entry := range entries {
-		file := path.Join(dir, entry.Name())
+		entryPath := path.Join(filePath, entry.Name())
 
-		if c.IsForbidden(file) {
+		if c.isForbidden(entryPath) {
 			continue
 		}
 
@@ -226,7 +222,7 @@ func (c *Controller) readDir(dir string) ([]File, error) {
 		}
 
 		files = append(files, File{
-			Path:  file,
+			Path:  entryPath,
 			Name:  info.Name(),
 			Size:  FormatSize(info.Size()),
 			IsDir: info.IsDir(),
@@ -243,12 +239,11 @@ func (c *Controller) handleError(w http.ResponseWriter, handler handler, err err
 
 	w.WriteHeader(code)
 
-	handleErr := handler.handleError(w, err, code)
-	if handleErr == nil {
-		return
+	herr := handler.handleError(w, err, code)
+
+	if herr != nil {
+		slog.Error("failed to handle error", "error", herr)
+
+		fmt.Fprintln(w, err.Error())
 	}
-
-	slog.Error("failed to handle error", "error", handleErr)
-
-	fmt.Fprintln(w, err.Error())
 }

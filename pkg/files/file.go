@@ -28,8 +28,10 @@ func Compare(x, y File) int {
 		}
 		return +1
 	}
+
 	if x.Name == RootDir || x.Name == ParentDir {
 		return -1
 	}
+
 	return cmp.Compare(x.Name, y.Name)
 }
