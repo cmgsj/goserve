@@ -18,11 +18,13 @@ func registerRoutes(mux *http.ServeMux, routes []route) error {
 	var buf bytes.Buffer
 
 	for _, route := range routes {
-		if !route.disabled {
-			for _, pattern := range route.patterns {
-				mux.Handle(pattern, route.handler)
-				buf.WriteString(sprintfln("  %s\t->\t%s", pattern, route.description))
-			}
+		if route.disabled {
+			continue
+		}
+
+		for _, pattern := range route.patterns {
+			mux.Handle(pattern, route.handler)
+			buf.WriteString(sprintfln("  %s\t->\t%s", pattern, route.description))
 		}
 	}
 

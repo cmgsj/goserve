@@ -7,12 +7,12 @@ import (
 )
 
 type jsonHandler struct {
-	raw bool
+	compact bool
 }
 
-func newJSONHandler(raw bool) jsonHandler {
+func newJSONHandler(compact bool) jsonHandler {
 	return jsonHandler{
-		raw: raw,
+		compact: compact,
 	}
 }
 
@@ -30,7 +30,7 @@ func (h jsonHandler) handleError(w io.Writer, err error, code int) error {
 func (h jsonHandler) encode(w io.Writer, v interface{}) error {
 	encoder := json.NewEncoder(w)
 
-	if !h.raw {
+	if !h.compact {
 		encoder.SetIndent("", "  ")
 	}
 

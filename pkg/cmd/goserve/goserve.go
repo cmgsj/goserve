@@ -20,17 +20,18 @@ import (
 )
 
 var (
-	host             = cli.StringFlag("host", "http server host", false)
-	port             = cli.Uint64Flag("port", "http server port", false)
 	exclude          = cli.StringFlag("exclude", "exclude file pattern", false)
+	host             = cli.StringFlag("host", "http server host", false)
+	logFormat        = cli.StringFlag("log-format", "log format { json | text }", false, "text")
+	logLevel         = cli.StringFlag("log-level", "log level { debug | info | warn | error }", false, "info")
+	logOutput        = cli.StringFlag("log-output", "log output { stdout | stderr | FILE }", false, "stderr")
+	port             = cli.Uint64Flag("port", "http server port", false)
+	silent           = cli.BoolFlag("silent", "silent mode", false)
+	tlsCert          = cli.StringFlag("tls-cert", "tls cert file", false)
+	tlsKey           = cli.StringFlag("tls-key", "tls key file", false)
 	uploads          = cli.BoolFlag("uploads", "enable uploads", false)
 	uploadsDir       = cli.StringFlag("uploads-dir", "uploads directory", false)
 	uploadsTimestamp = cli.BoolFlag("uploads-timestamp", "add upload timestamp", false)
-	logLevel         = cli.StringFlag("log-level", "log level { debug | info | warn | error }", false, "info")
-	logFormat        = cli.StringFlag("log-format", "log format { json | text }", false, "text")
-	logOutput        = cli.StringFlag("log-output", "log output { stdout | stderr | FILE }", false, "stderr")
-	tlsCert          = cli.StringFlag("tls-cert", "tls cert file", false)
-	tlsKey           = cli.StringFlag("tls-key", "tls key file", false)
 	version          = cli.BoolFlag("version", "print version", false)
 )
 
@@ -251,13 +252,20 @@ func Run() error {
 const printPrefix = "# "
 
 func println(args ...any) {
-	fmt.Println(printPrefix + fmt.Sprint(args...))
+	if !silent.Value() {
+		fmt.Println(printPrefix + fmt.Sprint(args...))
+	}
 }
 
 func printfln(format string, args ...any) {
-	fmt.Printf(printPrefix+format+"\n", args...)
+	if !silent.Value() {
+		fmt.Printf(printPrefix+format+"\n", args...)
+	}
 }
 
 func sprintfln(format string, args ...any) string {
-	return fmt.Sprintf(printPrefix+format+"\n", args...)
+	if !silent.Value() {
+		return fmt.Sprintf(printPrefix+format+"\n", args...)
+	}
+	return ""
 }
