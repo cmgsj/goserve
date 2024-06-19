@@ -193,24 +193,24 @@ func Run() error {
 	println("Starting HTTP file server")
 	println()
 	println("Config:")
-	printfln("  Root: %q", root)
-	printfln("  Host: %q", host)
-	printfln("  Port: %d", port)
-	if exclude.Value() != "" {
-		printfln("  Exclude Pattern: %q", excludePattern)
-	}
-	if uploads.Value() {
-		printfln("  Uploads Dir: %q", uploadsDirPath)
-	}
-	printfln("  Log Level: %q", logLevel.Value())
-	printfln("  Log Format: %q", logFormat.Value())
-	printfln("  Log Output: %q", logOutput.Value())
-	if serveTLS {
-		printfln("  TLS Cert: %q", tlsCert.Value())
-		printfln("  TLS Key: %q", tlsKey.Value())
-	}
-	println()
 
+	err = printConfigs([]config{
+		{key: "Root", value: root},
+		{key: "Host", value: host},
+		{key: "Port", value: port},
+		{key: "Exclude Pattern", value: excludePattern, disabled: exclude.Value() == ""},
+		{key: "Uploads Dir", value: uploadsDirPath, disabled: !uploads.Value()},
+		{key: "Log Level", value: logLevel.Value()},
+		{key: "Log Format", value: logFormat.Value()},
+		{key: "Log Output", value: logOutput.Value()},
+		{key: "TLS Cert", value: tlsCert.Value(), disabled: !serveTLS},
+		{key: "TLS Key", value: tlsKey.Value(), disabled: !serveTLS},
+	})
+	if err != nil {
+		return err
+	}
+
+	println()
 	println("Routes:")
 
 	err = registerRoutes(mux, []route{
@@ -247,25 +247,4 @@ func Run() error {
 	println()
 
 	return http.Serve(listener, handler)
-}
-
-const printPrefix = "# "
-
-func println(args ...any) {
-	if !silent.Value() {
-		fmt.Println(printPrefix + fmt.Sprint(args...))
-	}
-}
-
-func printfln(format string, args ...any) {
-	if !silent.Value() {
-		fmt.Printf(printPrefix+format+"\n", args...)
-	}
-}
-
-func sprintfln(format string, args ...any) string {
-	if !silent.Value() {
-		return fmt.Sprintf(printPrefix+format+"\n", args...)
-	}
-	return ""
 }

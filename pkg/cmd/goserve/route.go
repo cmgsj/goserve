@@ -1,10 +1,8 @@
 package goserve
 
 import (
-	"bytes"
+	"fmt"
 	"net/http"
-	"os"
-	"text/tabwriter"
 )
 
 type route struct {
@@ -15,7 +13,7 @@ type route struct {
 }
 
 func registerRoutes(mux *http.ServeMux, routes []route) error {
-	var buf bytes.Buffer
+	var configs []config
 
 	for _, route := range routes {
 		if route.disabled {
@@ -24,18 +22,14 @@ func registerRoutes(mux *http.ServeMux, routes []route) error {
 
 		for _, pattern := range route.patterns {
 			mux.Handle(pattern, route.handler)
-			buf.WriteString(sprintfln("  %s\t->\t%s", pattern, route.description))
+
+			configs = append(configs, config{
+				key: fmt.Sprintf("%s\t->\t%s", pattern, route.description),
+			})
 		}
 	}
 
-	tab := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-
-	_, err := buf.WriteTo(tab)
-	if err != nil {
-		return err
-	}
-
-	return tab.Flush()
+	return printConfigs(configs)
 }
 
 func health() http.Handler {
