@@ -1,40 +1,34 @@
 package files
 
-import "fmt"
+import "strconv"
+
+const SizeFactor = 1e3
 
 type Size int64
 
-func (s Size) String() string {
+const (
+	TeraByte Size = SizeFactor * GigaByte
+	GigaByte Size = SizeFactor * MegaByte
+	MegaByte Size = SizeFactor * KiloByte
+	KiloByte Size = SizeFactor * Byte
+	Byte     Size = 1
+)
+
+func (s Size) Unit() Size {
 	unit := Byte
 
-	for u := TeraByte; u > Byte; u /= SizeUnitFactor {
-		if int64(s) >= int64(u) {
+	for u := TeraByte; u > Byte; u /= SizeFactor {
+		if s >= u {
 			unit = u
 			break
 		}
 	}
 
-	return fmt.Sprintf("%0.2f%s", float64(s)/float64(unit), unit.String())
+	return unit
 }
 
-func FormatSize(size int64) string {
-	return Size(size).String()
-}
-
-const SizeUnitFactor = 1e3
-
-type SizeUnit int64
-
-const (
-	TeraByte SizeUnit = SizeUnitFactor * GigaByte
-	GigaByte SizeUnit = SizeUnitFactor * MegaByte
-	MegaByte SizeUnit = SizeUnitFactor * KiloByte
-	KiloByte SizeUnit = SizeUnitFactor * Byte
-	Byte     SizeUnit = 1
-)
-
-func (u SizeUnit) String() string {
-	switch u {
+func (s Size) UnitString() string {
+	switch s {
 	case TeraByte:
 		return "TB"
 
@@ -50,4 +44,17 @@ func (u SizeUnit) String() string {
 	default:
 		return "B"
 	}
+}
+
+func (s Size) String() string {
+	return s.Format(-1)
+}
+
+func (s Size) Format(precision int) string {
+	unit := s.Unit()
+	return strconv.FormatFloat(float64(s)/float64(unit), 'f', precision, 64) + s.UnitString()
+}
+
+func FormatSize(size int64, precision int) string {
+	return Size(size).Format(precision)
 }

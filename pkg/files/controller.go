@@ -225,7 +225,7 @@ func (c *Controller) readDir(filePath string) ([]File, error) {
 		files = append(files, File{
 			Path:  entryPath,
 			Name:  info.Name(),
-			Size:  FormatSize(info.Size()),
+			Size:  FormatSize(info.Size(), 2),
 			IsDir: info.IsDir(),
 		})
 	}
