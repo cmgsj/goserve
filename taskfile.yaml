@@ -13,8 +13,6 @@ tasks:
       - task: install
 
   fmt:
-    sources:
-      - "{{.GO_FILES}}"
     cmds:
       - go fmt ./...
       - goimports -w -local {{.GO_MODULE}} {{.GO_FILES}}
@@ -23,43 +21,20 @@ tasks:
         sh: find . -type f -name "*.go" ! -path "./vendor/*" | xargs
 
   test:
-    sources:
-      - "{{.GO_TEST_FILES}}"
     cmds:
       - go test -v ./...
-    vars:
-      GO_TEST_FILES:
-        sh: find . -type f -name "*_test.go" ! -path "./vendor/*" | xargs
 
   build:
-    sources:
-      - "pkg/**"
-      - "*.go"
-    generates:
-      - "bin/goserve{{exeExt}}"
     cmds:
       - task: binary
         vars:
           CMD: build
 
   install:
-    sources:
-      - "pkg/**"
-      - "*.go"
-    generates:
-      - "{{.GOBIN}}/goserve{{exeExt}}"
     cmds:
       - task: binary
         vars:
           CMD: install
-    vars:
-      GOBIN:
-        sh: |
-          gobin="$(go env GOBIN)"
-          if [[ -z "$gobin" ]]; then
-            gobin="$HOME/go/bin"
-          fi
-          echo $gobin
 
   binary:
     internal: true
