@@ -205,40 +205,18 @@ func Run() error {
 	err = registerRoutes(mux, []route{
 		{
 			patterns:    []string{"GET /"},
-			description: "Redirect (/html)",
-			handler:     http.RedirectHandler("/html", http.StatusMovedPermanently),
+			description: "Redirect (/files)",
+			handler:     http.RedirectHandler("/files", http.StatusMovedPermanently),
 		},
 		{
-			patterns:    []string{"GET /html", "GET /html/{file...}"},
-			description: "List Files HTML",
-			handler:     controller.ListFilesHTML(),
+			patterns:    []string{"GET /files", "GET /files/{file...}"},
+			description: "List Files",
+			handler:     controller.ListFiles(),
 		},
 		{
-			patterns:    []string{"GET /json", "GET /json/{file...}"},
-			description: "List Files JSON",
-			handler:     controller.ListFilesJSON(),
-		},
-		{
-			patterns:    []string{"GET /text", "GET /text/{file...}"},
-			description: "List Files Text",
-			handler:     controller.ListFilesText(),
-		},
-		{
-			patterns:    []string{"POST /html"},
-			description: "Upload File HTML",
-			handler:     controller.UploadFileHTML("/html"),
-			disabled:    !uploads.Value(),
-		},
-		{
-			patterns:    []string{"POST /json"},
-			description: "Upload File JSON",
-			handler:     controller.UploadFileJSON("/json"),
-			disabled:    !uploads.Value(),
-		},
-		{
-			patterns:    []string{"POST /text"},
-			description: "Upload File Text",
-			handler:     controller.UploadFileText("/text"),
+			patterns:    []string{"POST /files"},
+			description: "Upload File",
+			handler:     controller.UploadFile("/files"),
 			disabled:    !uploads.Value(),
 		},
 		{

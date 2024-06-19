@@ -42,32 +42,10 @@ func NewController(fileSystem fs.FS, config ControllerConfig) *Controller {
 	}
 }
 
-func (c *Controller) ListFilesHTML() http.Handler {
-	return c.listFiles(c.htmlHandler)
-}
-
-func (c *Controller) ListFilesJSON() http.Handler {
-	return c.listFiles(c.jsonHandler)
-}
-
-func (c *Controller) ListFilesText() http.Handler {
-	return c.listFiles(c.textHandler)
-}
-
-func (c *Controller) UploadFileHTML(redirectURL string) http.Handler {
-	return c.uploadFile(c.htmlHandler, redirectURL)
-}
-
-func (c *Controller) UploadFileJSON(redirectURL string) http.Handler {
-	return c.uploadFile(c.jsonHandler, redirectURL)
-}
-
-func (c *Controller) UploadFileText(redirectURL string) http.Handler {
-	return c.uploadFile(c.textHandler, redirectURL)
-}
-
-func (c *Controller) listFiles(handler handler) http.Handler {
+func (c *Controller) ListFiles() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := c.requestHandler(r)
+
 		filePath := r.PathValue("file")
 
 		filePath = path.Clean(filePath)
@@ -104,8 +82,10 @@ func (c *Controller) listFiles(handler handler) http.Handler {
 	})
 }
 
-func (c *Controller) uploadFile(handler handler, redirectURL string) http.Handler {
+func (c *Controller) UploadFile(redirectURL string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := c.requestHandler(r)
+
 		if !c.config.Uploads {
 			c.handleError(w, handler, fs.ErrPermission, http.StatusForbidden)
 			return
@@ -163,6 +143,19 @@ func (c *Controller) uploadFile(handler handler, redirectURL string) http.Handle
 			http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
 		}
 	})
+}
+
+func (c *Controller) requestHandler(r *http.Request) handler {
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		return c.jsonHandler
+
+	case "text/plain":
+		return c.textHandler
+
+	default:
+		return c.htmlHandler
+	}
 }
 
 func (c *Controller) isForbidden(filePath string) bool {
