@@ -2,7 +2,6 @@ package goserve
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"os"
 	"text/tabwriter"
@@ -22,7 +21,7 @@ func registerRoutes(mux *http.ServeMux, routes []route) error {
 		if !route.disabled {
 			for _, pattern := range route.patterns {
 				mux.Handle(pattern, route.handler)
-				buf.WriteString(fmt.Sprintf("  %s\t->\t%s\n", pattern, route.description))
+				buf.WriteString(sprintfln("  %s\t->\t%s", pattern, route.description))
 			}
 		}
 	}

@@ -181,28 +181,36 @@ func Run() error {
 
 	handler := logging.LogRequests(mux)
 
-	fmt.Println("Starting HTTP file server")
-	fmt.Println()
-	fmt.Println("Config:")
-	fmt.Printf("  Root: %q\n", root)
-	fmt.Printf("  Host: %q\n", host)
-	fmt.Printf("  Port: %d\n", port)
+	println()
+	println(`   ____ _____  ________  ______   _____ `)
+	println(`  / __  / __ \/ ___/ _ \/ ___/ | / / _ \`)
+	println(` / /_/ / /_/ (__  )  __/ /   | |/ /  __/`)
+	println(` \__, /\____/____/\___/_/    |___/\___/ `)
+	println(`/____/                                  `)
+	println()
+	println()
+	println("Starting HTTP file server")
+	println()
+	println("Config:")
+	printfln("  Root: %q", root)
+	printfln("  Host: %q", host)
+	printfln("  Port: %d", port)
 	if exclude.Value() != "" {
-		fmt.Printf("  Exclude Pattern: %q\n", excludePattern)
+		printfln("  Exclude Pattern: %q", excludePattern)
 	}
 	if uploads.Value() {
-		fmt.Printf("  Uploads Dir: %q\n", uploadsDirPath)
+		printfln("  Uploads Dir: %q", uploadsDirPath)
 	}
-	fmt.Printf("  Log Level: %q\n", logLevel.Value())
-	fmt.Printf("  Log Format: %q\n", logFormat.Value())
-	fmt.Printf("  Log Output: %q\n", logOutput.Value())
+	printfln("  Log Level: %q", logLevel.Value())
+	printfln("  Log Format: %q", logFormat.Value())
+	printfln("  Log Output: %q", logOutput.Value())
 	if serveTLS {
-		fmt.Printf("  TLS Cert: %q\n", tlsCert.Value())
-		fmt.Printf("  TLS Key: %q\n", tlsKey.Value())
+		printfln("  TLS Cert: %q", tlsCert.Value())
+		printfln("  TLS Key: %q", tlsKey.Value())
 	}
-	fmt.Println()
+	println()
 
-	fmt.Println("Routes:")
+	println("Routes:")
 
 	err = registerRoutes(mux, []route{
 		{
@@ -231,11 +239,25 @@ func Run() error {
 		return err
 	}
 
-	fmt.Println()
-	fmt.Printf("Listening at %s\n", url)
-	fmt.Println()
-	fmt.Println("Ready to accept connections")
-	fmt.Println()
+	println()
+	printfln("Listening at %s", url)
+	println()
+	println("Ready to accept connections")
+	println()
 
 	return http.Serve(listener, handler)
+}
+
+const printPrefix = "# "
+
+func println(args ...any) {
+	fmt.Println(printPrefix + fmt.Sprint(args...))
+}
+
+func printfln(format string, args ...any) {
+	fmt.Printf(printPrefix+format+"\n", args...)
+}
+
+func sprintfln(format string, args ...any) string {
+	return fmt.Sprintf(printPrefix+format+"\n", args...)
 }
