@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 
 	"github.com/cmgsj/go-lib/cli"
 
@@ -140,7 +141,7 @@ func Run() error {
 		}
 	}
 
-	address := net.JoinHostPort(host, fmt.Sprintf("%d", port))
+	address := net.JoinHostPort(host, strconv.FormatUint(port, 10))
 
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
