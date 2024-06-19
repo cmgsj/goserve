@@ -7,10 +7,10 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 
 	"github.com/cmgsj/go-lib/cli"
 
@@ -124,6 +124,12 @@ func Run() error {
 
 	serveTLS := tlsCert.Value() != "" && tlsKey.Value() != ""
 
+	host := host.Value()
+
+	if host == "" {
+		host = "0.0.0.0"
+	}
+
 	port := port.Value()
 
 	if port == 0 {
@@ -134,7 +140,9 @@ func Run() error {
 		}
 	}
 
-	listener, err := net.Listen("tcp", net.JoinHostPort(host.Value(), strconv.FormatUint(port, 10)))
+	address := net.JoinHostPort(host, fmt.Sprintf("%d", port))
+
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return err
 	}
@@ -154,6 +162,11 @@ func Run() error {
 		})
 	}
 
+	url := &url.URL{
+		Scheme: scheme,
+		Host:   address,
+	}
+
 	controller := files.NewController(fileSystem, files.ControllerConfig{
 		ExcludePattern:   excludePattern,
 		Uploads:          uploads.Value(),
@@ -170,7 +183,7 @@ func Run() error {
 	fmt.Println()
 	fmt.Println("Config:")
 	fmt.Printf("  Root: %q\n", root)
-	fmt.Printf("  Host: %q\n", host.Value())
+	fmt.Printf("  Host: %q\n", host)
 	fmt.Printf("  Port: %d\n", port)
 	if exclude.Value() != "" {
 		fmt.Printf("  Exclude Pattern: %q\n", excludePattern)
@@ -239,7 +252,7 @@ func Run() error {
 	}
 
 	fmt.Println()
-	fmt.Printf("Listening at %s://%s\n", scheme, listener.Addr())
+	fmt.Printf("Listening at %s\n", url)
 	fmt.Println()
 	fmt.Println("Ready to accept connections")
 	fmt.Println()
