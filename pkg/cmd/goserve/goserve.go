@@ -163,21 +163,14 @@ func Run() error {
 	fmt.Printf("  Port: %d\n", port)
 	if exclude.Value() != "" {
 		fmt.Printf("  Exclude Pattern: %q\n", excludePattern)
-		fmt.Printf("  Exclude Pattern: %q\n", excludePattern)
 	}
 	if uploads.Value() {
 		fmt.Printf("  Uploads Dir: %q\n", uploadsDirPath)
-		fmt.Printf("  Uploads Dir: %q\n", uploadsDirPath)
 	}
-	fmt.Printf("  Log Level: %q\n", logLevel.Value())
-	fmt.Printf("  Log Format: %q\n", logFormat.Value())
-	fmt.Printf("  Log Output: %q\n", logOutput.Value())
 	fmt.Printf("  Log Level: %q\n", logLevel.Value())
 	fmt.Printf("  Log Format: %q\n", logFormat.Value())
 	fmt.Printf("  Log Output: %q\n", logOutput.Value())
 	if serveTLS {
-		fmt.Printf("  TLS Cert: %q\n", tlsCert.Value())
-		fmt.Printf("  TLS Key: %q\n", tlsKey.Value())
 		fmt.Printf("  TLS Cert: %q\n", tlsCert.Value())
 		fmt.Printf("  TLS Key: %q\n", tlsKey.Value())
 	}
@@ -185,57 +178,6 @@ func Run() error {
 
 	fmt.Println("Routes:")
 
-	err = registerRoutes(mux, []route{
-		{
-			patterns:    []string{"GET /"},
-			description: "Redirect (/html)",
-			handler:     http.RedirectHandler("/html", http.StatusMovedPermanently),
-		},
-		{
-			patterns:    []string{"GET /html", "GET /html/{file...}"},
-			description: "List Files HTML",
-			handler:     controller.ListFilesHTML(),
-		},
-		{
-			patterns:    []string{"GET /json", "GET /json/{file...}"},
-			description: "List Files JSON",
-			handler:     controller.ListFilesJSON(),
-		},
-		{
-			patterns:    []string{"GET /text", "GET /text/{file...}"},
-			description: "List Files Text",
-			handler:     controller.ListFilesText(),
-		},
-		{
-			patterns:    []string{"POST /html"},
-			description: "Upload File HTML",
-			handler:     controller.UploadFileHTML("/html"),
-			disabled:    !uploads.Value(),
-		},
-		{
-			patterns:    []string{"POST /json"},
-			description: "Upload File JSON",
-			handler:     controller.UploadFileJSON("/json"),
-			disabled:    !uploads.Value(),
-		},
-		{
-			patterns:    []string{"POST /text"},
-			description: "Upload File Text",
-			handler:     controller.UploadFileText("/text"),
-			disabled:    !uploads.Value(),
-		},
-		{
-			patterns:    []string{"GET /health"},
-			description: "Health Check",
-			handler:     health(),
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Println()
-	fmt.Printf("Listening at %s://%s\n", scheme, listener.Addr())
 	err = registerRoutes(mux, []route{
 		{
 			patterns:    []string{"GET /"},
