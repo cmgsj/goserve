@@ -5,16 +5,18 @@
 *.out
 
 # IDE directories
-.idea
-.vscode
+/.idea
+/.vscode
 
-# Config
-.tool-versions
+# Taskfile directory
+/.task
 
-# Taskfile
-.task
+# asdf config
+/.tool-versions
 
-# Binaries
+# tls config
+/tls
+
+# binaries
 /bin
 /goserve
-/tls
