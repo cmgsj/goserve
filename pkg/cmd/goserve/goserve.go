@@ -183,7 +183,7 @@ func Run() error {
 	handler := logging.LogRequests(mux)
 
 	println()
-	println(`   ____ _____  ________  ______   _____ `)
+	println(`   __________  ________  ______   _____ `)
 	println(`  / __  / __ \/ ___/ _ \/ ___/ | / / _ \`)
 	println(` / /_/ / /_/ (__  )  __/ /   | |/ /  __/`)
 	println(` \__, /\____/____/\___/_/    |___/\___/ `)
