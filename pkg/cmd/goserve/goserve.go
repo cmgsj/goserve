@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/cmgsj/go-lib/cli"
 
@@ -166,7 +167,7 @@ func Run() error {
 
 	url := &url.URL{
 		Scheme: scheme,
-		Host:   address,
+		Host:   strings.ReplaceAll(address, "0.0.0.0", "localhost"),
 	}
 
 	controller := files.NewController(fileSystem, files.ControllerConfig{
