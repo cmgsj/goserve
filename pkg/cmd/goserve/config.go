@@ -14,7 +14,7 @@ type config struct {
 }
 
 func printConfigs(configs []config) error {
-	var lines []string
+	var buf bytes.Buffer
 
 	for _, config := range configs {
 		if config.disabled {
@@ -22,20 +22,10 @@ func printConfigs(configs []config) error {
 		}
 
 		if config.value == nil {
-			lines = append(lines, sprintfln("  %s", config.key))
+			buf.WriteString(sprintfln("  %s", config.key))
 		} else {
-			lines = append(lines, sprintfln("  %s:\t%v", config.key, config.value))
+			buf.WriteString(sprintfln("  %s:\t%v", config.key, config.value))
 		}
-	}
-
-	return tabwrite(lines)
-}
-
-func tabwrite(lines []string) error {
-	var buf bytes.Buffer
-
-	for _, line := range lines {
-		buf.WriteString(line)
 	}
 
 	tab := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
