@@ -7,6 +7,14 @@ import (
 
 var DefaultFlagSet = NewFlagSet(os.Args[0], ExitOnError)
 
+func BindEnv() bool {
+	return DefaultFlagSet.BindEnv()
+}
+
+func SetBindEnv(bindEnv bool) {
+	DefaultFlagSet.SetBindEnv(bindEnv)
+}
+
 func EnvPrefix() string {
 	return DefaultFlagSet.EnvPrefix()
 }

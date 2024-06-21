@@ -9,7 +9,7 @@ import (
 type FlagSet struct {
 	flagSet   *flag.FlagSet
 	flags     []interface{ parse() error }
-	envPrefix string
+	envPrefix *string
 }
 
 func NewFlagSet(name string, errorHandling ErrorHandling) *FlagSet {
@@ -18,12 +18,27 @@ func NewFlagSet(name string, errorHandling ErrorHandling) *FlagSet {
 	}
 }
 
+func (f *FlagSet) BindEnv() bool {
+	return f.envPrefix != nil
+}
+
+func (f *FlagSet) SetBindEnv(bindEnv bool) {
+	if bindEnv {
+		f.envPrefix = new(string)
+	} else {
+		f.envPrefix = nil
+	}
+}
+
 func (f *FlagSet) EnvPrefix() string {
-	return f.envPrefix
+	if f.envPrefix != nil {
+		return *f.envPrefix
+	}
+	return ""
 }
 
 func (f *FlagSet) SetEnvPrefix(envPrefix string) {
-	f.envPrefix = envPrefix
+	f.envPrefix = &envPrefix
 }
 
 func (f *FlagSet) Usage() {
