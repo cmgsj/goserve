@@ -218,14 +218,14 @@
     });
 
     const loadTheme = () => {
-      if (localStorage.getItem(themes.key) === themes.dark.key) {
-        document.body.classList.remove(themes.light.key);
-        document.body.classList.add(themes.dark.key);
-        themeToggle.innerHTML = themes.light.icon;
-      } else {
+      if (localStorage.getItem(themes.key) === themes.light.key) {
         document.body.classList.remove(themes.dark.key);
         document.body.classList.add(themes.light.key);
         themeToggle.innerHTML = themes.dark.icon;
+      } else {
+        document.body.classList.remove(themes.light.key);
+        document.body.classList.add(themes.dark.key);
+        themeToggle.innerHTML = themes.light.icon;
       }
     };
 
