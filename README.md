@@ -51,7 +51,7 @@ $ goserve /tmp/folder
 # Config:
 #   Root:       /tmp/folder
 #   Host:       0.0.0.0
-#   Port:       80os="darwin"
+#   Port:       80
 #   Log Level:  info
 #   Log Format: text
 #   Log Output: stderr
