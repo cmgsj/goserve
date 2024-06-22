@@ -22,11 +22,11 @@ import (
 
 var (
 	exclude          = cli.StringFlag("exclude", "exclude file pattern", false)
-	host             = cli.StringFlag("host", "http server host", false)
-	logFormat        = cli.StringFlag("log-format", "log format { json | text }", false, "text")
-	logLevel         = cli.StringFlag("log-level", "log level { debug | info | warn | error }", false, "info")
-	logOutput        = cli.StringFlag("log-output", "log output { stdout | stderr | FILE }", false, "stderr")
-	port             = cli.Uint64Flag("port", "http server port", false)
+	host             = cli.StringFlag("host", "http host", false)
+	logFormat        = cli.StringFlag("log-format", "log format [json | text]", false, "text")
+	logLevel         = cli.StringFlag("log-level", "log level [debug | info | warn | error]", false, "info")
+	logOutput        = cli.StringFlag("log-output", "log output [stdout | stderr | FILE]", false, "stderr")
+	port             = cli.Uint64Flag("port", "http port", false)
 	silent           = cli.BoolFlag("silent", "silent mode", false)
 	tlsCert          = cli.StringFlag("tls-cert", "tls cert file", false)
 	tlsKey           = cli.StringFlag("tls-key", "tls key file", false)
