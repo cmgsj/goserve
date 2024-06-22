@@ -222,12 +222,17 @@ func (c *Controller) readDir(filePath string) ([]File, error) {
 			return nil, err
 		}
 
-		files = append(files, File{
+		file := File{
 			Path:  entryPath,
 			Name:  info.Name(),
-			Size:  FormatSize(info.Size(), 2),
 			IsDir: info.IsDir(),
-		})
+		}
+
+		if !file.IsDir {
+			file.Size = FormatSize(info.Size(), 2)
+		}
+
+		files = append(files, file)
 	}
 
 	Sort(files)
