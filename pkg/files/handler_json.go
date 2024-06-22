@@ -24,7 +24,7 @@ func (h jsonHandler) handleError(w http.ResponseWriter, r *http.Request, err err
 }
 
 func (h jsonHandler) encode(w http.ResponseWriter, r *http.Request, v interface{}) error {
-	compact := r.URL.Query().Has("compact")
+	compact := parseQueryBool(r.URL, "compact")
 
 	encoder := json.NewEncoder(w)
 

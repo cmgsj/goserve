@@ -15,7 +15,7 @@ func newTextHandler() textHandler {
 }
 
 func (h textHandler) handleDir(w http.ResponseWriter, r *http.Request, dir string, files []File) error {
-	fullpath := r.URL.Query().Has("fullpath")
+	fullpath := parseQueryBool(r.URL, "fullpath")
 
 	var buf bytes.Buffer
 

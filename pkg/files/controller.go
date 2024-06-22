@@ -148,18 +148,25 @@ func (c *Controller) UploadFile() http.Handler {
 }
 
 func (c *Controller) requestHandler(r *http.Request) handler {
-	contentType := r.Header.Get("Content-Type")
+	switch r.URL.Query().Get("content") {
+	case "html":
+		return c.htmlHandler
+	case "json":
+		return c.jsonHandler
+	case "text":
+		return c.textHandler
+	}
 
-	switch contentType {
+	switch r.Header.Get("Content-Type") {
+	case "text/html":
+		return c.htmlHandler
 	case "application/json":
 		return c.jsonHandler
-
 	case "text/plain":
 		return c.textHandler
-
-	default:
-		return c.htmlHandler
 	}
+
+	return c.htmlHandler
 }
 
 func (c *Controller) isForbidden(filePath string) bool {
