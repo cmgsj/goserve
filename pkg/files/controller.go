@@ -29,8 +29,6 @@ type ControllerConfig struct {
 	Uploads          bool
 	UploadsDir       string
 	UploadsTimestamp bool
-	CompactJSON      bool
-	FullpathText     bool
 	Version          string
 }
 
@@ -42,8 +40,8 @@ func NewController(fileSystem fs.FS, config ControllerConfig) *Controller {
 	return &Controller{
 		fileSystem:  fileSystem,
 		htmlHandler: newHTMLHandler(config.FilesURL, config.Uploads, config.Version),
-		jsonHandler: newJSONHandler(config.CompactJSON),
-		textHandler: newTextHandler(config.FullpathText),
+		jsonHandler: newJSONHandler(),
+		textHandler: newTextHandler(),
 		config:      config,
 	}
 }
@@ -57,33 +55,33 @@ func (c *Controller) ListFiles() http.Handler {
 		filePath = path.Clean(filePath)
 
 		if c.isForbidden(filePath) {
-			c.handleError(w, handler, fsNotExistError(filePath), http.StatusNotFound)
+			c.handleError(w, r, handler, fsNotExistError(filePath), http.StatusNotFound)
 			return
 		}
 
 		fileInfo, err := fs.Stat(c.fileSystem, filePath)
 		if err != nil {
-			c.handleError(w, handler, err, fsErrorStatusCode(err))
+			c.handleError(w, r, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
 		if !fileInfo.IsDir() {
 			err = c.copyFile(w, filePath)
 			if err != nil {
-				c.handleError(w, handler, err, fsErrorStatusCode(err))
+				c.handleError(w, r, handler, err, fsErrorStatusCode(err))
 			}
 			return
 		}
 
 		files, err := c.readDir(filePath)
 		if err != nil {
-			c.handleError(w, handler, err, fsErrorStatusCode(err))
+			c.handleError(w, r, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
-		err = handler.handleDir(w, filePath, files)
+		err = handler.handleDir(w, r, filePath, files)
 		if err != nil {
-			c.handleError(w, handler, err, http.StatusInternalServerError)
+			c.handleError(w, r, handler, err, http.StatusInternalServerError)
 		}
 	})
 }
@@ -93,13 +91,13 @@ func (c *Controller) UploadFile() http.Handler {
 		handler := c.requestHandler(r)
 
 		if !c.config.Uploads {
-			c.handleError(w, handler, fs.ErrPermission, http.StatusForbidden)
+			c.handleError(w, r, handler, fs.ErrPermission, http.StatusForbidden)
 			return
 		}
 
 		formFile, header, err := r.FormFile("file")
 		if err != nil {
-			c.handleError(w, handler, err, http.StatusBadRequest)
+			c.handleError(w, r, handler, err, http.StatusBadRequest)
 			return
 		}
 
@@ -112,17 +110,17 @@ func (c *Controller) UploadFile() http.Handler {
 		_, err = os.Stat(filePath)
 		if err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				c.handleError(w, handler, err, fsErrorStatusCode(err))
+				c.handleError(w, r, handler, err, fsErrorStatusCode(err))
 				return
 			}
 		} else {
-			c.handleError(w, handler, fs.ErrExist, http.StatusBadRequest)
+			c.handleError(w, r, handler, fs.ErrExist, http.StatusBadRequest)
 			return
 		}
 
 		osFile, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
 		if err != nil {
-			c.handleError(w, handler, err, fsErrorStatusCode(err))
+			c.handleError(w, r, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
@@ -135,13 +133,13 @@ func (c *Controller) UploadFile() http.Handler {
 
 		_, err = io.Copy(osFile, formFile)
 		if err != nil {
-			c.handleError(w, handler, err, fsErrorStatusCode(err))
+			c.handleError(w, r, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
 		err = osFile.Sync()
 		if err != nil {
-			c.handleError(w, handler, err, fsErrorStatusCode(err))
+			c.handleError(w, r, handler, err, fsErrorStatusCode(err))
 			return
 		}
 
@@ -150,7 +148,9 @@ func (c *Controller) UploadFile() http.Handler {
 }
 
 func (c *Controller) requestHandler(r *http.Request) handler {
-	switch r.Header.Get("Content-Type") {
+	contentType := r.Header.Get("Content-Type")
+
+	switch contentType {
 	case "application/json":
 		return c.jsonHandler
 
@@ -241,12 +241,12 @@ func (c *Controller) readDir(filePath string) ([]File, error) {
 	return files, nil
 }
 
-func (c *Controller) handleError(w http.ResponseWriter, handler handler, err error, code int) {
+func (c *Controller) handleError(w http.ResponseWriter, r *http.Request, handler handler, err error, code int) {
 	slog.Error("an error ocurred", "error", err)
 
 	w.WriteHeader(code)
 
-	herr := handler.handleError(w, err, code)
+	herr := handler.handleError(w, r, err, code)
 
 	if herr != nil {
 		slog.Error("failed to handle error", "error", herr)

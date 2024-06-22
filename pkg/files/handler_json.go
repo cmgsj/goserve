@@ -2,35 +2,33 @@ package files
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 )
 
 type jsonHandler struct {
-	compact bool
 }
 
-func newJSONHandler(compact bool) jsonHandler {
-	return jsonHandler{
-		compact: compact,
-	}
+func newJSONHandler() jsonHandler {
+	return jsonHandler{}
 }
 
-func (h jsonHandler) handleDir(w io.Writer, dir string, files []File) error {
-	return h.encode(w, files)
+func (h jsonHandler) handleDir(w http.ResponseWriter, r *http.Request, dir string, files []File) error {
+	return h.encode(w, r, files)
 }
 
-func (h jsonHandler) handleError(w io.Writer, err error, code int) error {
-	return h.encode(w, map[string]interface{}{
+func (h jsonHandler) handleError(w http.ResponseWriter, r *http.Request, err error, code int) error {
+	return h.encode(w, r, map[string]interface{}{
 		"status":  http.StatusText(code),
 		"message": err.Error(),
 	})
 }
 
-func (h jsonHandler) encode(w io.Writer, v interface{}) error {
+func (h jsonHandler) encode(w http.ResponseWriter, r *http.Request, v interface{}) error {
+	compact := r.URL.Query().Has("compact")
+
 	encoder := json.NewEncoder(w)
 
-	if !h.compact {
+	if !compact {
 		encoder.SetIndent("", "  ")
 	}
 

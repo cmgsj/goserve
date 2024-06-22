@@ -1,8 +1,8 @@
 package files
 
-import "io"
+import "net/http"
 
 type handler interface {
-	handleDir(w io.Writer, dir string, files []File) error
-	handleError(w io.Writer, err error, code int) error
+	handleDir(w http.ResponseWriter, r *http.Request, dir string, files []File) error
+	handleError(w http.ResponseWriter, r *http.Request, err error, code int) error
 }

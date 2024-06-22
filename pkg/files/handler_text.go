@@ -3,26 +3,24 @@ package files
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 	"text/tabwriter"
 )
 
 type textHandler struct {
-	fullpath bool
 }
 
-func newTextHandler(fullpath bool) textHandler {
-	return textHandler{
-		fullpath: fullpath,
-	}
+func newTextHandler() textHandler {
+	return textHandler{}
 }
 
-func (h textHandler) handleDir(w io.Writer, dir string, files []File) error {
+func (h textHandler) handleDir(w http.ResponseWriter, r *http.Request, dir string, files []File) error {
+	fullpath := r.URL.Query().Has("fullpath")
+
 	var buf bytes.Buffer
 
 	for _, file := range files {
-		if h.fullpath {
+		if fullpath {
 			buf.WriteString(file.Path)
 		} else {
 			buf.WriteString(file.Name)
@@ -46,7 +44,7 @@ func (h textHandler) handleDir(w io.Writer, dir string, files []File) error {
 	return tab.Flush()
 }
 
-func (h textHandler) handleError(w io.Writer, err error, code int) error {
+func (h textHandler) handleError(w http.ResponseWriter, r *http.Request, err error, code int) error {
 	_, err = fmt.Fprintf(w, "%s\n\n%s\n", http.StatusText(code), err.Error())
 	return err
 }

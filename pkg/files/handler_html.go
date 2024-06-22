@@ -3,7 +3,6 @@ package files
 import (
 	_ "embed"
 	"html/template"
-	"io"
 	"net/http"
 	"path"
 	"strings"
@@ -47,7 +46,7 @@ func newHTMLHandler(filesURL string, uploads bool, version string) htmlHandler {
 	}
 }
 
-func (h htmlHandler) handleDir(w io.Writer, dir string, files []File) error {
+func (h htmlHandler) handleDir(w http.ResponseWriter, r *http.Request, dir string, files []File) error {
 	var breadcrumbs []File
 
 	if dir != RootDir {
@@ -74,7 +73,7 @@ func (h htmlHandler) handleDir(w io.Writer, dir string, files []File) error {
 	})
 }
 
-func (h htmlHandler) handleError(w io.Writer, err error, code int) error {
+func (h htmlHandler) handleError(w http.ResponseWriter, r *http.Request, err error, code int) error {
 	return indexTmpl.Execute(w, indexParams{
 		FilesURL: h.filesURL,
 		Uploads:  h.uploads,
