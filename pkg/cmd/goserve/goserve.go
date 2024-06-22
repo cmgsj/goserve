@@ -244,7 +244,7 @@ func Run() error {
 
 	err = registerRoutes(mux, []route{
 		{
-			pattern:     "GET /",
+			pattern:     "/",
 			description: "Redirect /files",
 			handler:     http.RedirectHandler("/files", http.StatusMovedPermanently),
 		},
