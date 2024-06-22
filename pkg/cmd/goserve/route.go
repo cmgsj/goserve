@@ -6,7 +6,7 @@ import (
 )
 
 type route struct {
-	patterns    []string
+	pattern     string
 	description string
 	handler     http.Handler
 	disabled    bool
@@ -20,13 +20,11 @@ func registerRoutes(mux *http.ServeMux, routes []route) error {
 			continue
 		}
 
-		for _, pattern := range route.patterns {
-			mux.Handle(pattern, route.handler)
+		mux.Handle(route.pattern, route.handler)
 
-			configs = append(configs, config{
-				key: fmt.Sprintf("%s\t->\t%s", pattern, route.description),
-			})
-		}
+		configs = append(configs, config{
+			key: fmt.Sprintf("%s\t->\t%s", route.pattern, route.description),
+		})
 	}
 
 	return printConfigs(configs)

@@ -72,14 +72,14 @@ func Run() error {
 		return err
 	}
 
-	info, err := os.Stat(root)
+	rootInfo, err := os.Stat(root)
 	if err != nil {
 		return err
 	}
 
 	var fileSystem fs.FS
 
-	if info.IsDir() {
+	if rootInfo.IsDir() {
 		fileSystem = os.DirFS(root)
 	} else {
 		fileSystem = os.DirFS(filepath.Dir(root))
@@ -190,16 +190,50 @@ func Run() error {
 	println("Config:")
 
 	err = printConfigs([]config{
-		{key: "Root", value: root},
-		{key: "Host", value: host},
-		{key: "Port", value: port},
-		{key: "Exclude Pattern", value: excludePattern, disabled: exclude.Value() == ""},
-		{key: "Uploads Dir", value: uploadsDir.Value(), disabled: !uploads.Value()},
-		{key: "Log Level", value: logLevel.Value()},
-		{key: "Log Format", value: logFormat.Value()},
-		{key: "Log Output", value: logOutput.Value()},
-		{key: "TLS Cert", value: tlsCert.Value(), disabled: !serveTLS},
-		{key: "TLS Key", value: tlsKey.Value(), disabled: !serveTLS},
+		{
+			key:   "Root",
+			value: root,
+		},
+		{
+			key:   "Host",
+			value: host,
+		},
+		{
+			key:   "Port",
+			value: port,
+		},
+		{
+			key:      "Exclude Pattern",
+			value:    excludePattern,
+			disabled: exclude.Value() == "",
+		},
+		{
+			key:      "Uploads Dir",
+			value:    uploadsDir.Value(),
+			disabled: !uploads.Value(),
+		},
+		{
+			key:   "Log Level",
+			value: logLevel.Value(),
+		},
+		{
+			key:   "Log Format",
+			value: logFormat.Value(),
+		},
+		{
+			key:   "Log Output",
+			value: logOutput.Value(),
+		},
+		{
+			key:      "TLS Cert",
+			value:    tlsCert.Value(),
+			disabled: !serveTLS,
+		},
+		{
+			key:      "TLS Key",
+			value:    tlsKey.Value(),
+			disabled: !serveTLS,
+		},
 	})
 	if err != nil {
 		return err
@@ -210,23 +244,29 @@ func Run() error {
 
 	err = registerRoutes(mux, []route{
 		{
-			patterns:    []string{"GET /"},
+			pattern:     "GET /",
 			description: "Redirect /files",
 			handler:     http.RedirectHandler("/files", http.StatusMovedPermanently),
 		},
 		{
-			patterns:    []string{"GET /files", "GET /files/{file...}"},
+			pattern:     "GET /files",
 			description: "List Files",
 			handler:     controller.ListFiles(),
 		},
 		{
-			patterns:    []string{"POST /files"},
+			pattern:     "GET /files/{file...}",
+			description: "List Files",
+			handler:     controller.ListFiles(),
+			disabled:    !rootInfo.IsDir(),
+		},
+		{
+			pattern:     "POST /files",
 			description: "Upload File",
 			handler:     controller.UploadFile(),
 			disabled:    !uploads.Value(),
 		},
 		{
-			patterns:    []string{"GET /health"},
+			pattern:     "GET /health",
 			description: "Health Check",
 			handler:     health(),
 		},
