@@ -6,7 +6,7 @@
     <link
       rel="icon"
       type="image/x-icon"
-      href="https://raw.githubusercontent.com/cmgsj/goserve/main/images/favicon.png"
+      href="https://raw.githubusercontent.com/cmgsj/goserve/main/static/images/favicon.png"
     />
   </head>
   <body class="body">
@@ -29,7 +29,7 @@
         >
           Theme
         </button>
-        {{ if $params.Uploads }}
+        {{- if $params.Uploads -}}
         <button
           id="upload_form_button"
           class="header_upload_button"
@@ -66,20 +66,20 @@
         >
           <input id="upload_form_input" name="file" type="file" />
         </form>
-        {{ end }}
+        {{- end -}}
       </div>
     </header>
     <main class="main">
-      {{ if $params.Error }}
+      {{- if $params.Error -}}
       <div class="error">
         <h1 class="error_status">{{ $params.Error.Status }}</h1>
         <p class="error_message">{{ $params.Error.Message }}</p>
       </div>
-      {{ else if not $params.Data.Files }}
+      {{- else if not $params.Data.Files -}}
       <div class="error">
         <p class="error_message">No files found</p>
       </div>
-      {{ else }}
+      {{- else -}}
       <table class="file_table">
         <thead class="file_table_header">
           <th class="file_table_header_row file_table_header_row_left">Name</th>
@@ -88,10 +88,10 @@
           </th>
         </thead>
         <tbody>
-          {{ range $file := $params.Data.Files }}
+          {{- range $file := $params.Data.Files -}}
           <tr class="file_table_body_row">
             <td class="file_table_body_row_cell file_table_body_row_cell_left">
-              {{ if $file.IsDir }}
+              {{- if $file.IsDir -}}
               <svg
                 aria-hidden="true"
                 focusable="false"
@@ -110,7 +110,7 @@
                   d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z"
                 />
               </svg>
-              {{ else }}
+              {{- else -}}
               <svg
                 aria-hidden="true"
                 focusable="false"
@@ -129,13 +129,13 @@
                   d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"
                 />
               </svg>
-              {{ end }}
+              {{- end -}}
               <a class="file" href="{{ $params.FilesURL }}/{{ $file.Path }}"
                 >{{ $file.Name }}</a
               >
             </td>
             <td class="file_table_body_row_cell file_table_body_row_cell_right">
-              {{ if not $file.IsDir }}
+              {{- if not $file.IsDir -}}
               <code class="size">{{ $file.Size }}</code>
               <a
                 class="file"
@@ -165,30 +165,30 @@
                   />
                 </svg>
               </a>
-              {{ end }}
+              {{- end -}}
             </td>
           </tr>
-          {{ end }}
+          {{- end -}}
         </tbody>
       </table>
-      {{ end }}
+      {{- end -}}
     </main>
     <footer class="footer">
-      {{ if and (ne $params.Version "") (ne $params.Version "dev") }}
+      {{- if and (ne $params.Version "") (ne $params.Version "dev") -}}
       <a
         class="version"
         href="https://github.com/cmgsj/goserve/releases/tag/v{{ $params.Version }}"
       >
         goserve v{{ $params.Version }}
       </a>
-      {{ else }}
+      {{- else -}}
       <a
         class="version"
         href="https://github.com/cmgsj/goserve/releases/latest"
       >
         goserve
       </a>
-      {{ end }}
+      {{- end -}}
     </footer>
   </body>
   <script>
