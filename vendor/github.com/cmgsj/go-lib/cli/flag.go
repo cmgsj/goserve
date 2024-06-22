@@ -82,6 +82,10 @@ func (f *Flag[T]) Value() T {
 	return f.value
 }
 
+func (f *Flag[T]) SetValue(value T) {
+	f.value = value
+}
+
 func (f *Flag[T]) parse() error {
 	var zero T
 	var boundEnv bool

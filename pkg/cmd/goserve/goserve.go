@@ -98,27 +98,25 @@ func Run() error {
 		}
 	}
 
-	var uploadsDirPath string
-
 	if uploads.Value() {
-		uploadsDirPath = uploadsDir.Value()
-
-		if uploadsDirPath == "" {
-			uploadsDirPath = os.TempDir()
+		if uploadsDir.Value() == "" {
+			uploadsDir.SetValue(os.TempDir())
 		}
 
-		uploadsDirPath, err = filepath.Abs(uploadsDirPath)
+		uploadsDirAbs, err := filepath.Abs(uploadsDir.Value())
 		if err != nil {
 			return err
 		}
 
-		_, err = os.Stat(uploadsDirPath)
+		uploadsDir.SetValue(uploadsDirAbs)
+
+		_, err = os.Stat(uploadsDir.Value())
 		if err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}
 
-			err = os.MkdirAll(uploadsDirPath, 0755)
+			err = os.MkdirAll(uploadsDir.Value(), 0755)
 			if err != nil {
 				return err
 			}
@@ -127,23 +125,19 @@ func Run() error {
 
 	serveTLS := tlsCert.Value() != "" && tlsKey.Value() != ""
 
-	host := host.Value()
-
-	if host == "" {
-		host = "0.0.0.0"
+	if host.Value() == "" {
+		host.SetValue("0.0.0.0")
 	}
 
-	port := port.Value()
-
-	if port == 0 {
+	if port.Value() == 0 {
 		if serveTLS {
-			port = 443
+			port.SetValue(443)
 		} else {
-			port = 80
+			port.SetValue(80)
 		}
 	}
 
-	address := net.JoinHostPort(host, strconv.FormatUint(port, 10))
+	address := net.JoinHostPort(host.Value(), strconv.FormatUint(port.Value(), 10))
 
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
@@ -174,7 +168,7 @@ func Run() error {
 		FilesURL:         "/files",
 		ExcludePattern:   excludePattern,
 		Uploads:          uploads.Value(),
-		UploadsDir:       uploadsDirPath,
+		UploadsDir:       uploadsDir.Value(),
 		UploadsTimestamp: uploadsTimestamp.Value(),
 		Version:          Version(),
 	})
@@ -200,7 +194,7 @@ func Run() error {
 		{key: "Host", value: host},
 		{key: "Port", value: port},
 		{key: "Exclude Pattern", value: excludePattern, disabled: exclude.Value() == ""},
-		{key: "Uploads Dir", value: uploadsDirPath, disabled: !uploads.Value()},
+		{key: "Uploads Dir", value: uploadsDir.Value(), disabled: !uploads.Value()},
 		{key: "Log Level", value: logLevel.Value()},
 		{key: "Log Format", value: logFormat.Value()},
 		{key: "Log Output", value: logOutput.Value()},
