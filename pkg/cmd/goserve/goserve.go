@@ -196,16 +196,16 @@ func Run() error {
 		},
 		{
 			key:   "Host",
-			value: host,
+			value: host.Value(),
 		},
 		{
 			key:   "Port",
-			value: port,
+			value: port.Value(),
 		},
 		{
 			key:      "Exclude Pattern",
 			value:    excludePattern,
-			disabled: exclude.Value() == "",
+			disabled: excludePattern == nil,
 		},
 		{
 			key:      "Uploads Dir",
