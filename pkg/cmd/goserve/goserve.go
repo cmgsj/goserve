@@ -21,7 +21,9 @@ import (
 )
 
 var (
+	compactJSON      = cli.BoolFlag("compact-json", "print compact json", false)
 	exclude          = cli.StringFlag("exclude", "exclude file pattern", false)
+	fullpathText     = cli.BoolFlag("fullpath-text", "print fullpath text", false)
 	host             = cli.StringFlag("host", "http server host", false)
 	logFormat        = cli.StringFlag("log-format", "log format { json | text }", false, "text")
 	logLevel         = cli.StringFlag("log-level", "log level { debug | info | warn | error }", false, "info")
@@ -176,6 +178,8 @@ func Run() error {
 		Uploads:          uploads.Value(),
 		UploadsDir:       uploadsDirPath,
 		UploadsTimestamp: uploadsTimestamp.Value(),
+		CompactJSON:      compactJSON.Value(),
+		FullpathText:     fullpathText.Value(),
 		Version:          Version(),
 	})
 

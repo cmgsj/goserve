@@ -30,6 +30,7 @@ type ControllerConfig struct {
 	UploadsDir       string
 	UploadsTimestamp bool
 	CompactJSON      bool
+	FullpathText     bool
 	Version          string
 }
 
@@ -42,7 +43,7 @@ func NewController(fileSystem fs.FS, config ControllerConfig) *Controller {
 		fileSystem:  fileSystem,
 		htmlHandler: newHTMLHandler(config.FilesURL, config.Uploads, config.Version),
 		jsonHandler: newJSONHandler(config.CompactJSON),
-		textHandler: newTextHandler(),
+		textHandler: newTextHandler(config.FullpathText),
 		config:      config,
 	}
 }

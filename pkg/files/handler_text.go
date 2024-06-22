@@ -8,17 +8,25 @@ import (
 	"text/tabwriter"
 )
 
-type textHandler struct{}
+type textHandler struct {
+	fullpath bool
+}
 
-func newTextHandler() textHandler {
-	return textHandler{}
+func newTextHandler(fullpath bool) textHandler {
+	return textHandler{
+		fullpath: fullpath,
+	}
 }
 
 func (h textHandler) handleDir(w io.Writer, dir string, files []File) error {
 	var buf bytes.Buffer
 
 	for _, file := range files {
-		buf.WriteString(file.Name)
+		if h.fullpath {
+			buf.WriteString(file.Path)
+		} else {
+			buf.WriteString(file.Name)
+		}
 		if file.IsDir {
 			buf.WriteByte('/')
 		} else {
