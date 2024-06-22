@@ -276,7 +276,7 @@ func Run() error {
 	}
 
 	println()
-	printfln("Listening at %s", url)
+	printfln("Serving files at %s", url)
 	println()
 	println("Ready to accept connections")
 	println()
