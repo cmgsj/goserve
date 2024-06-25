@@ -435,7 +435,7 @@
               >
             </td>
             <td class="file_table_body_row_cell file_table_body_row_cell_right">
-              <code class="size">1.29B</code>
+              <code class="size">684.00B</code>
               <a
                 class="file"
                 href="https://raw.githubusercontent.com/cmgsj/goserve/main/README.md"
@@ -733,14 +733,14 @@
     });
 
     const loadTheme = () => {
-      if (localStorage.getItem(themes.key) === themes.dark.key) {
-        document.body.classList.remove(themes.light.key);
-        document.body.classList.add(themes.dark.key);
-        themeToggle.innerHTML = themes.light.icon;
-      } else {
+      if (localStorage.getItem(themes.key) === themes.light.key) {
         document.body.classList.remove(themes.dark.key);
         document.body.classList.add(themes.light.key);
         themeToggle.innerHTML = themes.dark.icon;
+      } else {
+        document.body.classList.remove(themes.light.key);
+        document.body.classList.add(themes.dark.key);
+        themeToggle.innerHTML = themes.light.icon;
       }
     };
 
@@ -779,7 +779,7 @@
       text-decoration: none;
     }
     .header_buttons {
-      margin-right: 42px;
+      margin-right: 40px;
     }
     .theme_toggle_button,
     .header_upload_button {
@@ -788,6 +788,8 @@
       border-spacing: 0;
       border: 1px solid var(--border-color);
       color: var(--table-color);
+      margin-left: 2px;
+      margin-right: 2px;
     }
     .header_breadcrumb:hover,
     .theme_toggle_button:hover,
@@ -810,7 +812,7 @@
       border: 1px solid var(--border-color);
       color: var(--table-color);
       font-size: 12px;
-      margin-top: 20px;
+      margin-top: 15px;
       table-layout: fixed;
       width: 100%;
     }
