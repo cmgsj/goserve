@@ -2,59 +2,93 @@ package files
 
 import "strconv"
 
-const SizeFactor = 1e3
-
-type Size int64
-
 const (
-	TeraByte Size = SizeFactor * GigaByte
-	GigaByte Size = SizeFactor * MegaByte
-	MegaByte Size = SizeFactor * KiloByte
-	KiloByte Size = SizeFactor * Byte
-	Byte     Size = 1
+	metric = 1000
+	binary = 1024
 )
 
-func (s Size) Unit() Size {
-	unit := Byte
+const (
+	Byte = 1
 
-	for u := TeraByte; u > Byte; u /= SizeFactor {
-		if s >= u {
-			unit = u
-			break
+	KiloByte  = metric * Byte
+	MegaByte  = metric * KiloByte
+	GigaByte  = metric * MegaByte
+	TeraByte  = metric * GigaByte
+	PetaByte  = metric * TeraByte
+	ExaByte   = metric * PetaByte
+	ZettaByte = metric * ExaByte
+	YottaByte = metric * ZettaByte
+
+	KibiByte = binary * Byte
+	MebiByte = binary * KibiByte
+	GibiByte = binary * MebiByte
+	TebiByte = binary * GibiByte
+	PebiByte = binary * TebiByte
+	ExbiByte = binary * PebiByte
+	ZebiByte = binary * ExbiByte
+	YobiByte = binary * ZebiByte
+)
+
+const ShortestLength = -1
+
+func FormatSizeMetricUnits(size float64, precision int) string {
+	return formatSize(size, precision, sizeUnit(size, Byte, YottaByte, metric))
+}
+
+func FormatSizeBinaryUnits(size float64, precision int) string {
+	return formatSize(size, precision, sizeUnit(size, Byte, YobiByte, binary))
+}
+
+func formatSize(size float64, precision int, unit float64) string {
+	return strconv.FormatFloat(size/unit, 'f', precision, 64) + sizeUnitString(unit)
+}
+
+func sizeUnit(size, min, max, factor float64) float64 {
+	for u := max; u > min; u /= factor {
+		if size >= u {
+			return u
 		}
 	}
-
-	return unit
+	return min
 }
 
-func (s Size) UnitString() string {
-	switch s {
-	case TeraByte:
-		return "TB"
-
-	case GigaByte:
-		return "GB"
-
-	case MegaByte:
-		return "MB"
-
+func sizeUnitString(size float64) string {
+	switch size {
+	case Byte:
+		return "B"
 	case KiloByte:
 		return "KB"
-
+	case MegaByte:
+		return "MB"
+	case GigaByte:
+		return "GB"
+	case TeraByte:
+		return "TB"
+	case PetaByte:
+		return "PB"
+	case ExaByte:
+		return "EB"
+	case ZettaByte:
+		return "ZB"
+	case YottaByte:
+		return "YB"
+	case KibiByte:
+		return "KiB"
+	case MebiByte:
+		return "MiB"
+	case GibiByte:
+		return "GiB"
+	case TebiByte:
+		return "TiB"
+	case PebiByte:
+		return "PiB"
+	case ExbiByte:
+		return "EiB"
+	case ZebiByte:
+		return "ZiB"
+	case YobiByte:
+		return "YiB"
 	default:
-		return "B"
+		return ""
 	}
-}
-
-func (s Size) String() string {
-	return s.Format(-1)
-}
-
-func (s Size) Format(precision int) string {
-	unit := s.Unit()
-	return strconv.FormatFloat(float64(s)/float64(unit), 'f', precision, 64) + s.UnitString()
-}
-
-func FormatSize(size int64, precision int) string {
-	return Size(size).Format(precision)
 }
