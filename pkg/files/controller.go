@@ -237,7 +237,7 @@ func (c *Controller) readDir(filePath string) ([]File, error) {
 		}
 
 		if !file.IsDir {
-			file.Size = FormatSizeMetricUnits(float64(info.Size()), ShortestLength)
+			file.Size = FormatSizeMetric(float64(info.Size()), ShortestLengthPrecision)
 		}
 
 		files = append(files, file)

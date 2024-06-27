@@ -3,40 +3,36 @@ package files
 import "strconv"
 
 const (
-	metric = 1000
-	binary = 1024
+	MetricFactor = 1000
+	BinaryFactor = 1024
 )
 
 const (
 	Byte = 1
 
-	KiloByte  = metric * Byte
-	MegaByte  = metric * KiloByte
-	GigaByte  = metric * MegaByte
-	TeraByte  = metric * GigaByte
-	PetaByte  = metric * TeraByte
-	ExaByte   = metric * PetaByte
-	ZettaByte = metric * ExaByte
-	YottaByte = metric * ZettaByte
+	KiloByte = MetricFactor * Byte
+	MegaByte = MetricFactor * KiloByte
+	GigaByte = MetricFactor * MegaByte
+	TeraByte = MetricFactor * GigaByte
+	PetaByte = MetricFactor * TeraByte
+	ExaByte  = MetricFactor * PetaByte
 
-	KibiByte = binary * Byte
-	MebiByte = binary * KibiByte
-	GibiByte = binary * MebiByte
-	TebiByte = binary * GibiByte
-	PebiByte = binary * TebiByte
-	ExbiByte = binary * PebiByte
-	ZebiByte = binary * ExbiByte
-	YobiByte = binary * ZebiByte
+	KibiByte = BinaryFactor * Byte
+	MebiByte = BinaryFactor * KibiByte
+	GibiByte = BinaryFactor * MebiByte
+	TebiByte = BinaryFactor * GibiByte
+	PebiByte = BinaryFactor * TebiByte
+	ExbiByte = BinaryFactor * PebiByte
 )
 
-const ShortestLength = -1
+const ShortestLengthPrecision = -1
 
-func FormatSizeMetricUnits(size float64, precision int) string {
-	return formatSize(size, precision, sizeUnit(size, Byte, YottaByte, metric))
+func FormatSizeMetric(size float64, precision int) string {
+	return formatSize(size, precision, sizeUnit(size, Byte, ExaByte, MetricFactor))
 }
 
-func FormatSizeBinaryUnits(size float64, precision int) string {
-	return formatSize(size, precision, sizeUnit(size, Byte, YobiByte, binary))
+func FormatSizeBinary(size float64, precision int) string {
+	return formatSize(size, precision, sizeUnit(size, Byte, ExbiByte, BinaryFactor))
 }
 
 func formatSize(size float64, precision int, unit float64) string {
@@ -68,10 +64,6 @@ func sizeUnitString(size float64) string {
 		return "PB"
 	case ExaByte:
 		return "EB"
-	case ZettaByte:
-		return "ZB"
-	case YottaByte:
-		return "YB"
 	case KibiByte:
 		return "KiB"
 	case MebiByte:
@@ -84,10 +76,6 @@ func sizeUnitString(size float64) string {
 		return "PiB"
 	case ExbiByte:
 		return "EiB"
-	case ZebiByte:
-		return "ZiB"
-	case YobiByte:
-		return "YiB"
 	default:
 		return ""
 	}

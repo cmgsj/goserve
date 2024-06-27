@@ -20,7 +20,7 @@ func LogRequests(next http.Handler) http.Handler {
 				r.Method+" "+r.URL.Path,
 				"address", r.RemoteAddr,
 				"status", http.StatusText(recorder.StatusCode()),
-				"size", files.FormatSizeMetricUnits(float64(recorder.BytesWritten()), files.ShortestLength),
+				"size", files.FormatSizeMetric(float64(recorder.BytesWritten()), files.ShortestLengthPrecision),
 				"duration", time.Since(start),
 			)
 		}()
