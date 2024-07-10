@@ -175,8 +175,6 @@ func Run() error {
 
 	mux := http.NewServeMux()
 
-	handler := logging.LogRequests(mux)
-
 	println()
 	println(`   __________  ________  ______   _____ `)
 	println(`  / __  / __ \/ ___/ _ \/ ___/ | / / _ \`)
@@ -281,5 +279,5 @@ func Run() error {
 	println("Ready to accept connections")
 	println()
 
-	return http.Serve(listener, handler)
+	return http.Serve(listener, logging.LogRequests(mux))
 }
