@@ -22,13 +22,6 @@
         {{- end -}} {{- end -}}
       </label>
       <div class="header_buttons">
-        <button
-          id="theme_toggle_button"
-          class="theme_toggle_button"
-          type="button"
-        >
-          Theme
-        </button>
         {{- if $params.Uploads -}}
         <button
           id="upload_form_button"
@@ -67,6 +60,13 @@
           <input id="upload_form_input" name="file" type="file" />
         </form>
         {{- end -}}
+        <button
+          id="theme_toggle_button"
+          class="theme_toggle_button"
+          type="button"
+        >
+          Theme
+        </button>
       </div>
     </header>
     <main class="main">
