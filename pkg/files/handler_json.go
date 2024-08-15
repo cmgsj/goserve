@@ -5,8 +5,7 @@ import (
 	"net/http"
 )
 
-type jsonHandler struct {
-}
+type jsonHandler struct{}
 
 func newJSONHandler() jsonHandler {
 	return jsonHandler{}

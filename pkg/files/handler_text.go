@@ -7,8 +7,7 @@ import (
 	"text/tabwriter"
 )
 
-type textHandler struct {
-}
+type textHandler struct{}
 
 func newTextHandler() textHandler {
 	return textHandler{}
