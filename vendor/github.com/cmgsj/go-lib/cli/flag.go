@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"cmp"
 	"fmt"
 	"os"
 	"regexp"
@@ -10,85 +9,86 @@ import (
 	"time"
 )
 
-type FlagType interface {
+type FlagValue interface {
 	string | bool | int | int64 | uint | uint64 | float64 | time.Duration
 }
 
-type Flag[T FlagType] struct {
+type Flag[V FlagValue] struct {
 	flagSet      *FlagSet
 	name         string
 	usage        string
 	required     bool
-	defaultValue T
-	value        T
+	defaultValue V
+	value        V
 }
 
-func newFlag[T FlagType](flagSet *FlagSet, name, usage string, required bool, defaults ...T) *Flag[T] {
-	f := &Flag[T]{
-		flagSet:      flagSet,
-		name:         name,
-		usage:        usage,
-		required:     required,
-		defaultValue: cmp.Or(defaults...),
+func newFlag[V FlagValue](flagSet *FlagSet, name, usage string, opts ...FlagOption[V]) *Flag[V] {
+	f := &Flag[V]{
+		flagSet: flagSet,
+		name:    name,
+		usage:   usage,
 	}
 
-	f.flagSet.flags = append(f.flagSet.flags, f)
+	for _, opt := range opts {
+		opt(f)
+	}
 
 	switch any(f.value).(type) {
-	case string:
-		f.flagSet.flagSet.StringVar(any(&f.value).(*string), f.name, any(f.value).(string), f.usage)
-
 	case bool:
-		f.flagSet.flagSet.BoolVar(any(&f.value).(*bool), f.name, any(f.value).(bool), f.usage)
+		f.flagSet.flagSet.BoolVar(any(&f.value).(*bool), f.name, any(f.defaultValue).(bool), f.usage)
 
 	case int:
-		f.flagSet.flagSet.IntVar(any(&f.value).(*int), f.name, any(f.value).(int), f.usage)
+		f.flagSet.flagSet.IntVar(any(&f.value).(*int), f.name, any(f.defaultValue).(int), f.usage)
 
 	case int64:
-		f.flagSet.flagSet.Int64Var(any(&f.value).(*int64), f.name, any(f.value).(int64), f.usage)
+		f.flagSet.flagSet.Int64Var(any(&f.value).(*int64), f.name, any(f.defaultValue).(int64), f.usage)
 
 	case uint:
-		f.flagSet.flagSet.UintVar(any(&f.value).(*uint), f.name, any(f.value).(uint), f.usage)
+		f.flagSet.flagSet.UintVar(any(&f.value).(*uint), f.name, any(f.defaultValue).(uint), f.usage)
 
 	case uint64:
-		f.flagSet.flagSet.Uint64Var(any(&f.value).(*uint64), f.name, any(f.value).(uint64), f.usage)
+		f.flagSet.flagSet.Uint64Var(any(&f.value).(*uint64), f.name, any(f.defaultValue).(uint64), f.usage)
 
 	case float64:
-		f.flagSet.flagSet.Float64Var(any(&f.value).(*float64), f.name, any(f.value).(float64), f.usage)
+		f.flagSet.flagSet.Float64Var(any(&f.value).(*float64), f.name, any(f.defaultValue).(float64), f.usage)
 
 	case time.Duration:
-		f.flagSet.flagSet.DurationVar(any(&f.value).(*time.Duration), f.name, any(f.value).(time.Duration), f.usage)
+		f.flagSet.flagSet.DurationVar(any(&f.value).(*time.Duration), f.name, any(f.defaultValue).(time.Duration), f.usage)
+
+	case string:
+		f.flagSet.flagSet.StringVar(any(&f.value).(*string), f.name, any(f.defaultValue).(string), f.usage)
 
 	default:
 		panic(fmt.Sprintf("unable to add flag of type %T", f.value))
 	}
 
+	f.flagSet.flags = append(f.flagSet.flags, f)
+
 	return f
 }
 
-func (f *Flag[T]) Name() string {
+func (f *Flag[V]) Name() string {
 	return f.name
 }
 
-func (f *Flag[T]) Usage() string {
+func (f *Flag[V]) Usage() string {
 	return f.usage
 }
 
-func (f *Flag[T]) Required() bool {
+func (f *Flag[V]) Required() bool {
 	return f.required
 }
 
-func (f *Flag[T]) Value() T {
+func (f *Flag[V]) Value() V {
 	return f.value
 }
 
-func (f *Flag[T]) SetValue(value T) {
+func (f *Flag[V]) SetValue(value V) {
 	f.value = value
 }
 
-func (f *Flag[T]) parse() error {
-	var zero T
-	var boundEnv bool
+func (f *Flag[V]) parse() error {
+	var zero V
 
 	if f.value == zero && f.flagSet.envPrefix != nil {
 		key := f.name
@@ -105,9 +105,6 @@ func (f *Flag[T]) parse() error {
 			var err error
 
 			switch any(f.value).(type) {
-			case string:
-				v = value
-
 			case bool:
 				v, err = strconv.ParseBool(value)
 
@@ -133,24 +130,19 @@ func (f *Flag[T]) parse() error {
 			case time.Duration:
 				v, err = time.ParseDuration(value)
 
+			case string:
+				v = value
+
 			default:
 				panic(fmt.Sprintf("unable to parse flag of type %T", f.value))
 			}
 
 			if err != nil {
-				return fmt.Errorf(
-					"failed to parse flag %s of type %T from environment variable %s=%q: %v",
-					f.name, f.value, key, value, err)
+				return fmt.Errorf("failed to parse flag %s of type %T from environment variable %s=%q: %v", f.name, f.value, key, value, err)
 			}
 
-			f.value = v.(T)
-
-			boundEnv = true
+			f.value = v.(V)
 		}
-	}
-
-	if f.value == zero && !boundEnv {
-		f.value = f.defaultValue
 	}
 
 	if f.value == zero && f.required {
@@ -161,13 +153,13 @@ func (f *Flag[T]) parse() error {
 }
 
 var (
-	camelCaseLowerToUpper = regexp.MustCompile("([a-z0-9])([A-Z])")
-	camelCaseUpperToLower = regexp.MustCompile("([A-Z])([A-Z][a-z0-9])")
+	camelLowerToUpper = regexp.MustCompile("([a-z0-9])([A-Z])")
+	camelUpperToLower = regexp.MustCompile("([A-Z])([A-Z][a-z0-9])")
 )
 
 func toSnakeCase(s string) string {
-	s = camelCaseLowerToUpper.ReplaceAllString(s, "${1}_${2}")
-	s = camelCaseUpperToLower.ReplaceAllString(s, "${1}_${2}")
+	s = camelLowerToUpper.ReplaceAllString(s, "${1}_${2}")
+	s = camelUpperToLower.ReplaceAllString(s, "${1}_${2}")
 	s = strings.ReplaceAll(s, "-", "_")
 	return s
 }

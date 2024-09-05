@@ -75,34 +75,34 @@ func VisitAll(fn func(*FlagInfo)) {
 	DefaultFlagSet.VisitAll(fn)
 }
 
-func StringFlag(name, usage string, required bool, defaults ...string) *Flag[string] {
-	return DefaultFlagSet.StringFlag(name, usage, required, defaults...)
+func Bool(name, usage string, opts ...FlagOption[bool]) *Flag[bool] {
+	return DefaultFlagSet.Bool(name, usage, opts...)
 }
 
-func BoolFlag(name, usage string, required bool, defaults ...bool) *Flag[bool] {
-	return DefaultFlagSet.BoolFlag(name, usage, required, defaults...)
+func Int(name, usage string, opts ...FlagOption[int]) *Flag[int] {
+	return DefaultFlagSet.Int(name, usage, opts...)
 }
 
-func IntFlag(name, usage string, required bool, defaults ...int) *Flag[int] {
-	return DefaultFlagSet.IntFlag(name, usage, required, defaults...)
+func Int64(name, usage string, opts ...FlagOption[int64]) *Flag[int64] {
+	return DefaultFlagSet.Int64(name, usage, opts...)
 }
 
-func Int64Flag(name, usage string, required bool, defaults ...int64) *Flag[int64] {
-	return DefaultFlagSet.Int64Flag(name, usage, required, defaults...)
+func Uint(name, usage string, opts ...FlagOption[uint]) *Flag[uint] {
+	return DefaultFlagSet.Uint(name, usage, opts...)
 }
 
-func UintFlag(name, usage string, required bool, defaults ...uint) *Flag[uint] {
-	return DefaultFlagSet.UintFlag(name, usage, required, defaults...)
+func Uint64(name, usage string, opts ...FlagOption[uint64]) *Flag[uint64] {
+	return DefaultFlagSet.Uint64(name, usage, opts...)
 }
 
-func Uint64Flag(name, usage string, required bool, defaults ...uint64) *Flag[uint64] {
-	return DefaultFlagSet.Uint64Flag(name, usage, required, defaults...)
+func Float64(name, usage string, opts ...FlagOption[float64]) *Flag[float64] {
+	return DefaultFlagSet.Float64(name, usage, opts...)
 }
 
-func Float64Flag(name, usage string, required bool, defaults ...float64) *Flag[float64] {
-	return DefaultFlagSet.Float64Flag(name, usage, required, defaults...)
+func Duration(name, usage string, opts ...FlagOption[time.Duration]) *Flag[time.Duration] {
+	return DefaultFlagSet.Duration(name, usage, opts...)
 }
 
-func DurationFlag(name, usage string, required bool, defaults ...time.Duration) *Flag[time.Duration] {
-	return DefaultFlagSet.DurationFlag(name, usage, required, defaults...)
+func String(name, usage string, opts ...FlagOption[string]) *Flag[string] {
+	return DefaultFlagSet.String(name, usage, opts...)
 }

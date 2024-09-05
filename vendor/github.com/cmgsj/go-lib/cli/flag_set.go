@@ -54,7 +54,18 @@ func (f *FlagSet) PrintDefaults() {
 }
 
 func (f *FlagSet) Parse(args []string) error {
-	return f.parse(args)
+	err := f.flagSet.Parse(args)
+	if err != nil {
+		return err
+	}
+
+	var errs []error
+
+	for _, flag := range f.flags {
+		errs = append(errs, flag.parse())
+	}
+
+	return errors.Join(errs...)
 }
 
 func (f *FlagSet) Parsed() bool {
@@ -93,49 +104,34 @@ func (f *FlagSet) VisitAll(fn func(*FlagInfo)) {
 	f.flagSet.VisitAll(fn)
 }
 
-func (f *FlagSet) StringFlag(name, usage string, required bool, defaults ...string) *Flag[string] {
-	return newFlag(f, name, usage, required, defaults...)
+func (f *FlagSet) Bool(name, usage string, opts ...FlagOption[bool]) *Flag[bool] {
+	return newFlag(f, name, usage, opts...)
 }
 
-func (f *FlagSet) BoolFlag(name, usage string, required bool, defaults ...bool) *Flag[bool] {
-	return newFlag(f, name, usage, required, defaults...)
+func (f *FlagSet) Int(name, usage string, opts ...FlagOption[int]) *Flag[int] {
+	return newFlag(f, name, usage, opts...)
 }
 
-func (f *FlagSet) IntFlag(name, usage string, required bool, defaults ...int) *Flag[int] {
-	return newFlag(f, name, usage, required, defaults...)
+func (f *FlagSet) Int64(name, usage string, opts ...FlagOption[int64]) *Flag[int64] {
+	return newFlag(f, name, usage, opts...)
 }
 
-func (f *FlagSet) Int64Flag(name, usage string, required bool, defaults ...int64) *Flag[int64] {
-	return newFlag(f, name, usage, required, defaults...)
+func (f *FlagSet) Uint(name, usage string, opts ...FlagOption[uint]) *Flag[uint] {
+	return newFlag(f, name, usage, opts...)
 }
 
-func (f *FlagSet) UintFlag(name, usage string, required bool, defaults ...uint) *Flag[uint] {
-	return newFlag(f, name, usage, required, defaults...)
+func (f *FlagSet) Uint64(name, usage string, opts ...FlagOption[uint64]) *Flag[uint64] {
+	return newFlag(f, name, usage, opts...)
 }
 
-func (f *FlagSet) Uint64Flag(name, usage string, required bool, defaults ...uint64) *Flag[uint64] {
-	return newFlag(f, name, usage, required, defaults...)
+func (f *FlagSet) Float64(name, usage string, opts ...FlagOption[float64]) *Flag[float64] {
+	return newFlag(f, name, usage, opts...)
 }
 
-func (f *FlagSet) Float64Flag(name, usage string, required bool, defaults ...float64) *Flag[float64] {
-	return newFlag(f, name, usage, required, defaults...)
+func (f *FlagSet) Duration(name, usage string, opts ...FlagOption[time.Duration]) *Flag[time.Duration] {
+	return newFlag(f, name, usage, opts...)
 }
 
-func (f *FlagSet) DurationFlag(name, usage string, required bool, defaults ...time.Duration) *Flag[time.Duration] {
-	return newFlag(f, name, usage, required, defaults...)
-}
-
-func (f *FlagSet) parse(args []string) error {
-	err := f.flagSet.Parse(args)
-	if err != nil {
-		return err
-	}
-
-	var errs []error
-
-	for _, flag := range f.flags {
-		errs = append(errs, flag.parse())
-	}
-
-	return errors.Join(errs...)
+func (f *FlagSet) String(name, usage string, opts ...FlagOption[string]) *Flag[string] {
+	return newFlag(f, name, usage, opts...)
 }
