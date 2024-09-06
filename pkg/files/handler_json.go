@@ -12,17 +12,17 @@ func newJSONHandler() jsonHandler {
 }
 
 func (h jsonHandler) handleDir(w http.ResponseWriter, r *http.Request, dir string, files []File) error {
-	return h.encode(w, r, files)
+	return h.handle(w, r, files)
 }
 
 func (h jsonHandler) handleError(w http.ResponseWriter, r *http.Request, err error, code int) error {
-	return h.encode(w, r, map[string]interface{}{
+	return h.handle(w, r, map[string]interface{}{
 		"status":  http.StatusText(code),
 		"message": err.Error(),
 	})
 }
 
-func (h jsonHandler) encode(w http.ResponseWriter, r *http.Request, v interface{}) error {
+func (h jsonHandler) handle(w http.ResponseWriter, r *http.Request, v interface{}) error {
 	compact := parseQueryBool(r.URL, "compact")
 
 	encoder := json.NewEncoder(w)

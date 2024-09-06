@@ -37,20 +37,21 @@ tasks:
           CMD: install
 
   binary:
-    internal: true
     required:
       vars: [CMD]
     cmds:
       - |
         ldflags="-s -w -extldflags='-static'"
-        if [[ -n "{{.VERSION}}" ]]; then
-          ldflags+=" -X '{{.GO_MODULE}}/pkg/cmd/goserve.v={{.VERSION}}'"
+        version="{{.VERSION}}"
+        if [[ -z "$version" ]]; then
+          version="$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')"
         fi
+        ldflags+=" -X '{{.GO_MODULE}}/pkg/cmd/goserve.v=$version'"
         flags=(-trimpath -ldflags="$ldflags")
         if [[ "{{.CMD}}" == "build" ]]; then
           flags+=(-o "bin/goserve")
         fi
-        echo "{{.CMD}}ing goserve v{{.VERSION}} {{.GOOS}}/{{.GOARCH}} cgo={{.CGO_ENABLED}}"
+        echo "{{.CMD}}ing goserve@$version {{.GOOS}}/{{.GOARCH}} cgo={{.CGO_ENABLED}}"
         go {{.CMD}} "${flags[@]}" .
     vars:
       GOOS:
@@ -59,5 +60,3 @@ tasks:
         sh: go env GOARCH
       CGO_ENABLED:
         sh: go env CGO_ENABLED
-      VERSION:
-        sh: git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//'
