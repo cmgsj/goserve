@@ -29,7 +29,7 @@ jobs:
       - name: Generate Docs
         run: |
           make build version=docs
-          bin/goserve --exclude='^\.git$' --port 1234 . &>/dev/null &
+          bin/goserve --exclude='^(\.git|bin)$' --port 1234 . &>/dev/null &
           curl "http://localhost:1234/files" >docs/index.html
           kill %1
 
