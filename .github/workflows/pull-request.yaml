@@ -5,7 +5,7 @@ on:
     branches: ["main"]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   test:
@@ -33,5 +33,3 @@ jobs:
 
       - name: Commit Changes
         uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "generate docs"
