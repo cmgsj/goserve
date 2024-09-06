@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 .PHONY: default
 default: fmt build install
 
