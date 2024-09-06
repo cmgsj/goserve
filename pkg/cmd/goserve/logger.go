@@ -18,12 +18,19 @@ func initLogger() error {
 
 	var out io.Writer
 
+	if silent.Value() || quiet.Value() {
+		logOutput.SetValue("none")
+	}
+
 	switch strings.ToLower(logOutput.Value()) {
 	case "stdout":
 		out = os.Stdout
 
 	case "stderr":
 		out = os.Stderr
+
+	case "none":
+		out = io.Discard
 
 	default:
 		out, err = os.Create(logOutput.Value())

@@ -38,23 +38,17 @@ func printConfigs(configs []config) error {
 	return tab.Flush()
 }
 
-const printPrefix = "# "
-
 func println(args ...any) {
-	if !silent.Value() {
-		fmt.Println(printPrefix + fmt.Sprint(args...))
-	}
+	fmt.Fprint(os.Stdout, sprintfln(fmt.Sprint(args...)))
 }
 
 func printfln(format string, args ...any) {
-	if !silent.Value() {
-		fmt.Printf(printPrefix+format+"\n", args...)
-	}
+	fmt.Fprint(os.Stdout, sprintfln(format, args...))
 }
 
 func sprintfln(format string, args ...any) string {
-	if !silent.Value() {
-		return fmt.Sprintf(printPrefix+format+"\n", args...)
+	if silent.Value() || quiet.Value() {
+		return ""
 	}
-	return ""
+	return fmt.Sprintf("# "+format+"\n", args...)
 }
