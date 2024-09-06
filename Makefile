@@ -28,7 +28,9 @@ binary:
 		echo "unknown cmd '$${cmd}'"; \
 		exit 1; \
 	fi; \
-	version="$$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')"; \
+	if [[ -z "$${version}" ]]; then \
+		version="$$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')"; \
+	fi; \
 	ldflags="-s -w -extldflags='-static'"; \
 	if [[ -n "$${version}" ]]; then \
 		ldflags+=" -X 'github.com/cmgsj/goserve/pkg/cmd/goserve.v=$${version}'"; \
@@ -37,5 +39,5 @@ binary:
 	if [[ "$${cmd}" == "build" ]]; then \
 		flags+=(-o "bin/goserve"); \
 	fi; \
-	echo "$${cmd}ing goserve v$${version} $$(go env GOOS)/$$(go env GOARCH) cgo=$$(go env CGO_ENABLED)"; \
+	echo "$${cmd}ing goserve@$${version} $$(go env GOOS)/$$(go env GOARCH) cgo=$$(go env CGO_ENABLED)"; \
 	go "$${cmd}" "$${flags[@]}" .

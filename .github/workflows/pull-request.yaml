@@ -20,5 +20,18 @@ jobs:
         with:
           go-version: "1.22.0"
 
-      - name: Test
-        run: make test
+      - name: Run Tests
+        run: |
+          make test
+
+      - name: Generate Docs
+        run: |
+          make build version=docs
+          bin/goserve --exclude='^\.git$' . &>/dev/null &
+          curl "http://localhost/files" >docs/index.html
+          kill %1
+
+      - name: Commit Changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "generate docs"

@@ -1,4 +1,8 @@
-{{ $params := . }}
+{{- $params := . -}} {{- $filesHTMLURL := $params.FilesURL -}} {{-
+$filesDownloadURL := $params.FilesURL -}} {{- if eq $params.Version "docs" -}}
+{{- $filesHTMLURL = "https://github.com/cmgsj/goserve/tree/main" -}} {{-
+$filesDownloadURL = "https://raw.githubusercontent.com/cmgsj/goserve/main" -}}
+{{- end -}}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -12,11 +16,11 @@
   <body class="body">
     <header class="header">
       <label class="header_label">
-        <a class="header_breadcrumb" href="{{ $params.FilesURL }}">Home</a>
+        <a class="header_breadcrumb" href="{{ $filesHTMLURL }}">Home</a>
         {{- if not $params.Error -}} {{- range $file := $params.Data.Breadcrumbs
         -}}/<a
           class="header_breadcrumb"
-          href="{{ $params.FilesURL }}/{{ $file.Path }}"
+          href="{{ $filesHTMLURL }}/{{ $file.Path }}"
           >{{ $file.Name }}</a
         >
         {{- end -}} {{- end -}}
@@ -53,7 +57,7 @@
         <form
           id="upload_form"
           enctype="multipart/form-data"
-          action="{{ $params.FilesURL }}"
+          action="{{ $filesHTMLURL }}"
           method="post"
           style="display: none"
         >
@@ -130,7 +134,7 @@
                 />
               </svg>
               {{- end -}}
-              <a class="file" href="{{ $params.FilesURL }}/{{ $file.Path }}"
+              <a class="file" href="{{ $filesHTMLURL }}/{{ $file.Path }}"
                 >{{ $file.Name }}</a
               >
             </td>
@@ -139,7 +143,7 @@
               <code class="size">{{ $file.Size }}</code>
               <a
                 class="file"
-                href="{{ $params.FilesURL }}/{{ $file.Path }}"
+                href="{{ $filesDownloadURL }}/{{ $file.Path }}"
                 download="{{ $file.Name }}"
               >
                 <svg
@@ -174,7 +178,8 @@
       {{- end -}}
     </main>
     <footer class="footer">
-      {{- if and (ne $params.Version "") (ne $params.Version "dev") -}}
+      {{- if and (ne $params.Version "") (ne $params.Version "dev") (ne
+      $params.Version "docs") -}}
       <a
         class="version"
         href="https://github.com/cmgsj/goserve/releases/tag/v{{ $params.Version }}"
