@@ -88,9 +88,7 @@ func (f *Flag[V]) SetValue(value V) {
 }
 
 func (f *Flag[V]) parse() error {
-	var zero V
-
-	if f.value == zero && f.flagSet.envPrefix != nil {
+	if f.flagSet.envPrefix != nil && (isZero(f.value) || f.value == f.defaultValue) {
 		key := f.name
 
 		if *f.flagSet.envPrefix != "" {
@@ -145,7 +143,7 @@ func (f *Flag[V]) parse() error {
 		}
 	}
 
-	if f.value == zero && f.required {
+	if isZero(f.value) && f.required {
 		return fmt.Errorf("missing required flag %s", f.name)
 	}
 
@@ -162,4 +160,9 @@ func toSnakeCase(s string) string {
 	s = camelUpperToLower.ReplaceAllString(s, "${1}_${2}")
 	s = strings.ReplaceAll(s, "-", "_")
 	return s
+}
+
+func isZero[V comparable](v V) bool {
+	var zero V
+	return v == zero
 }
