@@ -176,17 +176,17 @@ func Run() error {
 
 	mux := http.NewServeMux()
 
-	println()
-	println(`   __________  ________  ______   _____ `)
-	println(`  / __  / __ \/ ___/ _ \/ ___/ | / / _ \`)
-	println(` / /_/ / /_/ (__  )  __/ /   | |/ /  __/`)
-	println(` \__, /\____/____/\___/_/    |___/\___/ `)
-	println(`/____/                                  `)
-	println()
-	println()
-	println("Starting HTTP file server")
-	println()
-	println("Config:")
+	printfln("")
+	printfln(`   __________  ________  ______   _____ `)
+	printfln(`  / __  / __ \/ ___/ _ \/ ___/ | / / _ \`)
+	printfln(` / /_/ / /_/ (__  )  __/ /   | |/ /  __/`)
+	printfln(` \__, /\____/____/\___/_/    |___/\___/ `)
+	printfln(`/____/                                  `)
+	printfln("")
+	printfln("")
+	printfln("Starting HTTP file server")
+	printfln("")
+	printfln("Config:")
 
 	err = printConfigs([]config{
 		{
@@ -238,8 +238,8 @@ func Run() error {
 		return err
 	}
 
-	println()
-	println("Routes:")
+	printfln("")
+	printfln("Routes:")
 
 	err = registerRoutes(mux, []route{
 		{
@@ -274,11 +274,11 @@ func Run() error {
 		return err
 	}
 
-	println()
+	printfln("")
 	printfln("Serving files at %s", url)
-	println()
-	println("Ready to accept connections")
-	println()
+	printfln("")
+	printfln("Ready to accept connections")
+	printfln("")
 
 	return http.Serve(listener, logging.LogRequests(mux))
 }

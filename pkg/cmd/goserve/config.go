@@ -38,10 +38,6 @@ func printConfigs(configs []config) error {
 	return tab.Flush()
 }
 
-func println(args ...any) {
-	fmt.Fprint(os.Stdout, sprintfln(fmt.Sprint(args...)))
-}
-
 func printfln(format string, args ...any) {
 	fmt.Fprint(os.Stdout, sprintfln(format, args...))
 }
