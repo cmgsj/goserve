@@ -5,104 +5,88 @@ import (
 	"time"
 )
 
-var DefaultFlagSet = NewFlagSet(os.Args[0], ExitOnError)
+var DefaultVars = NewVars(os.Args[0], ExitOnError)
 
 func BindEnv() bool {
-	return DefaultFlagSet.BindEnv()
+	return DefaultVars.BindEnv()
 }
 
 func SetBindEnv(bindEnv bool) {
-	DefaultFlagSet.SetBindEnv(bindEnv)
+	DefaultVars.SetBindEnv(bindEnv)
 }
 
 func EnvPrefix() string {
-	return DefaultFlagSet.EnvPrefix()
+	return DefaultVars.EnvPrefix()
 }
 
 func SetEnvPrefix(envPrefix string) {
-	DefaultFlagSet.SetEnvPrefix(envPrefix)
+	DefaultVars.SetEnvPrefix(envPrefix)
+}
+
+func Name() string {
+	return DefaultVars.Name()
 }
 
 func Usage() {
-	DefaultFlagSet.Usage()
+	DefaultVars.Usage()
 }
 
-func SetUsage(usage func(*FlagSet)) {
-	DefaultFlagSet.SetUsage(usage)
+func SetUsage(usage func(*Vars)) {
+	DefaultVars.SetUsage(usage)
 }
 
 func PrintDefaults() {
-	DefaultFlagSet.PrintDefaults()
-}
-
-func Parse() error {
-	return DefaultFlagSet.Parse(os.Args[1:])
-}
-
-func Parsed() bool {
-	return DefaultFlagSet.Parsed()
+	DefaultVars.PrintDefaults()
 }
 
 func Arg(i int) string {
-	return DefaultFlagSet.Arg(i)
+	return DefaultVars.Arg(i)
 }
 
 func Args() []string {
-	return DefaultFlagSet.Args()
+	return DefaultVars.Args()
 }
 
 func NArg() int {
-	return DefaultFlagSet.NArg()
+	return DefaultVars.NArg()
 }
 
-func Set(name, value string) error {
-	return DefaultFlagSet.Set(name, value)
+func Parse() error {
+	return DefaultVars.Parse(os.Args[1:])
 }
 
-func Lookup(name string) *FlagInfo {
-	return DefaultFlagSet.Lookup(name)
+func Parsed() bool {
+	return DefaultVars.Parsed()
 }
 
-func NFlag() int {
-	return DefaultFlagSet.NFlag()
+func Bool(name, usage string, opts ...VarOption[bool]) *Var[bool] {
+	return DefaultVars.Bool(name, usage, opts...)
 }
 
-func Visit(fn func(*FlagInfo)) {
-	DefaultFlagSet.Visit(fn)
+func Int(name, usage string, opts ...VarOption[int]) *Var[int] {
+	return DefaultVars.Int(name, usage, opts...)
 }
 
-func VisitAll(fn func(*FlagInfo)) {
-	DefaultFlagSet.VisitAll(fn)
+func Int64(name, usage string, opts ...VarOption[int64]) *Var[int64] {
+	return DefaultVars.Int64(name, usage, opts...)
 }
 
-func Bool(name, usage string, opts ...FlagOption[bool]) *Flag[bool] {
-	return DefaultFlagSet.Bool(name, usage, opts...)
+func Uint(name, usage string, opts ...VarOption[uint]) *Var[uint] {
+	return DefaultVars.Uint(name, usage, opts...)
 }
 
-func Int(name, usage string, opts ...FlagOption[int]) *Flag[int] {
-	return DefaultFlagSet.Int(name, usage, opts...)
+func Uint64(name, usage string, opts ...VarOption[uint64]) *Var[uint64] {
+	return DefaultVars.Uint64(name, usage, opts...)
 }
 
-func Int64(name, usage string, opts ...FlagOption[int64]) *Flag[int64] {
-	return DefaultFlagSet.Int64(name, usage, opts...)
+func Float64(name, usage string, opts ...VarOption[float64]) *Var[float64] {
+	return DefaultVars.Float64(name, usage, opts...)
 }
 
-func Uint(name, usage string, opts ...FlagOption[uint]) *Flag[uint] {
-	return DefaultFlagSet.Uint(name, usage, opts...)
+func Duration(name, usage string, opts ...VarOption[time.Duration]) *Var[time.Duration] {
+	return DefaultVars.Duration(name, usage, opts...)
 }
 
-func Uint64(name, usage string, opts ...FlagOption[uint64]) *Flag[uint64] {
-	return DefaultFlagSet.Uint64(name, usage, opts...)
-}
-
-func Float64(name, usage string, opts ...FlagOption[float64]) *Flag[float64] {
-	return DefaultFlagSet.Float64(name, usage, opts...)
-}
-
-func Duration(name, usage string, opts ...FlagOption[time.Duration]) *Flag[time.Duration] {
-	return DefaultFlagSet.Duration(name, usage, opts...)
-}
-
-func String(name, usage string, opts ...FlagOption[string]) *Flag[string] {
-	return DefaultFlagSet.String(name, usage, opts...)
+func String(name, usage string, opts ...VarOption[string]) *Var[string] {
+	return DefaultVars.String(name, usage, opts...)
 }

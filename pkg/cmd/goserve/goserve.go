@@ -40,11 +40,11 @@ var (
 func Run() error {
 	cli.SetEnvPrefix("goserve")
 
-	cli.SetUsage(func(flagSet *cli.FlagSet) {
+	cli.SetUsage(func(vars *cli.Vars) {
 		fmt.Printf("HTTP file server\n\n")
 		fmt.Printf("Usage:\n  goserve [flags] PATH\n\n")
 		fmt.Printf("Flags:\n")
-		flagSet.PrintDefaults()
+		vars.PrintDefaults()
 	})
 
 	err := cli.Parse()
