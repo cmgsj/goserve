@@ -15,7 +15,7 @@ type Vars struct {
 
 func NewVars(name string, errorHandling ErrorHandling) *Vars {
 	return &Vars{
-		flagSet:       flag.NewFlagSet(name, flag.ErrorHandling(errorHandling)),
+		flagSet:       flag.NewFlagSet(name, flag.ContinueOnError),
 		errorHandling: errorHandling,
 	}
 }

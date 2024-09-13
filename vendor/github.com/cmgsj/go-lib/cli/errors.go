@@ -24,14 +24,18 @@ func handleError(errorHandling ErrorHandling, err error) error {
 		return err
 
 	case ExitOnError:
+		if err == flag.ErrHelp {
+			os.Exit(0)
+		}
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 
 	case PanicOnError:
 		panic(err)
 
 	default:
-		panic(fmt.Sprintf("unknown cli error handling: %d", errorHandling))
+		panic(fmt.Sprintf("unknown error handling: %d", errorHandling))
 	}
 
-	return err
+	return nil
 }
