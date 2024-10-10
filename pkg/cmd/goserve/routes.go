@@ -35,10 +35,12 @@ func redirect(url string, code int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		dst := url
 
-		if strings.Contains(dst, "?") {
-			dst += "&" + r.URL.RawQuery
-		} else {
-			dst += "?" + r.URL.RawQuery
+		if r.URL.RawQuery != "" {
+			sep := "?"
+			if strings.Contains(dst, "?") {
+				sep = "&"
+			}
+			dst += sep + r.URL.RawQuery
 		}
 
 		http.Redirect(w, r, dst, code)
