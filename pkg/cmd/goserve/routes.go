@@ -3,6 +3,7 @@ package goserve
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type route struct {
@@ -28,6 +29,20 @@ func registerRoutes(mux *http.ServeMux, routes []route) error {
 	}
 
 	return printConfigs(configs)
+}
+
+func redirect(url string, code int) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		dst := url
+
+		if strings.Contains(dst, "?") {
+			dst += "&" + r.URL.RawQuery
+		} else {
+			dst += "?" + r.URL.RawQuery
+		}
+
+		http.Redirect(w, r, dst, code)
+	})
 }
 
 func health() http.Handler {

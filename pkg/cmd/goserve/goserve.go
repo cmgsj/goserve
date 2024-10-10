@@ -245,7 +245,7 @@ func Run() error {
 		{
 			pattern:     "/",
 			description: "Redirect /files",
-			handler:     http.RedirectHandler("/files", http.StatusMovedPermanently),
+			handler:     redirect("/files", http.StatusMovedPermanently),
 		},
 		{
 			pattern:     "GET /files",
