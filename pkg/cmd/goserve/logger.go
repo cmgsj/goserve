@@ -2,42 +2,25 @@ package goserve
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"strings"
 )
 
-func initLogger() error {
+type loggerOptions struct {
+	format string
+	level  string
+}
+
+func initLogger(o loggerOptions) error {
 	var level slog.Level
 
-	err := level.UnmarshalText([]byte(logLevel.Value()))
+	err := level.UnmarshalText([]byte(o.level))
 	if err != nil {
 		return err
 	}
 
-	var out io.Writer
-
-	if silent.Value() || quiet.Value() {
-		logOutput.SetValue("none")
-	}
-
-	switch strings.ToLower(logOutput.Value()) {
-	case "stdout":
-		out = os.Stdout
-
-	case "stderr":
-		out = os.Stderr
-
-	case "none":
-		out = io.Discard
-
-	default:
-		out, err = os.Create(logOutput.Value())
-		if err != nil {
-			return err
-		}
-	}
+	out := os.Stdout
 
 	var handler slog.Handler
 
@@ -45,7 +28,7 @@ func initLogger() error {
 		Level: level,
 	}
 
-	switch strings.ToLower(logFormat.Value()) {
+	switch strings.ToLower(o.format) {
 	case "json":
 		handler = slog.NewJSONHandler(out, opts)
 
@@ -53,7 +36,7 @@ func initLogger() error {
 		handler = slog.NewTextHandler(out, opts)
 
 	default:
-		return fmt.Errorf("invalid log format %q", logFormat.Value())
+		return fmt.Errorf("invalid log format %q", o.format)
 	}
 
 	slog.SetDefault(slog.New(handler))

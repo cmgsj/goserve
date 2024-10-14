@@ -43,8 +43,5 @@ func printfln(format string, args ...any) {
 }
 
 func sprintfln(format string, args ...any) string {
-	if silent.Value() || quiet.Value() {
-		return ""
-	}
 	return fmt.Sprintf("# "+format+"\n", args...)
 }

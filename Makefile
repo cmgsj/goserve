@@ -1,12 +1,16 @@
 SHELL := /bin/bash
 
+MODULE := $$(go list -m)
+
 .PHONY: default
-default: fmt build install
+default: fmt install
 
 .PHONY: fmt
 fmt:
-	@go fmt ./...
-	@goimports -w -local github.com/cmgsj/goserve $$(find . -type f -name "*.go" ! -path "./vendor/*")
+	@find . -type f -name "*.go" ! -path "./vendor/*" | while read -r file; do \
+		go fmt "$${file}" 2>&1 | grep -v "is a program, not an importable package"; \
+		goimports -w -local $(MODULE) "$${file}"; \
+	done
 
 .PHONY: test
 test:
@@ -35,7 +39,7 @@ binary:
 	fi; \
 	ldflags="-s -w -extldflags='-static'"; \
 	if [[ -n "$${version}" ]]; then \
-		ldflags+=" -X 'github.com/cmgsj/goserve/pkg/cmd/goserve.v=$${version}'"; \
+		ldflags+=" -X '$(MODULE)/pkg/cmd/goserve.version=$${version}'"; \
 	fi; \
 	flags=(-trimpath -ldflags="$${ldflags}"); \
 	if [[ "$${cmd}" == "build" ]]; then \

@@ -3,7 +3,6 @@ package goserve
 import (
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"io/fs"
 	"net"
 	"net/http"
@@ -14,59 +13,70 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cmgsj/go-lib/cli"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/cmgsj/goserve/pkg/files"
 	"github.com/cmgsj/goserve/pkg/middleware/logging"
 )
 
-var (
-	exclude          = cli.String("exclude", "exclude file pattern")
-	host             = cli.String("host", "http host")
-	logFormat        = cli.String("log-format", "log format (json|text)", cli.Default("text"))
-	logLevel         = cli.String("log-level", "log level (debug|info|warn|error)", cli.Default("info"))
-	logOutput        = cli.String("log-output", "log output (stdout|stderr|FILE|none)", cli.Default("stderr"))
-	port             = cli.Uint64("port", "http port")
-	quiet            = cli.Bool("quiet", "quiet output")
-	silent           = cli.Bool("silent", "silent output")
-	tlsCert          = cli.String("tls-cert", "tls cert file")
-	tlsKey           = cli.String("tls-key", "tls key file")
-	uploads          = cli.Bool("uploads", "enable uploads")
-	uploadsDir       = cli.String("uploads-dir", "uploads directory")
-	uploadsTimestamp = cli.Bool("uploads-timestamp", "add upload timestamp")
-	version          = cli.Bool("version", "print version")
-)
+var version = "dev"
 
-func Run() error {
-	cli.SetEnvPrefix("goserve")
+func NewCommandGoserve() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "goserve",
+		Short: "HTTP file server.",
+		CompletionOptions: cobra.CompletionOptions{
+			HiddenDefaultCmd: true,
+		},
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		Args:          cobra.ExactArgs(1),
+		RunE:          run,
+		Version:       version,
+	}
 
-	cli.SetUsage(func(vars *cli.Vars) {
-		fmt.Printf("HTTP file server\n\n")
-		fmt.Printf("Usage:\n  goserve [flags] PATH\n\n")
-		fmt.Printf("Flags:\n")
-		vars.PrintDefaults()
+	cmd.Flags().String("exclude", "", "exclude file pattern")
+	cmd.Flags().String("host", "", "http host")
+	cmd.Flags().String("log-format", "text", "log format (json|text)")
+	cmd.Flags().String("log-level", "info", "log level (debug|info|warn|error)")
+	cmd.Flags().Uint64("port", 0, "http port")
+	cmd.Flags().String("tls-cert", "", "tls cert file")
+	cmd.Flags().String("tls-key", "", "tls key file")
+	cmd.Flags().Bool("uploads", false, "enable uploads")
+	cmd.Flags().String("uploads-dir", "", "uploads directory")
+	cmd.Flags().Bool("uploads-timestamp", false, "add upload timestamp")
+
+	viper.AutomaticEnv()
+	viper.AllowEmptyEnv(true)
+	viper.SetEnvPrefix("goserve")
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.BindPFlags(cmd.Flags())
+
+	return cmd
+}
+
+func run(cmd *cobra.Command, args []string) error {
+	exclude := viper.GetString("exclude")
+	host := viper.GetString("host")
+	logFormat := viper.GetString("log-format")
+	logLevel := viper.GetString("log-level")
+	port := viper.GetUint64("port")
+	tlsCert := viper.GetString("tls-cert")
+	tlsKey := viper.GetString("tls-key")
+	uploads := viper.GetBool("uploads")
+	uploadsDir := viper.GetString("uploads-dir")
+	uploadsTimestamp := viper.GetBool("uploads-timestamp")
+
+	err := initLogger(loggerOptions{
+		format: logFormat,
+		level:  logLevel,
 	})
-
-	err := cli.Parse()
 	if err != nil {
 		return err
 	}
 
-	if version.Value() {
-		fmt.Println(Version())
-		return nil
-	}
-
-	err = initLogger()
-	if err != nil {
-		return err
-	}
-
-	if len(cli.Args()) != 1 {
-		return fmt.Errorf("accepts %d arg(s), received %d", 1, len(cli.Args()))
-	}
-
-	root := cli.Arg(0)
+	root := args[0]
 
 	root, err = filepath.Abs(root)
 	if err != nil {
@@ -92,53 +102,53 @@ func Run() error {
 
 	var excludePattern *regexp.Regexp
 
-	if exclude.Value() != "" {
-		excludePattern, err = regexp.Compile(exclude.Value())
+	if exclude != "" {
+		excludePattern, err = regexp.Compile(exclude)
 		if err != nil {
 			return err
 		}
 	}
 
-	if uploads.Value() {
-		if uploadsDir.Value() == "" {
-			uploadsDir.SetValue(os.TempDir())
+	if uploads {
+		if uploadsDir == "" {
+			uploadsDir = os.TempDir()
 		}
 
-		uploadsDirAbs, err := filepath.Abs(uploadsDir.Value())
+		uploadsDirAbs, err := filepath.Abs(uploadsDir)
 		if err != nil {
 			return err
 		}
 
-		uploadsDir.SetValue(uploadsDirAbs)
+		uploadsDir = uploadsDirAbs
 
-		_, err = os.Stat(uploadsDir.Value())
+		_, err = os.Stat(uploadsDir)
 		if err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}
 
-			err = os.MkdirAll(uploadsDir.Value(), 0755)
+			err = os.MkdirAll(uploadsDir, 0755)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	serveTLS := tlsCert.Value() != "" && tlsKey.Value() != ""
+	serveTLS := tlsCert != "" && tlsKey != ""
 
-	if host.Value() == "" {
-		host.SetValue("0.0.0.0")
+	if host == "" {
+		host = "0.0.0.0"
 	}
 
-	if port.Value() == 0 {
+	if port == 0 {
 		if serveTLS {
-			port.SetValue(443)
+			port = 443
 		} else {
-			port.SetValue(80)
+			port = 80
 		}
 	}
 
-	address := net.JoinHostPort(host.Value(), strconv.FormatUint(port.Value(), 10))
+	address := net.JoinHostPort(host, strconv.FormatUint(port, 10))
 
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
@@ -150,7 +160,7 @@ func Run() error {
 	if serveTLS {
 		scheme = "https"
 
-		certificate, err := tls.LoadX509KeyPair(tlsCert.Value(), tlsKey.Value())
+		certificate, err := tls.LoadX509KeyPair(tlsCert, tlsKey)
 		if err != nil {
 			return err
 		}
@@ -168,9 +178,9 @@ func Run() error {
 	controller := files.NewController(fileSystem, files.ControllerConfig{
 		FilesURL:         "/files",
 		ExcludePattern:   excludePattern,
-		Uploads:          uploads.Value(),
-		UploadsDir:       uploadsDir.Value(),
-		UploadsTimestamp: uploadsTimestamp.Value(),
+		Uploads:          uploads,
+		UploadsDir:       uploadsDir,
+		UploadsTimestamp: uploadsTimestamp,
 		Version:          Version(),
 	})
 
@@ -195,11 +205,11 @@ func Run() error {
 		},
 		{
 			key:   "Host",
-			value: host.Value(),
+			value: host,
 		},
 		{
 			key:   "Port",
-			value: port.Value(),
+			value: port,
 		},
 		{
 			key:      "Exclude Pattern",
@@ -208,29 +218,25 @@ func Run() error {
 		},
 		{
 			key:      "Uploads Dir",
-			value:    uploadsDir.Value(),
-			disabled: !uploads.Value(),
+			value:    uploadsDir,
+			disabled: !uploads,
 		},
 		{
 			key:   "Log Level",
-			value: logLevel.Value(),
+			value: logLevel,
 		},
 		{
 			key:   "Log Format",
-			value: logFormat.Value(),
-		},
-		{
-			key:   "Log Output",
-			value: logOutput.Value(),
+			value: logFormat,
 		},
 		{
 			key:      "TLS Cert",
-			value:    tlsCert.Value(),
+			value:    tlsCert,
 			disabled: !serveTLS,
 		},
 		{
 			key:      "TLS Key",
-			value:    tlsKey.Value(),
+			value:    tlsKey,
 			disabled: !serveTLS,
 		},
 	})
@@ -262,7 +268,7 @@ func Run() error {
 			pattern:     "POST /files",
 			description: "Upload File",
 			handler:     controller.UploadFile(),
-			disabled:    !uploads.Value(),
+			disabled:    !uploads,
 		},
 		{
 			pattern:     "GET /health",
