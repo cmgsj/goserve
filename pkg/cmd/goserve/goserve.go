@@ -181,7 +181,7 @@ func run(cmd *cobra.Command, args []string) error {
 		Uploads:          uploads,
 		UploadsDir:       uploadsDir,
 		UploadsTimestamp: uploadsTimestamp,
-		Version:          Version(),
+		Version:          version,
 	})
 
 	mux := http.NewServeMux()
