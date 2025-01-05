@@ -37,4 +37,3 @@ chmod +x /tmp/goserve
 
 sudo mv /tmp/goserve /usr/local/bin
 ```
-
