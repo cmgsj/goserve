@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -21,12 +22,21 @@ import (
 	"github.com/cmgsj/goserve/pkg/middleware/logging"
 )
 
+var banner = heredoc.Doc(`
+   __________  ________  ______   _____
+  / __  / __ \/ ___/ _ \/ ___/ | / / _ \
+ / /_/ / /_/ (__  )  __/ /   | |/ /  __/
+ \__, /\____/____/\___/_/    |___/\___/
+/____/
+`)
+
 var version = "dev"
 
 func NewCommandGoserve() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "goserve",
-		Short: "HTTP file server.",
+		Use:   "goserve {file | dir}",
+		Short: "HTTP file server",
+		Long:  banner + "\n" + "HTTP file server",
 		CompletionOptions: cobra.CompletionOptions{
 			HiddenDefaultCmd: true,
 		},
@@ -39,9 +49,9 @@ func NewCommandGoserve() *cobra.Command {
 
 	cmd.Flags().String("exclude", "", "exclude file pattern")
 	cmd.Flags().String("host", "", "http host")
-	cmd.Flags().String("log-format", "text", "log format (json|text)")
-	cmd.Flags().String("log-level", "info", "log level (debug|info|warn|error)")
-	cmd.Flags().Bool("open", false, "open broser")
+	cmd.Flags().String("log-format", "text", "log format {json | text}")
+	cmd.Flags().String("log-level", "info", "log level {debug | info | warn | error}")
+	cmd.Flags().Bool("open", false, "open browser")
 	cmd.Flags().Uint64("port", 0, "http port")
 	cmd.Flags().String("tls-cert", "", "tls cert file")
 	cmd.Flags().String("tls-key", "", "tls key file")
@@ -190,13 +200,9 @@ func run(cmd *cobra.Command, args []string) error {
 	mux := http.NewServeMux()
 
 	printfln("")
-	printfln(`   __________  ________  ______   _____ `)
-	printfln(`  / __  / __ \/ ___/ _ \/ ___/ | / / _ \`)
-	printfln(` / /_/ / /_/ (__  )  __/ /   | |/ /  __/`)
-	printfln(` \__, /\____/____/\___/_/    |___/\___/ `)
-	printfln(`/____/                                  `)
-	printfln("")
-	printfln("")
+	for _, line := range strings.Split(banner, "\n") {
+		printfln(line)
+	}
 	printfln("Starting HTTP file server")
 	printfln("")
 	printfln("Config:")
