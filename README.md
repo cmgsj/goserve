@@ -24,10 +24,10 @@ arch="arm64"
 version=""
 
 if [[ -z "${version}" ]]; then
-    version="$(curl -sSL "https://api.github.com/repos/cmgsj/goserve/releases/latest" | jq -r '.tag_name' | sed 's/^v//')"
+    version="$(curl -fsSL "https://api.github.com/repos/cmgsj/goserve/releases/latest" | jq -r '.tag_name' | sed 's/^v//')"
 fi
 
-curl -sSLo /tmp/goserve.tar.gz "https://github.com/cmgsj/goserve/releases/download/v${version}/goserve_${version}_${os}_${arch}.tar.gz"
+curl -fsSLo /tmp/goserve.tar.gz "https://github.com/cmgsj/goserve/releases/download/v${version}/goserve_${version}_${os}_${arch}.tar.gz"
 
 tar xzvf /tmp/goserve.tar.gz -C /tmp
 
