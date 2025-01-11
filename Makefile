@@ -3,15 +3,32 @@ SHELL := /bin/bash
 MODULE := $$(go list -m)
 
 .PHONY: default
-default: fmt install
+default: tidy fmt generate build
+
+.PHONY: upgrade
+upgrade:
+	@go list -m -f '{{if and (not .Main) (not .Indirect)}}{{.Path}}{{end}}' all | xargs go get; \
+	$(MAKE) tidy
+
+.PHONY: tidy
+tidy:
+	@go mod tidy
 
 .PHONY: fmt
 fmt:
-	@find . -type f -name "*.go" ! -path "./vendor/*" | while read -r file; do \
-		go fmt "$${file}" 2>&1 | grep -v "is a program, not an importable package"; \
-		goimports -w -local $(MODULE) "$${file}"; \
-	done
+	@go fmt ./...; \
+	goimports -w -local $(MODULE) .
 
+.PHONY: generate
+generate:
+	@go generate ./...
+
+.PHONY: lint
+lint:
+	@go vet ./...; \
+	golangci-lint run ./...; \
+	govulncheck ./...
+ 
 .PHONY: test
 test:
 	@go test -v ./...
@@ -46,4 +63,5 @@ binary:
 		flags+=(-o "bin/goserve"); \
 	fi; \
 	echo "$${cmd}ing goserve@$${version} $$(go env GOOS)/$$(go env GOARCH) cgo=$$(go env CGO_ENABLED)"; \
+	go mod download; \
 	go "$${cmd}" "$${flags[@]}" .

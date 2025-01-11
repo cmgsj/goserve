@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -40,6 +41,7 @@ func NewCommandGoserve() *cobra.Command {
 	cmd.Flags().String("host", "", "http host")
 	cmd.Flags().String("log-format", "text", "log format (json|text)")
 	cmd.Flags().String("log-level", "info", "log level (debug|info|warn|error)")
+	cmd.Flags().Bool("open", false, "open broser")
 	cmd.Flags().Uint64("port", 0, "http port")
 	cmd.Flags().String("tls-cert", "", "tls cert file")
 	cmd.Flags().String("tls-key", "", "tls key file")
@@ -64,6 +66,7 @@ func run(cmd *cobra.Command, args []string) error {
 	port := viper.GetUint64("port")
 	tlsCert := viper.GetString("tls-cert")
 	tlsKey := viper.GetString("tls-key")
+	open := viper.GetBool("open")
 	uploads := viper.GetBool("uploads")
 	uploadsDir := viper.GetString("uploads-dir")
 	uploadsTimestamp := viper.GetBool("uploads-timestamp")
@@ -285,6 +288,10 @@ func run(cmd *cobra.Command, args []string) error {
 	printfln("")
 	printfln("Ready to accept connections")
 	printfln("")
+
+	if open {
+		go browser.OpenURL(url.String())
+	}
 
 	return http.Serve(listener, logging.LogRequests(mux))
 }

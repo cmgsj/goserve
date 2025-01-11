@@ -3,6 +3,7 @@ module github.com/cmgsj/goserve
 go 1.23.0
 
 require (
+	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 )
