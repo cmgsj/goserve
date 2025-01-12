@@ -151,8 +151,10 @@ func (c *Controller) requestHandler(r *http.Request) handler {
 	switch r.URL.Query().Get("content") {
 	case "html":
 		return c.htmlHandler
+
 	case "json":
 		return c.jsonHandler
+
 	case "text":
 		return c.textHandler
 	}
@@ -160,8 +162,10 @@ func (c *Controller) requestHandler(r *http.Request) handler {
 	switch r.Header.Get("Content-Type") {
 	case "text/html":
 		return c.htmlHandler
+
 	case "application/json":
 		return c.jsonHandler
+
 	case "text/plain":
 		return c.textHandler
 	}
