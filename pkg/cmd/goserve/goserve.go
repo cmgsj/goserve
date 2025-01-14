@@ -34,7 +34,7 @@ var version = "dev"
 
 func NewCommandGoserve() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "goserve {file | dir}",
+		Use:   "goserve {file|dir}",
 		Short: "HTTP file server",
 		Long:  banner + "\n" + "HTTP file server",
 		CompletionOptions: cobra.CompletionOptions{
@@ -49,8 +49,8 @@ func NewCommandGoserve() *cobra.Command {
 
 	cmd.Flags().String("exclude", "", "exclude file pattern")
 	cmd.Flags().String("host", "", "http host")
-	cmd.Flags().String("log-format", "text", "log format {json | text}")
-	cmd.Flags().String("log-level", "info", "log level {debug | info | warn | error}")
+	cmd.Flags().String("log-format", "text", "log format {json|text}")
+	cmd.Flags().String("log-level", "info", "log level {debug|info|warn|error}")
 	cmd.Flags().Bool("open", false, "open browser")
 	cmd.Flags().Uint64("port", 0, "http port")
 	cmd.Flags().String("tls-cert", "", "tls cert file")
