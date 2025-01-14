@@ -33,9 +33,7 @@ type ControllerConfig struct {
 }
 
 func NewController(fileSystem fs.FS, config ControllerConfig) *Controller {
-	if config.FilesURL == "" {
-		config.FilesURL = "/"
-	}
+	config.FilesURL = strings.TrimSuffix(config.FilesURL, "/")
 
 	return &Controller{
 		fileSystem:  fileSystem,
@@ -155,7 +153,7 @@ func (c *Controller) requestHandler(r *http.Request) handler {
 	case "json":
 		return c.jsonHandler
 
-	case "text":
+	case "text", "plain":
 		return c.textHandler
 	}
 

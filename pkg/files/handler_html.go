@@ -81,7 +81,10 @@ func (h htmlHandler) handleError(w http.ResponseWriter, r *http.Request, err err
 
 func (h htmlHandler) handle(w http.ResponseWriter, params indexParams) error {
 	params.FilesURL = h.filesURL
+
 	params.Uploads = h.uploads
+
 	params.Version = h.version
+
 	return indexTmpl.Execute(w, params)
 }
