@@ -31,7 +31,7 @@ jobs:
           make build version=docs
           bin/goserve --exclude='^(\.git|bin)$' --port 1234 . &>/dev/null &
           sleep 1
-          curl -sSL "http://localhost:1234/files" >docs/index.html
+          curl -sSL "http://localhost:1234" >docs/index.html
           kill -9 %1
 
       - name: Commit Changes

@@ -189,7 +189,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	controller := files.NewController(fileSystem, files.ControllerConfig{
-		FilesURL:         "/files",
+		FilesURL:         "/",
 		ExcludePattern:   excludePattern,
 		Uploads:          uploads,
 		UploadsDir:       uploadsDir,
@@ -258,31 +258,22 @@ func run(cmd *cobra.Command, args []string) error {
 
 	err = registerRoutes(mux, []route{
 		{
-			pattern:     "/",
-			description: "Redirect /files",
-			handler:     redirect("/files", http.StatusMovedPermanently),
-		},
-		{
-			pattern:     "GET /files",
-			description: "List Files",
+			pattern:     "GET /",
+			description: "Get File",
 			handler:     controller.ListFiles(),
+			disabled:    rootInfo.IsDir(),
 		},
 		{
-			pattern:     "GET /files/{file...}",
+			pattern:     "GET /{file...}",
 			description: "List Files",
 			handler:     controller.ListFiles(),
 			disabled:    !rootInfo.IsDir(),
 		},
 		{
-			pattern:     "POST /files",
+			pattern:     "POST /",
 			description: "Upload File",
 			handler:     controller.UploadFile(),
 			disabled:    !uploads,
-		},
-		{
-			pattern:     "GET /health",
-			description: "Health Check",
-			handler:     health(),
 		},
 	})
 	if err != nil {
