@@ -40,7 +40,7 @@ type htmlHandler struct {
 
 func newHTMLHandler(filesURL string, uploads bool, version string) htmlHandler {
 	return htmlHandler{
-		filesURL: filesURL,
+		filesURL: strings.TrimSuffix(filesURL, "/"),
 		uploads:  uploads,
 		version:  version,
 	}

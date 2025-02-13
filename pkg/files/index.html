@@ -16,7 +16,11 @@ $filesDownloadURL = "https://raw.githubusercontent.com/cmgsj/goserve/main" -}}
   <body class="body">
     <header class="header">
       <label class="header_label">
-        <a class="header_breadcrumb" href="{{ $filesHTMLURL }}">Home</a>
+        <a
+          class="header_breadcrumb"
+          href="{{ if $filesHTMLURL }}{{ $filesHTMLURL }}{{ else }}/{{ end }}"
+          >Home</a
+        >
         {{- if not $params.Error -}} {{- range $file := $params.Data.Breadcrumbs
         -}}/<a
           class="header_breadcrumb"
@@ -57,7 +61,7 @@ $filesDownloadURL = "https://raw.githubusercontent.com/cmgsj/goserve/main" -}}
         <form
           id="upload_form"
           enctype="multipart/form-data"
-          action="{{ $filesHTMLURL }}"
+          action="{{ if $filesHTMLURL }}{{ $filesHTMLURL }}{{ else }}/{{ end }}"
           method="post"
           style="display: none"
         >

@@ -33,8 +33,6 @@ type ControllerConfig struct {
 }
 
 func NewController(fileSystem fs.FS, config ControllerConfig) *Controller {
-	config.FilesURL = strings.TrimSuffix(config.FilesURL, "/")
-
 	return &Controller{
 		fileSystem:  fileSystem,
 		htmlHandler: newHTMLHandler(config.FilesURL, config.Uploads, config.Version),

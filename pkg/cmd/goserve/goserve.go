@@ -89,25 +89,26 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	root := args[0]
+	path := args[0]
 
-	root, err = filepath.Abs(root)
+	path, err = filepath.Abs(path)
 	if err != nil {
 		return err
 	}
 
-	rootInfo, err := os.Stat(root)
+	pathInfo, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
 
 	var fileSystem fs.FS
 
-	if rootInfo.IsDir() {
-		fileSystem = os.DirFS(root)
+	if pathInfo.IsDir() {
+		fileSystem = os.DirFS(path)
 	} else {
-		fileSystem = os.DirFS(filepath.Dir(root))
-		fileSystem, err = fs.Sub(fileSystem, filepath.Base(root))
+		fileSystem = os.DirFS(filepath.Dir(path))
+
+		fileSystem, err = fs.Sub(fileSystem, filepath.Base(path))
 		if err != nil {
 			return err
 		}
@@ -209,8 +210,8 @@ func run(cmd *cobra.Command, args []string) error {
 
 	err = printConfigs([]config{
 		{
-			key:   "Root",
-			value: root,
+			key:   "Path",
+			value: path,
 		},
 		{
 			key:   "Host",
@@ -261,13 +262,13 @@ func run(cmd *cobra.Command, args []string) error {
 			pattern:     "GET /",
 			description: "Get File",
 			handler:     controller.ListFiles(),
-			disabled:    rootInfo.IsDir(),
+			disabled:    pathInfo.IsDir(),
 		},
 		{
 			pattern:     "GET /{file...}",
 			description: "List Files",
 			handler:     controller.ListFiles(),
-			disabled:    !rootInfo.IsDir(),
+			disabled:    !pathInfo.IsDir(),
 		},
 		{
 			pattern:     "POST /",

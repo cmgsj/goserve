@@ -17,7 +17,7 @@ tidy:
 .PHONY: fmt
 fmt:
 	@go fmt ./...; \
-	goimports -w -local $(MODULE) .
+	go tool goimports -w -local $(MODULE) .
 
 .PHONY: generate
 generate:
