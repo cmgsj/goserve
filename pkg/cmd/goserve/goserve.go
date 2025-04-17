@@ -141,7 +141,7 @@ func run(cmd *cobra.Command, args []string) error {
 				return err
 			}
 
-			err = os.MkdirAll(uploadsDir, 0755)
+			err = os.MkdirAll(uploadsDir, 0o755)
 			if err != nil {
 				return err
 			}

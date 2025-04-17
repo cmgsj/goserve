@@ -5,19 +5,28 @@ MODULE := $$(go list -m)
 .PHONY: default
 default: tidy fmt generate build
 
-.PHONY: upgrade
-upgrade:
-	@go list -m -f '{{if and (not .Main) (not .Indirect)}}{{.Path}}{{end}}' all | xargs go get; \
-	$(MAKE) tidy
+.PHONY: tools
+tools:
+	@go -C tools install tool
+
+.PHONY: update
+update:
+	@go -C tools get $$(go -C tools mod edit -json | jq -r '.Tool[].Path')
+	@go get $$(go mod edit -json | jq -r '.Require[] | select(.Indirect | not) | .Path')
+	@$(MAKE) tidy
+	@$(MAKE) tools
+	@$(MAKE) build
 
 .PHONY: tidy
 tidy:
+	@go -C tools mod tidy
+	@go -C tools mod download
 	@go mod tidy
+	@go mod download
 
 .PHONY: fmt
 fmt:
-	@go fmt ./...; \
-	go tool goimports -w -local $(MODULE) .
+	@gofumpt -l -w -extra .
 
 .PHONY: generate
 generate:
@@ -25,13 +34,21 @@ generate:
 
 .PHONY: lint
 lint:
-	@go vet ./...; \
-	golangci-lint run ./...; \
-	govulncheck ./...
+	@go vet ./...
+	@golangci-lint run ./...
+	@govulncheck ./...
  
 .PHONY: test
 test:
-	@go test -v ./...
+	@go test -coverprofile=cover.out -race ./...
+
+.PHONY: cover/html
+cover/html: test
+	@go tool cover -html=cover.out
+
+.PHONY: cover/func
+cover/func: test
+	@go tool cover -func=cover.out
 
 .PHONY: build
 build:
@@ -62,6 +79,9 @@ binary:
 	if [[ "$${cmd}" == "build" ]]; then \
 		flags+=(-o "bin/goserve"); \
 	fi; \
-	echo "$${cmd}ing goserve@$${version} $$(go env GOOS)/$$(go env GOARCH) cgo=$$(go env CGO_ENABLED)"; \
-	go mod download; \
-	go "$${cmd}" "$${flags[@]}" .
+	echo "$${cmd}ing goserve@$${version}"; \
+	CGO_ENABLED=0 go "$${cmd}" "$${flags[@]}" .
+
+.PHONY: clean
+clean:
+	@rm -f bin/*

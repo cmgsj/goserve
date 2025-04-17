@@ -114,7 +114,7 @@ func (c *Controller) UploadFile() http.Handler {
 			return
 		}
 
-		osFile, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
+		osFile, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0o644)
 		if err != nil {
 			c.handleError(w, r, handler, err, fsErrorStatusCode(err))
 			return
