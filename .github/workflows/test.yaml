@@ -20,8 +20,13 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Run Tests
+      - name: Test Code
         run: |
+          source .envrc
+          make tools
+          make tidy
+          make fmt
+          make generate
           make test
 
       - name: Generate Docs
