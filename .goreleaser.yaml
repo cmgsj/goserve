@@ -1,25 +1,36 @@
 version: 2
-archives:
-  - id: goserve
-    builds:
-      - goserve
-    files:
-      - "bin/*"
-changelog:
-  use: github-native
+
+before:
+  hooks:
+    - go mod tidy
+
 builds:
-  - id: goserve
-    binary: goserve
-    flags:
-      - -trimpath
-    ldflags:
-      - -s -w -extldflags '-static' -X 'github.com/cmgsj/goserve/pkg/cmd/goserve.version={{.Version}}'
+  - env:
+      - CGO_ENABLED=0
+
     goos:
       - darwin
       - linux
       - windows
-    goarch:
-      - amd64
-      - arm64
-    env:
-      - CGO_ENABLED=0
+
+    flags:
+      - -trimpath
+
+    ldflags:
+      - -s -w -extldflags '-static' -X 'github.com/cmgsj/goserve/pkg/cmd/goserve.version={{.Version}}'
+
+archives:
+  - formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+changelog:
+  use: github-native

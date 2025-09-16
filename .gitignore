@@ -21,19 +21,17 @@
 go.work
 
 # IDE directories
-/.idea
-/.vscode
-
-# Taskfile directory
-/.task
+.idea/
+.vscode/
 
 # asdf config
-/.tool-versions
+.tool-versions
 
 # tls config
-/tls
+tls/
 
-# binaries
-/bin
-/goserve
-/goserve.exe
+# builds
+bin/
+dist/
+goserve
+goserve.exe
