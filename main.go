@@ -8,7 +8,9 @@ import (
 )
 
 func main() {
-	err := goserve.NewCommandGoserve().Execute()
+	cmd := goserve.NewCommand()
+
+	err := cmd.Execute()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

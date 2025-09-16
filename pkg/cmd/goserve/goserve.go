@@ -32,7 +32,7 @@ var banner = heredoc.Doc(`
 
 var version = "dev"
 
-func NewCommandGoserve() *cobra.Command {
+func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "goserve {file|dir}",
 		Short: "HTTP file server",
