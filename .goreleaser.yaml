@@ -13,7 +13,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -s -w -extldflags '-static' -X github.com/cmgsj/goserve/pkg/cmd/goserve.v={{.Version}}
+      - -s -w -extldflags '-static' -X github.com/cmgsj/goserve/pkg/cmd/goserve.version={{.Version}}
     goos:
       - darwin
       - linux
