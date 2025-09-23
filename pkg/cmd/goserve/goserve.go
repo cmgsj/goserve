@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"io/fs"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -141,7 +142,7 @@ func run(cmd *cobra.Command, args []string) error {
 				return err
 			}
 
-			err = os.MkdirAll(uploadsDir, 0o755)
+			err = os.MkdirAll(uploadsDir, 0o750)
 			if err != nil {
 				return err
 			}
@@ -198,15 +199,15 @@ func run(cmd *cobra.Command, args []string) error {
 		Version:          version,
 	})
 
-	mux := http.NewServeMux()
+	printlnf("")
 
-	printfln("")
-	for _, line := range strings.Split(banner, "\n") {
-		printfln(line)
+	for line := range strings.SplitSeq(banner, "\n") {
+		printlnf(line)
 	}
-	printfln("Starting HTTP file server")
-	printfln("")
-	printfln("Config:")
+
+	printlnf("Starting HTTP file server")
+	printlnf("")
+	printlnf("Config:")
 
 	err = printConfigs([]config{
 		{
@@ -254,8 +255,10 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	printfln("")
-	printfln("Routes:")
+	mux := http.NewServeMux()
+
+	printlnf("")
+	printlnf("Routes:")
 
 	err = registerRoutes(mux, []route{
 		{
@@ -281,15 +284,22 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	printfln("")
-	printfln("Serving files at %s", url)
-	printfln("")
-	printfln("Ready to accept connections")
-	printfln("")
+	handler := logging.LogRequests(mux)
+
+	printlnf("")
+	printlnf("Serving files at %s", url)
+	printlnf("")
+	printlnf("Ready to accept connections")
+	printlnf("")
 
 	if open {
-		go browser.OpenURL(url.String())
+		go func() {
+			err := browser.OpenURL(url.String())
+			if err != nil {
+				slog.Error("failed to open url in browser", "error", err)
+			}
+		}()
 	}
 
-	return http.Serve(listener, logging.LogRequests(mux))
+	return http.Serve(listener, handler)
 }

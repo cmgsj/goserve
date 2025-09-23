@@ -17,6 +17,7 @@ func NewResponseRecorder(w http.ResponseWriter) ResponseRecorder {
 
 type responseRecorder struct {
 	http.ResponseWriter
+
 	statusCode   int
 	bytesWritten int64
 }
@@ -29,6 +30,7 @@ func (r *responseRecorder) WriteHeader(code int) {
 func (r *responseRecorder) Write(content []byte) (int, error) {
 	n, err := r.ResponseWriter.Write(content)
 	r.bytesWritten += int64(n)
+
 	return n, err
 }
 

@@ -26,6 +26,7 @@ func Compare(x, y File) int {
 		if x.IsDir {
 			return -1
 		}
+
 		return +1
 	}
 

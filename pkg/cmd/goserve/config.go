@@ -22,9 +22,9 @@ func printConfigs(configs []config) error {
 		}
 
 		if config.value == nil {
-			buf.WriteString(sprintfln("  %s", config.key))
+			buf.WriteString(sprintlnf("  %s", config.key))
 		} else {
-			buf.WriteString(sprintfln("  %s:\t%v", config.key, config.value))
+			buf.WriteString(sprintlnf("  %s:\t%v", config.key, config.value))
 		}
 	}
 
@@ -38,10 +38,10 @@ func printConfigs(configs []config) error {
 	return tab.Flush()
 }
 
-func printfln(format string, args ...any) {
-	fmt.Fprint(os.Stdout, sprintfln(format, args...))
+func printlnf(format string, args ...any) {
+	fmt.Fprint(os.Stdout, sprintlnf(format, args...))
 }
 
-func sprintfln(format string, args ...any) string {
+func sprintlnf(format string, args ...any) string {
 	return fmt.Sprintf("# "+format+"\n", args...)
 }

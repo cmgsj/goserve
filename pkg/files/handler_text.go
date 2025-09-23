@@ -24,12 +24,14 @@ func (h textHandler) handleDir(w http.ResponseWriter, r *http.Request, dir strin
 		} else {
 			buf.WriteString(file.Name)
 		}
+
 		if file.IsDir {
 			buf.WriteByte('/')
 		} else {
 			buf.WriteByte('\t')
 			buf.WriteString(file.Size)
 		}
+
 		buf.WriteByte('\n')
 	}
 
@@ -45,5 +47,6 @@ func (h textHandler) handleDir(w http.ResponseWriter, r *http.Request, dir strin
 
 func (h textHandler) handleError(w http.ResponseWriter, r *http.Request, err error, code int) error {
 	_, err = fmt.Fprintf(w, "%s\n\n%s\n", http.StatusText(code), err.Error())
+
 	return err
 }

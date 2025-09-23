@@ -16,13 +16,13 @@ func (h jsonHandler) handleDir(w http.ResponseWriter, r *http.Request, dir strin
 }
 
 func (h jsonHandler) handleError(w http.ResponseWriter, r *http.Request, err error, code int) error {
-	return h.handle(w, r, map[string]interface{}{
+	return h.handle(w, r, map[string]any{
 		"status":  http.StatusText(code),
 		"message": err.Error(),
 	})
 }
 
-func (h jsonHandler) handle(w http.ResponseWriter, r *http.Request, v interface{}) error {
+func (h jsonHandler) handle(w http.ResponseWriter, r *http.Request, v any) error {
 	compact := parseQueryBool(r.URL, "compact")
 
 	encoder := json.NewEncoder(w)

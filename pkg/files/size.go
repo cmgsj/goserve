@@ -39,13 +39,14 @@ func formatSize(size float64, precision int, unit float64) string {
 	return strconv.FormatFloat(size/unit, 'f', precision, 64) + sizeUnitString(unit)
 }
 
-func sizeUnit(size, min, max, factor float64) float64 {
-	for u := max; u > min; u /= factor {
+func sizeUnit(size, low, high, factor float64) float64 {
+	for u := high; u > low; u /= factor {
 		if size >= u {
 			return u
 		}
 	}
-	return min
+
+	return low
 }
 
 func sizeUnitString(size float64) string {

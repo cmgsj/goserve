@@ -6,12 +6,12 @@ MODULE := $$(go list -m)
 default: tidy fmt generate build
 
 .PHONY: tools
-tools:
+tools: tidy
 	@go -C tools install tool
 
 .PHONY: update
 update:
-	@go -C tools get $$(go -C tools mod edit -json | jq -r '.Tool[].Path')
+	@go -C tools get tool
 	@go get $$(go mod edit -json | jq -r '.Require[] | select(.Indirect | not) | .Path')
 	@$(MAKE) tidy
 	@$(MAKE) tools
@@ -26,7 +26,7 @@ tidy:
 
 .PHONY: fmt
 fmt:
-	@gofumpt -l -w -extra .
+	@golangci-lint fmt ./...
 
 .PHONY: generate
 generate:
@@ -34,10 +34,9 @@ generate:
 
 .PHONY: lint
 lint:
-	@go vet ./...
-	@golangci-lint run ./...
 	@govulncheck ./...
- 
+	@golangci-lint run ./...
+
 .PHONY: test
 test:
 	@go test -coverprofile=cover.out -race ./...
@@ -49,6 +48,11 @@ cover/html: test
 .PHONY: cover/func
 cover/func: test
 	@go tool cover -func=cover.out
+
+.PHONY: pprof/http
+pprof/http:
+	@go tool pprof -http=localhost:8081 http://localhost:8080/debug/pprof/profile
+	@open http://localhost:8081
 
 .PHONY: build
 build:
