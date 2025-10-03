@@ -33,5 +33,3 @@ tls/
 # builds
 bin/
 dist/
-goserve
-goserve.exe

@@ -105,9 +105,19 @@ func run(cmd *cobra.Command, args []string) error {
 	var fileSystem fs.FS
 
 	if pathInfo.IsDir() {
-		fileSystem = os.DirFS(path)
+		root, err := os.OpenRoot(path)
+		if err != nil {
+			return err
+		}
+
+		fileSystem = root.FS()
 	} else {
-		fileSystem = os.DirFS(filepath.Dir(path))
+		root, err := os.OpenRoot(filepath.Dir(path))
+		if err != nil {
+			return err
+		}
+
+		fileSystem = root.FS()
 
 		fileSystem, err = fs.Sub(fileSystem, filepath.Base(path))
 		if err != nil {
